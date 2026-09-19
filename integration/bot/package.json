@@ -6,6 +6,6 @@
   "dependencies": {
     "mineflayer": "^4.35.0",
     "rcon-client": "^4.2.4",
-    "vec3": "^0.1.10"
+    "vec3": "^0.2.0"
   }
 }
