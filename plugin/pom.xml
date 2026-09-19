@@ -101,7 +101,7 @@
 			<plugin>
 				<groupId>org.jacoco</groupId>
 				<artifactId>jacoco-maven-plugin</artifactId>
-				<version>0.8.14</version>
+				<version>0.8.15</version>
 				<configuration>
 					<!-- Excluded so the coverage figure tracks logic we could actually
 					     get wrong. SoundCompat is a 500-constant enum of Bukkit sound
