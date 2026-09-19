@@ -1,20 +1,21 @@
 # ArtMap integration tests
 
 Boots a real Paper server in Docker with the built ArtMap jar + ProtocolLib,
-and runs in three phases:
+and runs three phases against it. The single `integration` CI job runs all of
+them on every pipeline; nothing is gated or manual.
 
-1. **Load check** (always): waits for the server to finish starting and
-   verifies ArtMap enabled without being disabled or rejected. This is what
-   the `integration` CI job runs on every pipeline.
-2. **Paint test** (`RUN_PAINT_TEST=true`, skeleton): runs the mineflayer bot
-   in `bot/` against the live server to exercise the real packet path —
+1. **Load check**: waits for the server to finish starting and verifies ArtMap
+   enabled without being disabled or rejected.
+2. **Paint test** (`RUN_PAINT_TEST`, default on): runs the mineflayer bot in
+   `bot/` against the live server to exercise the real packet path —
    ProtocolLib channel injection, NMS map storage — then pulls
    `plugins/ArtMap/Art.db` out of the container and asserts painted map data
-   landed. In CI this is the manual `integration:paint` job.
-3. **Regression suite** (`RUN_REGRESSION_TEST=true`): guards
+   landed.
+3. **Regression suite** (`RUN_REGRESSION_TEST`, default on): guards
    [#376](https://gitlab.com/BlockStack/ArtMap/-/work_items/376) and
-   [#377](https://gitlab.com/BlockStack/ArtMap/-/work_items/377). In CI this is
-   `integration:regression`.
+   [#377](https://gitlab.com/BlockStack/ArtMap/-/work_items/377).
+
+Set either flag to `false` to skip that phase, locally or in the CI variables.
 
 ## The #376 regression check
 
@@ -100,10 +101,10 @@ that a real client's packets arrive and persist.
 ## Running locally
 
 ```bash
-# CI-equivalent (needs Docker):
+# CI-equivalent (needs Docker), all three phases:
 mvn -pl plugin -am package
-RUN_PAINT_TEST=true ./integration/run-integration-test.sh       # from repo root
-RUN_REGRESSION_TEST=true ./integration/run-integration-test.sh  # #376 + #377 guards
+./integration/run-integration-test.sh                            # from repo root
+RUN_PAINT_TEST=false ./integration/run-integration-test.sh       # only the load check + #376/#377 guards
 
 # Or keep a server running while iterating on the bot:
 cd integration
@@ -116,9 +117,9 @@ docker compose up -d
 ## Known constraints
 
 - **Protocol version coupling**: mineflayer supports specific Minecraft
-  versions and lags new releases (relevant for the 26.x scheme). The
-  `integration:paint` CI job pins `MC_VERSION` to a bot-supported version
-  independently of the load-check job. `minecraft-protocol.supportedVersions`
+  versions and lags new releases (relevant for the 26.x scheme). The CI job's
+  `MC_VERSION` therefore has to be one the bot can speak, since every phase
+  runs against the same server. `minecraft-protocol.supportedVersions`
   lists what the bot can actually speak -- note `minecraft-data` knows about
   more versions than the protocol layer implements, so check the former.
   #376 was reproduced locally on Paper **26.1.2** (protocol 775, shared by all

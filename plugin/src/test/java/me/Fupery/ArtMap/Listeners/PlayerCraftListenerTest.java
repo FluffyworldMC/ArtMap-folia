@@ -364,4 +364,29 @@ public class PlayerCraftListenerTest extends PluginTestSupport {
         verify(player).sendMessage(contains("Error Retrieving Artwork"));
         verify(event, never()).setCancelled(true);
     }
+
+    @Test
+    @DisplayName("null events, pre-1.14 servers and maps without meta are left alone")
+    public void cartographyGuards() throws Exception {
+        listener.onInventoryClick(null);
+
+        org.bukkit.event.inventory.InventoryClickEvent click = mock(org.bukkit.event.inventory.InventoryClickEvent.class);
+        when(click.getInventory()).thenReturn(mock(org.bukkit.inventory.CartographyInventory.class));
+        org.bukkit.inventory.ItemStack metaless = item(Material.FILLED_MAP);
+        when(metaless.getItemMeta()).thenReturn(null);
+        when(click.getCurrentItem()).thenReturn(metaless);
+        when(click.getWhoClicked()).thenReturn(player);
+        listener.onInventoryClick(click);
+        verify(click, never()).setCancelled(true);
+
+        me.Fupery.ArtMap.api.Utils.VersionHandler current = ArtMap.instance().getBukkitVersion();
+        when(ArtMap.instance().getBukkitVersion()).thenReturn(new me.Fupery.ArtMap.api.Utils.VersionHandler(
+                me.Fupery.ArtMap.api.Utils.VersionHandler.BukkitVersion.v1_13, mocks.getPluginMock()));
+        try {
+            listener.onInventoryClick(click);
+        } finally {
+            when(ArtMap.instance().getBukkitVersion()).thenReturn(current);
+        }
+        verify(database, never()).getArtwork(anyInt());
+    }
 }

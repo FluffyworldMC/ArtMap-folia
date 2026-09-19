@@ -1,5 +1,6 @@
 package me.Fupery.ArtMap.Listeners;
 
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -350,5 +351,27 @@ public class PlayerInteractListenerTest extends PluginTestSupport {
         listener.onInventoryCreativeEvent(creativeClick(creativeMap(61, false), org.bukkit.event.inventory.ClickType.CREATIVE, mock(org.bukkit.inventory.Inventory.class)));
 
         verify(player).sendMessage(org.mockito.ArgumentMatchers.contains("Error Retrieving Artwork"));
+    }
+
+    @Test
+    @DisplayName("west-facing yaw and the wrap-around both resolve")
+    public void facingWestAndWrap() throws Exception {
+        assertEquals(BlockFace.WEST, facingFor(270f));
+        assertEquals(BlockFace.NORTH, facingFor(359f));
+    }
+
+    @Test
+    @DisplayName("an easel held in the off hand is consumed from there")
+    public void easelTakenFromOffHand() throws Exception {
+        Player p = statefulPlayer("OffHand");
+        p.getInventory().setItemInMainHand(item(Material.STONE));
+        org.bukkit.inventory.ItemStack two = easelStack(2);
+        p.getInventory().setItemInOffHand(two);
+        removeEaselFromHand(p);
+        verify(two).setAmount(1);
+
+        p.getInventory().setItemInOffHand(easelStack(1));
+        removeEaselFromHand(p);
+        assertNull(p.getInventory().getItemInOffHand());
     }
 }

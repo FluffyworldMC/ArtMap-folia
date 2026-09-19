@@ -1,5 +1,6 @@
 package me.Fupery.ArtMap.Listeners;
 
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -275,6 +276,69 @@ public class EaselEventTest extends PluginTestSupport {
 
         new EaselEvent(easel, ClickType.RIGHT_CLICK, player).callEvent();
 
+        verify(easel, never()).mountCanvas(any());
+        verify(player).sendMessage(org.mockito.ArgumentMatchers.contains("Error placing art"));
+    }
+
+    // ---- failure branches ------------------------------------------------------------
+
+    private final java.util.List<java.util.logging.LogRecord> logged = new java.util.ArrayList<>();
+    private final java.util.logging.Handler capture = new java.util.logging.Handler() {
+        @Override public void publish(java.util.logging.LogRecord r) { logged.add(r); }
+        @Override public void flush() { }
+        @Override public void close() { }
+    };
+
+    private void listen() {
+        ArtMap.instance().getLogger().addHandler(capture);
+    }
+
+    @org.junit.jupiter.api.AfterEach
+    public void stopListening() {
+        ArtMap.instance().getLogger().removeHandler(capture);
+    }
+
+    @Test
+    @DisplayName("a map on the easel with no map view is reported as broken")
+    public void viewlessMapOnEasel() {
+        listen();
+        ItemStack viewless = mapWithView(null);
+        when(easel.getItem()).thenReturn(viewless);
+        new EaselEvent(easel, ClickType.RIGHT_CLICK, player).callEvent();
+        assertTrue(logged.stream().anyMatch(r -> r.getMessage().contains("Broken map on easel")));
+        verify(player).sendMessage(me.Fupery.ArtMap.api.Config.Lang.ERROR_ON_EASEL.get());
+    }
+
+    @Test
+    @DisplayName("a failure while seating the painter is logged rather than thrown")
+    public void mountFailureIsLogged() {
+        listen();
+        ItemStack onEasel = mapWithView(4322);
+        when(easel.getItem()).thenReturn(onEasel);
+        when(easel.getFacing()).thenReturn(null); // no facing: the yaw offset lookup blows up
+        new EaselEvent(easel, ClickType.RIGHT_CLICK, player).callEvent();
+        assertTrue(logged.stream().anyMatch(r -> r.getMessage().contains("Failure having player mount")));
+    }
+
+    @Test
+    @DisplayName("a foreign item that cannot be removed is logged")
+    public void foreignItemRemovalFailure() throws Exception {
+        listen();
+        ItemStack stone = item(Material.STONE);
+        when(easel.getItem()).thenReturn(stone);
+        org.mockito.Mockito.doThrow(new java.sql.SQLException("down")).when(easel).removeItem();
+        new EaselEvent(easel, ClickType.RIGHT_CLICK, player).callEvent();
+        assertTrue(logged.stream().anyMatch(r -> r.getMessage().contains("Unexpected item on Easel")));
+    }
+
+    @Test
+    @DisplayName("an artwork in hand without a map view cannot be placed and says so")
+    public void artworkWithoutView() throws Exception {
+        mockDatabase();
+        ItemStack art = mapWithView(null, org.bukkit.ChatColor.AQUA.toString() + org.bukkit.ChatColor.ITALIC + "Player Artwork", "by someone");
+        player.getInventory().setItemInMainHand(art);
+        org.mockito.Mockito.clearInvocations(player);
+        new EaselEvent(easel, ClickType.RIGHT_CLICK, player).callEvent();
         verify(easel, never()).mountCanvas(any());
         verify(player).sendMessage(org.mockito.ArgumentMatchers.contains("Error placing art"));
     }

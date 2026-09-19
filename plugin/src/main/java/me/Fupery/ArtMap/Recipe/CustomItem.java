@@ -100,7 +100,7 @@ public class CustomItem {
     }
 
     public Recipe getBukkitRecipe() {
-        return getRecipe().toBukkitRecipe(toItemStack());
+        return getRecipe() == null ? null : getRecipe().toBukkitRecipe(toItemStack());
     }
 
     public SimpleRecipe getRecipe() {

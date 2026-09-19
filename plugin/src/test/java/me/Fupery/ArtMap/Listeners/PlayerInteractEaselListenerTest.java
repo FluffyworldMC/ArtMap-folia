@@ -355,4 +355,28 @@ public class PlayerInteractEaselListenerTest extends PluginTestSupport {
 
         verify(ArtMap.instance().getScheduler().SYNC).run(org.mockito.ArgumentMatchers.any(Runnable.class));
     }
+
+    @Test
+    @DisplayName("the paint brush menu opens through the menu handler once the task runs")
+    public void paintBrushMenuOpens() throws Exception {
+        me.Fupery.ArtMap.Menu.Handler.MenuHandler menus = mock(me.Fupery.ArtMap.Menu.Handler.MenuHandler.class);
+        me.Fupery.ArtMap.Menu.Handler.MenuHandler.MenuList list = mock(me.Fupery.ArtMap.Menu.Handler.MenuHandler.MenuList.class);
+        java.lang.reflect.Field menuField = me.Fupery.ArtMap.Menu.Handler.MenuHandler.class.getDeclaredField("MENU");
+        menuField.setAccessible(true);
+        menuField.set(menus, list);
+        me.Fupery.ArtMap.Menu.Handler.CacheableMenu help = mock(me.Fupery.ArtMap.Menu.Handler.CacheableMenu.class);
+        me.Fupery.ArtMap.Menu.Event.MenuFactory factory = mock(me.Fupery.ArtMap.Menu.Event.MenuFactory.class);
+        when(factory.get(player)).thenReturn(help);
+        list.HELP = factory;
+        when(ArtMap.instance().getMenuHandler()).thenReturn(menus);
+
+        org.bukkit.event.player.PlayerInteractEvent event = mock(org.bukkit.event.player.PlayerInteractEvent.class);
+        when(event.getPlayer()).thenReturn(player);
+        when(event.getAction()).thenReturn(org.bukkit.event.block.Action.RIGHT_CLICK_AIR);
+        when(event.getItem()).thenReturn(me.Fupery.ArtMap.Recipe.ArtMaterial.PAINT_BRUSH.getItem());
+
+        listener.onRightClick(event);
+
+        verify(menus).openMenu(player, help);
+    }
 }

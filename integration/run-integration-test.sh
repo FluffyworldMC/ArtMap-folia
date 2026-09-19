@@ -1,6 +1,6 @@
 #!/bin/sh
-# Boots a Paper server in Docker with the built ArtMap jar + ProtocolLib and checks it enables; optional
-# phases run the paint bot and the regression suite. POSIX sh: the Alpine CI image has no bash.
+# Boots a Paper server in Docker with the built ArtMap jar + ProtocolLib and checks it enables, then runs
+# the paint bot and the regression suite (either can be switched off). POSIX sh: the CI image has no bash.
 
 # -e/-u for the setup steps; the polling loop disables -e on purpose so the log is always captured.
 set -eu
@@ -11,8 +11,8 @@ MC_VERSION="${MC_VERSION:-1.21.11}"           # Minecraft / Paper version
 SERVER_IMAGE="${SERVER_IMAGE:-itzg/minecraft-server:java25}"
 PROTOCOLLIB_VERSION="${PROTOCOLLIB_VERSION:-dev-build}"  # ProtocolLib GitHub release tag
 TIMEOUT="${TIMEOUT:-600}"                     # seconds to wait for the server to start
-RUN_PAINT_TEST="${RUN_PAINT_TEST:-false}"     # also run bot/paint-bot.js and verify Art.db
-RUN_REGRESSION_TEST="${RUN_REGRESSION_TEST:-false}"  # also run bot/regression.js (#376, #377)
+RUN_PAINT_TEST="${RUN_PAINT_TEST:-true}"      # run bot/paint-bot.js and verify Art.db (false to skip)
+RUN_REGRESSION_TEST="${RUN_REGRESSION_TEST:-true}"   # run bot/regression.js, #376 and #377 (false to skip)
 RCON_PASSWORD="${RCON_PASSWORD:-artmap-e2e}"  # used by the bots
 
 # CI_JOB_ID keeps container/volume names unique so parallel jobs don't collide.
@@ -41,8 +41,9 @@ cleanup() {
 }
 trap cleanup EXIT
 
-# --- Locate the built ArtMap jar (from mvn verify in the build stage) ---
-JAR=$(ls plugin/target/ArtMap-*.jar 2>/dev/null \
+# --- Locate the built ArtMap jar (from mvn verify in the build stage); newest first, so a stale jar
+# left in target/ by an earlier build is never the one tested ---
+JAR=$(ls -t plugin/target/ArtMap-*.jar 2>/dev/null \
         | grep -v '\-sources' \
         | grep -v '\-javadoc' \
         | head -1 || true)

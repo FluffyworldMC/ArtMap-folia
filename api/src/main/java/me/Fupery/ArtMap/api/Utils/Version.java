@@ -28,7 +28,12 @@ public class Version implements Comparable<Version> {
      * @return Version Version specific wrapper.
      */
     public static Version getBukkitVersion(String bukkit) {
-        return new Version(parseNumbers(bukkit));
+        int[] numbers = parseNumbers(bukkit);
+        // A server version is exact: "1.20" is 1.20.0 and must sort below 1.20.2 (prefix compare would not).
+        if (numbers.length > 0 && numbers.length < 3) {
+            numbers = Arrays.copyOf(numbers, 3);
+        }
+        return new Version(numbers);
     }
 
     /** Parse the leading numeric dot-segments of a version string, stopping at the first non-numeric one.
@@ -58,6 +63,8 @@ public class Version implements Comparable<Version> {
 
     @Override
     public int compareTo(Version ver) {
+        // Prefix semantics: the less precise side sets the precision, so 1.14.2 equals 1.14 and
+        // CompatibilityManager can range-check a plugin against a bare major version.
         int len = (ver.numbers.length < numbers.length) ? ver.numbers.length : numbers.length;
         for (int i = 0; i < len; i++) {
             int a = i < numbers.length ? numbers[i] : 0;

@@ -375,4 +375,85 @@ public class EaselTest extends PluginTestSupport {
         assertEquals(0, EaselPart.getYawOffset(BlockFace.UP));
         verify(block, never()).setType(Material.DIRT);
     }
+
+    // ---- gaps -------------------------------------------------------------------
+
+    private final java.util.List<java.util.logging.LogRecord> logged = new java.util.ArrayList<>();
+    private final java.util.logging.Handler capture = new java.util.logging.Handler() {
+        @Override public void publish(java.util.logging.LogRecord r) { logged.add(r); }
+        @Override public void flush() { }
+        @Override public void close() { }
+    };
+
+    private void listen() {
+        ArtMap.instance().getLogger().addHandler(capture);
+    }
+
+    @AfterEach
+    public void stopListening() {
+        ArtMap.instance().getLogger().removeHandler(capture);
+    }
+
+    @Test
+    @DisplayName("a map on the frame that is no canvas at all is swapped for a fresh canvas")
+    public void unknownMapDropsFreshCanvas() throws Exception {
+        Easel easel = Easel.spawnEasel(origin, BlockFace.NORTH);
+        ItemStack viewless = item(Material.FILLED_MAP);
+        MapMeta meta = mock(MapMeta.class);
+        when(meta.hasMapView()).thenReturn(false);
+        when(viewless.getItemMeta()).thenReturn(meta);
+        when(viewless.hasItemMeta()).thenReturn(true);
+        when(viewless.clone()).thenReturn(viewless);
+        easel.setItem(viewless);
+        easel.removeItem();
+        verify(world).dropItem(eq(origin), org.mockito.ArgumentMatchers.argThat((ItemStack i) -> i.getType() == Material.PAPER));
+    }
+
+    @Test
+    @DisplayName("a canvas that cannot be mounted over a foreign item is logged, not thrown")
+    public void mountOverForeignItemIsLogged() {
+        listen();
+        Easel easel = Easel.spawnEasel(origin, BlockFace.NORTH);
+        ItemStack stone = item(Material.STONE);
+        when(stone.clone()).thenReturn(stone);
+        easel.setItem(stone);
+        easel.mountCanvas(mock(Canvas.class));
+        assertTrue(logged.stream().anyMatch(r -> r.getMessage().contains("Error placing canvas")));
+    }
+
+    @Test
+    @DisplayName("breaking an easel whose painter cannot be dismounted still breaks it and logs the failure")
+    public void breakWithStuckPainter() throws Exception {
+        listen();
+        Easel easel = Easel.spawnEasel(origin, BlockFace.NORTH);
+        Player painter = preparePlayer(mocks.getRandomMockPlayers(1)[0]);
+        assertTrue(easel.seatUser(painter));
+        ArtistHandler handler = mock(ArtistHandler.class);
+        when(handler.containsPlayer(any(UUID.class))).thenReturn(true);
+        org.mockito.Mockito.doThrow(new java.sql.SQLException("down")).when(handler).removePlayer(painter);
+        when(ArtMap.instance().getArtistHandler()).thenReturn(handler);
+
+        easel.breakEasel();
+
+        assertTrue(logged.stream().anyMatch(r -> r.getMessage().contains("Error ending art session")));
+        assertNull(theStand());
+    }
+
+    @Test
+    @DisplayName("a world that fails while the easel is being removed is logged")
+    public void breakFailureIsLogged() {
+        listen();
+        Easel easel = Easel.spawnEasel(origin, BlockFace.NORTH);
+        when(world.getNearbyEntities(any(Location.class), anyDouble(), anyDouble(), anyDouble())).thenThrow(new IllegalStateException("gone"));
+        easel.breakEasel();
+        assertTrue(logged.stream().anyMatch(r -> r.getMessage().contains("Error removing easel")));
+    }
+
+    @Test
+    @DisplayName("an easel with no frame hands back an empty item")
+    public void bareEaselItem() throws Exception {
+        java.lang.reflect.Constructor<Easel> ctor = Easel.class.getDeclaredConstructor(Location.class, boolean.class);
+        ctor.setAccessible(true);
+        assertNotNull(ctor.newInstance(origin, true).getItem());
+    }
 }

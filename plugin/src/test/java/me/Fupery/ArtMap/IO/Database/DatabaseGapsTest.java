@@ -309,4 +309,42 @@ public class DatabaseGapsTest extends PluginTestSupport {
         map.setRenderer(null);
         assertTrue(map.getMap().getRenderers().isEmpty());
     }
+
+    @Test
+    @DisplayName("a hard repair that cannot delete the map file, or never recovers, still reports corruption")
+    public void hardRepairFailures() throws Exception {
+        me.Fupery.ArtMap.Utils.Reflection reflection = ArtMap.instance().getReflection();
+        doAnswer(i -> { throw new IllegalStateException("unreadable"); })
+                .when(reflection).getMap(argThat((MapView v) -> v != null && v.getId() == 523));
+        Map map = new Map(523);
+        db.saveInProgressArt(map, filled((byte) 7));
+        File dataFile = map.getDataFile();
+        dataFile.getParentFile().mkdirs();
+        try {
+            // A non-empty directory in the file's place cannot be deleted.
+            dataFile.mkdir();
+            new File(dataFile, "child").createNewFile();
+            assertTrue(db.restoreMap(map, true, true));
+            assertTrue(logged.stream().anyMatch(r -> r.getMessage().contains("Failed deleting")));
+        } finally {
+            new File(dataFile, "child").delete();
+            dataFile.delete();
+        }
+        try {
+            // Deleting and resetting works, but the map is still unreadable afterwards.
+            logged.clear();
+            assertTrue(db.restoreMap(map, true, true));
+            assertTrue(logged.stream().anyMatch(r -> r.getMessage().contains("All attempts to restore")));
+        } finally {
+            dataFile.delete();
+        }
+    }
+
+    @Test
+    @DisplayName("a database file that cannot be created yields no connection")
+    public void unwritableDatabaseFile() {
+        SQLiteDatabase broken = new SQLiteDatabase(new File(ArtMap.instance().getDataFolder(), "no/such/dir/Art.db"));
+        assertNull(broken.getConnection());
+        assertTrue(logged.stream().anyMatch(r -> r.getMessage().contains("File write error")));
+    }
 }

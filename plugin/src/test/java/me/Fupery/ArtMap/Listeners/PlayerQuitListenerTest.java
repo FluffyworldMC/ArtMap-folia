@@ -143,4 +143,18 @@ public class PlayerQuitListenerTest extends PluginTestSupport {
 
         assertFalse(ArtMap.instance().getArtistHandler().containsPlayer(player));
     }
+
+    @Test
+    @DisplayName("a quitting previewer has the preview taken back")
+    public void previewEndsOnQuit() {
+        me.Fupery.ArtMap.Preview.Preview preview = new me.Fupery.ArtMap.Preview.Preview() {
+            @Override public boolean start(Player p) { return true; }
+            @Override public boolean end(Player p) { return true; }
+            @Override public boolean isEventAllowed(java.util.UUID p, org.bukkit.event.Event e) { return true; }
+        };
+        assertTrue(ArtMap.instance().getPreviewManager().startPreview(player, preview));
+        player.getInventory().setItemInMainHand(item(Material.FILLED_MAP));
+        PlayerQuitListener.endPlayerArtSession(player);
+        assertFalse(ArtMap.instance().getPreviewManager().isPreviewing(player));
+    }
 }

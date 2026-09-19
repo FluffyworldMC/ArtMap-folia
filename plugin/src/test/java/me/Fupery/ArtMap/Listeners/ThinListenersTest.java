@@ -245,4 +245,16 @@ public class ThinListenersTest extends PluginTestSupport {
         listener.onPlayerLogin(event);
         verify(player).sendMessage(org.mockito.ArgumentMatchers.contains("needs coverted"));
     }
+
+    @Test
+    @DisplayName("a chunk location exposes its coordinates and only equals another chunk location")
+    public void chunkLocation() {
+        ChunkLocation at = new ChunkLocation(chunk(3, -4));
+        assertEquals(3, at.getX());
+        assertEquals(-4, at.getZ());
+        assertTrue(at.equals(new ChunkLocation(chunk(3, -4))));
+        assertFalse(at.equals(new ChunkLocation(chunk(3, 4))));
+        assertFalse(at.equals("3,-4"));
+        at.hashCode();
+    }
 }

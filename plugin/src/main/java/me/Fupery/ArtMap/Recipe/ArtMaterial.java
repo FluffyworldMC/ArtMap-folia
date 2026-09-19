@@ -76,6 +76,7 @@ public enum ArtMaterial {
     }
 
     public ItemStack[] getPreview() {
-        return artItem.getRecipe().getPreview();
+        // A recipe that failed to load (see CraftableItem) leaves null here; show an empty grid, not an NPE.
+        return artItem.getRecipe() == null ? new ItemStack[9] : artItem.getRecipe().getPreview();
     }
 }

@@ -109,7 +109,8 @@ publish:jdk21:
     JDK: "JDK21"
 
 # ===== Integration ===== bake-server-image pre-patches the Mojang jar (reused while MC_VERSION is unchanged);
-# integration checks ArtMap enables, :paint drives the paint bot, :regression runs the #376/#377 guards.
+# integration boots one server and runs every phase on every pipeline: the load check, the paint bot and
+# the #376/#377 regression guards (integration/README.md).
 
 # Shared MC version + registry ref for the baked image (tagged by MC_VERSION; keep in sync with the integration jobs).
 .integration-vars:
@@ -167,6 +168,9 @@ integration:
     SERVER_IMAGE: "${BAKED_IMAGE}"
     PROTOCOLLIB_VERSION: "dev-build"
     TIMEOUT: "600"
+    # All phases, every pipeline: the self-hosted runner makes a full run cheap enough not to gate.
+    RUN_PAINT_TEST: "true"
+    RUN_REGRESSION_TEST: "true"
   # optional: the bake only runs when the image definition changes, so integration must still run without it.
   needs:
     - "build:jdk21"
@@ -180,34 +184,11 @@ integration:
     # Invoke with sh explicitly: the docker:latest image is Alpine and has no bash.
     - sh integration/run-integration-test.sh
   artifacts:
-    # Always upload the server log so failed runs can be diagnosed.
-    when: always
-    paths:
-      - integration/server.log
-    expire_in: 1 week
-
-integration:paint:
-  interruptible: true
-  extends: integration
-  variables:
-    RUN_PAINT_TEST: "true"
-  artifacts:
+    # Always upload the server log and the painted database so failed runs can be diagnosed.
     when: always
     paths:
       - integration/server.log
       - integration/Art.db
-    expire_in: 1 week
-
-# #376: destroy an easel under a seated painter (and across quit/rejoin), assert item frames still work.
-# #377: laminate a vanilla map and a saved artwork, assert no ArtMap error. Both fail on their pre-fix jars.
-integration:regression:
-  extends: integration
-  variables:
-    RUN_REGRESSION_TEST: "true"
-  artifacts:
-    when: always
-    paths:
-      - integration/server.log
     expire_in: 1 week
 
 # ===== Release =====

@@ -72,9 +72,17 @@ public class ArtistHandlerPacketTest extends PluginTestSupport {
     public void strangerPassesThrough() throws Exception {
         Player[] two = mocks.getRandomMockPlayers(2);
         Player stranger = two[0] == painter ? two[1] : two[0];
+        org.mockito.Mockito.clearInvocations(ArtMap.instance().getProtocolManager().getPacketReceiver()); // shared mock
         assertTrue(handler.handlePacket(stranger, new ArtistPacket.PacketArmSwing()));
         assertFalse(handler.containsPlayer(stranger));
         verify(ArtMap.instance().getProtocolManager().getPacketReceiver(), org.mockito.Mockito.never()).uninjectPlayer(stranger);
+    }
+
+    @Test
+    @DisplayName("an object that is no known packet is typed as invalid")
+    public void unknownPacketType() {
+        org.junit.jupiter.api.Assertions.assertEquals(me.Fupery.ArtMap.IO.Protocol.In.Packet.PacketType.INVALID,
+                me.Fupery.ArtMap.IO.Protocol.In.Packet.PacketType.getPacketType("not a packet"));
     }
 
     @Test

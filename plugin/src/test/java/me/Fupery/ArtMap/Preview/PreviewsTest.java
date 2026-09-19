@@ -138,4 +138,13 @@ public class PreviewsTest extends PluginTestSupport {
         verify(viewer).closeInventory();
         verify(viewer, never()).sendMessage(org.mockito.ArgumentMatchers.anyString());
     }
+
+    @Test
+    @DisplayName("checking an event for someone who is not previewing does nothing")
+    public void checkAllowedWithoutPreview() {
+        PreviewManager manager = new PreviewManager();
+        assertFalse(manager.isPreviewing(viewer));
+        manager.checkAllowed(viewer, mock(Event.class));
+        assertFalse(manager.isPreviewing(viewer.getUniqueId()));
+    }
 }

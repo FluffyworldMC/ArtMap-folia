@@ -194,8 +194,8 @@ public class SearchRepairTest extends PluginTestSupport {
         when(database.getArtwork("Boom")).thenThrow(new SQLException("boom"));
         assertEquals("boom", run(new Repair(), "repair", "-scan", "Boom").message);
         when(database.getArtwork(7)).thenThrow(new SQLException("boom"));
-        assertEquals("Artwork is in a good state.", run(new Repair(), "repair", "-scan", "7").message,
-                "a lookup failure is treated as not corrupted");
+        assertEquals("Database error! Check logs.", run(new Repair(), "repair", "-scan", "7").message,
+                "a lookup failure must not read as a healthy artwork");
     }
 
     @Test
@@ -206,18 +206,20 @@ public class SearchRepairTest extends PluginTestSupport {
         artworkWithId(2, false);
         MapArt ghost = new MapArt(3, "Ghost", UUID.randomUUID(), "Artist", "01-01-2026");
         when(database.getArtwork(3)).thenReturn(Optional.empty());
-        List<MapArt> all = List.of(database.getArtwork(1).get(), database.getArtwork(2).get(), ghost);
+        MapArt unreadable = new MapArt(4, "Unreadable", UUID.randomUUID(), "Artist", "01-01-2026");
+        when(database.getArtwork(4)).thenThrow(new SQLException("down"));
+        List<MapArt> all = List.of(database.getArtwork(1).get(), database.getArtwork(2).get(), ghost, unreadable);
         when(database.listMapArt()).thenReturn(all);
 
         ReturnMessage msg = run(new Repair(), "repair", "-scan", "-all");
 
         assertTrue(msg.message.contains("asynchronously"));
-        assertTrue(logged.stream().anyMatch(r -> r.getMessage().equals("Scan Complete: Completed: 3 Good: 1 Corrupted: 1 Failed: 1")),
+        assertTrue(logged.stream().anyMatch(r -> r.getMessage().equals("Scan Complete: Completed: 4 Good: 1 Corrupted: 1 Failed: 2")),
                 logged.stream().map(LogRecord::getMessage).toList().toString());
 
         logged.clear();
         run(new Repair(), "repair", "-repair", "-all");
-        assertTrue(logged.stream().anyMatch(r -> r.getMessage().contains("Repaired: 1 Failed: 1")));
+        assertTrue(logged.stream().anyMatch(r -> r.getMessage().contains("Repaired: 1 Failed: 2")));
 
         logged.clear();
         when(database.listMapArt()).thenThrow(new SQLException("down"));
