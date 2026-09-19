@@ -144,7 +144,7 @@ bake-server-image:
   extends: .integration-vars
   stage: integration
   image:
-    name: gcr.io/kaniko-project/executor:v1.23.2-debug
+    name: gcr.io/kaniko-project/executor:v1.24.0-debug
     entrypoint: [""]
   needs: []
   rules:
