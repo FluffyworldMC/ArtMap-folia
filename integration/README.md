@@ -11,8 +11,9 @@ and runs in three phases:
    ProtocolLib channel injection, NMS map storage — then pulls
    `plugins/ArtMap/Art.db` out of the container and asserts painted map data
    landed. In CI this is the manual `integration:paint` job.
-3. **Session-strand regression** (`RUN_REGRESSION_TEST=true`): guards
-   [#376](https://gitlab.com/BlockStack/ArtMap/-/work_items/376). In CI this is
+3. **Regression suite** (`RUN_REGRESSION_TEST=true`): guards
+   [#376](https://gitlab.com/BlockStack/ArtMap/-/work_items/376) and
+   [#377](https://gitlab.com/BlockStack/ArtMap/-/work_items/377). In CI this is
    `integration:regression`.
 
 ## The #376 regression check
@@ -42,6 +43,33 @@ Two things keep it honest:
 The suite was confirmed to **fail on the pre-fix jar and pass on the fixed one**,
 so it genuinely catches the regression rather than always passing.
 
+## The #377 regression check
+
+`PlayerCraftListener` watches every click in a cartography table (and every
+crafting result) that involves a filled map, so it can stop other players
+copying ArtMap artworks. It used to look the map up in `Art.db` and treat "not
+an ArtMap artwork" as a failure: a SEVERE `Database error! ... Artwork not
+found!` in the console and an "Error Retrieving Artwork check logs." chat
+message to the player, on every click of an ordinary vanilla map -- even picking
+it up out of the hotbar while the table was open. Vanilla still completed the
+craft, so the symptom was pure noise, but loud enough that #377 reported it as
+"error when laminating any map".
+
+`regression.js` therefore right-clicks an empty map to make a real vanilla
+`filled_map`, laminates it with a glass pane in a cartography table click by
+click (`bot/cartography.js`), and asserts:
+
+- no chat line matching `Error Retrieving Artwork` reached the player, and
+- the table showed a `filled_map` output that the player could pick up, i.e.
+  vanilla completed the craft untouched.
+
+It then paints and saves a real artwork (`/art save`) and laminates that too, so
+the fix cannot regress the artist path the listener exists to protect. The chat
+message is the observable rather than the server log because the CI bot runs in
+its own container with no access to the server's stdout.
+
+Verified to **fail on the 3.9.26 jar and pass on the fixed one**.
+
 Everything downstream of packet decoding (cursor math, brushes, flood fill,
 renderer, compression, SQLite) is already covered in-JVM by
 `plugin/src/test/java/me/Fupery/ArtMap/Painting/PaintingIntegrationTest.java`,
@@ -57,7 +85,11 @@ that a real client's packets arrive and persist.
   - `probe.js` — shared harness: RCON helpers, arena staging, the item-frame
     probe and the server-side riding check.
   - `easel.js` — easel placement / mount / ride / paint helpers.
-  - `regression.js` — the #376 guard run by `RUN_REGRESSION_TEST`.
+  - `regression.js` — the #376 and #377 guards run by `RUN_REGRESSION_TEST`.
+  - `cartography.js` — cartography-table helpers (make a vanilla map, laminate
+    it click by click) shared by the #377 guard and `laminate.js`.
+  - `laminate.js` — standalone #377 diagnostic; with `CONTAINER=<name>` it also
+    counts `Artwork not found` lines in the server log per click.
   - `scenario.js`, `discriminate.js`, `strand-permanent.js`, `control.js`,
     `probe-only.js` — diagnostic scenarios used to characterise #376
     (player-scoped vs location-scoped, relog vs restart recovery). Not run by
@@ -71,7 +103,7 @@ that a real client's packets arrive and persist.
 # CI-equivalent (needs Docker):
 mvn -pl plugin -am package
 RUN_PAINT_TEST=true ./integration/run-integration-test.sh       # from repo root
-RUN_REGRESSION_TEST=true ./integration/run-integration-test.sh  # #376 guard
+RUN_REGRESSION_TEST=true ./integration/run-integration-test.sh  # #376 + #377 guards
 
 # Or keep a server running while iterating on the bot:
 cd integration

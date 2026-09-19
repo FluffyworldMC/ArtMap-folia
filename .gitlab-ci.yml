@@ -123,7 +123,8 @@ publish:jdk21:
 #                      the integration job out.
 #   integration:       verifies ArtMap loads cleanly (every pipeline)
 #   integration:paint  also drives the mineflayer paint bot and checks Art.db
-#   integration:regression  #376 guard: a destroyed easel must not strand a session
+#   integration:regression  #376 guard (destroyed easel must not strand a session)
+#                           and #377 guard (regular maps laminate like vanilla)
 ################################################################################################
 
 # Shared Minecraft version + the registry ref for the pre-baked server image.
@@ -231,7 +232,9 @@ integration:paint:
 # that is never cleaned up silently breaks every item frame for that player until
 # the server restarts, with nothing in the console. The bot destroys an easel out
 # from under a seated painter (and again across a quit/rejoin) and asserts item
-# frames still work afterwards. Verified to fail on the pre-fix jar.
+# frames still work afterwards. It also laminates a plain vanilla map and a saved
+# artwork in a cartography table (#377) and asserts no ArtMap error reaches the
+# player. Both verified to fail on their pre-fix jars.
 integration:regression:
   extends: integration
   variables:

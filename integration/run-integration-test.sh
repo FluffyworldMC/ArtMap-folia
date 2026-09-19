@@ -16,10 +16,12 @@
 #   RUN_PAINT_TEST       "true" to also run the mineflayer paint bot against
 #                        the booted server and verify strokes reach Art.db
 #                        (default: false; the bot lives in integration/bot/)
-#   RUN_REGRESSION_TEST  "true" to also run integration/bot/regression.js, the
-#                        #376 guard: a destroyed easel must never leave a player
+#   RUN_REGRESSION_TEST  "true" to also run integration/bot/regression.js:
+#                        #376 - a destroyed easel must never leave a player
 #                        stranded in ArtMap's artists map (which silently kills
-#                        all their item-frame interactions). (default: false)
+#                        all their item-frame interactions);
+#                        #377 - a regular map must laminate in a cartography
+#                        table like vanilla, with no ArtMap error. (default: false)
 #   RCON_PASSWORD        RCON password used when the paint test is enabled
 #   CI_JOB_ID            Set automatically by GitLab; used to make container /
 #                        volume names unique so parallel jobs don't collide.
@@ -248,18 +250,23 @@ if [ "$RUN_PAINT_TEST" = "true" ] && [ "$RESULT" = "success" ]; then
 fi
 
 # ──────────────────────────────────────────────────────────────────────────────
-# Optional regression phase - guards issue #376.
+# Optional regression phase - guards issues #376 and #377.
 #
-# ArtMap's ProtocolLib listener cancels USE_ENTITY for any player in its
+# #376: ArtMap's ProtocolLib listener cancels USE_ENTITY for any player in its
 # `artists` map. Filling or rotating an item frame IS a USE_ENTITY interact, so a
 # session that is never cleaned up silently breaks every item frame for that
 # player until the server restarts, with nothing logged. regression.js destroys
 # an easel out from under a seated painter (and again across a quit/rejoin) and
 # asserts the player can still use an item frame afterwards.
+#
+# #377: the crafting listener treated any filled map that is not an ArtMap
+# artwork as a "Database error!" and messaged the player on every cartography
+# table click. regression.js laminates a plain vanilla map (and a saved artwork)
+# and asserts no ArtMap error reaches the player while vanilla completes it.
 # ──────────────────────────────────────────────────────────────────────────────
 if [ "$RUN_REGRESSION_TEST" = "true" ] && [ "$RESULT" = "success" ]; then
     echo ""
-    echo "--- Regression: #376 stranded art session ---"
+    echo "--- Regression: #376 stranded art session, #377 cartography table ---"
     set +e
 
     SERVER_IP=$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' "$CONTAINER_NAME")
@@ -307,13 +314,17 @@ case "$RESULT" in
         fi
         if [ "$RUN_REGRESSION_TEST" = "true" ]; then
             echo "PASS: #376 - a destroyed easel did not strand the art session."
+            echo "PASS: #377 - regular maps laminate like vanilla with no ArtMap error."
         fi
         exit 0
         ;;
     regression_failed)
-        echo "FAIL: #376 regression - a destroyed easel stranded the player in"
-        echo "      ArtMap's artists map, so item frames silently stopped working"
-        echo "      for them. See the bot output above and ${LOG_FILE}."
+        echo "FAIL: regression suite - see the failure list in the bot output above."
+        echo "      #376: a destroyed easel stranded the player in ArtMap's artists"
+        echo "            map, so item frames silently stopped working for them."
+        echo "      #377: a regular map produced an ArtMap error in the cartography"
+        echo "            table, or the lamination did not complete."
+        echo "      Server side: ${LOG_FILE}."
         exit 1
         ;;
     paint_bot_failed)

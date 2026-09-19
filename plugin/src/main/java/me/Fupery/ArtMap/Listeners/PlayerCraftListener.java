@@ -1,9 +1,11 @@
 package me.Fupery.ArtMap.Listeners;
 
 import java.sql.SQLException;
+import java.util.Optional;
 import java.util.logging.Level;
 
 import org.bukkit.Material;
+import org.bukkit.entity.HumanEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Event;
 import org.bukkit.event.EventHandler;
@@ -32,30 +34,24 @@ class PlayerCraftListener implements RegisteredListener {
         }
         // Disallow players from copying ArtMap maps in the crafting table
         if (result.getType() == Material.FILLED_MAP) {
-            MapArt art;
-            try {
-                art = ArtMap.instance().getArtDatabase().getArtwork(ItemUtils.getMapID(result)
-                    .orElseThrow(()-> new ArtMapException("Artwork does not have a mapview!")))
-                    .orElseThrow(()-> new ArtMapException("Artwork not found!"));
-            } catch (SQLException | ArtMapException e) {
-                ArtMap.instance().getLogger().log(Level.SEVERE, "Database error!", e);
-                event.getWhoClicked().sendMessage("Error Retrieving Artwork check logs.");
+            Optional<MapArt> artwork = lookupArtwork(result, event.getWhoClicked());
+            if (!artwork.isPresent()) {
+                // A regular map (or a database failure, already reported): leave it to vanilla.
                 return;
             }
-            if (art != null) {
-                if (event.getWhoClicked().getUniqueId().equals(art.getArtistPlayer().getUniqueId())) {
-                    Player player = (Player) event.getWhoClicked();
-                    ItemStack artworkItem = art.getMapItem();
-                    if (event.getAction() == InventoryAction.MOVE_TO_OTHER_INVENTORY) {
-                        onShiftClick(artworkItem, player, event);
-                    } else {
-                        result.setItemMeta(artworkItem.getItemMeta());
-                    }
+            MapArt art = artwork.get();
+            if (event.getWhoClicked().getUniqueId().equals(art.getArtistPlayer().getUniqueId())) {
+                Player player = (Player) event.getWhoClicked();
+                ItemStack artworkItem = art.getMapItem();
+                if (event.getAction() == InventoryAction.MOVE_TO_OTHER_INVENTORY) {
+                    onShiftClick(artworkItem, player, event);
                 } else {
-                    Lang.NO_CRAFT_PERM.send(event.getWhoClicked());
-                    event.setResult(Event.Result.DENY);
-                    event.setCancelled(true);
+                    result.setItemMeta(artworkItem.getItemMeta());
                 }
+            } else {
+                Lang.NO_CRAFT_PERM.send(event.getWhoClicked());
+                event.setResult(Event.Result.DENY);
+                event.setCancelled(true);
             }
         }
     }
@@ -79,29 +75,50 @@ class PlayerCraftListener implements RegisteredListener {
         if (result == null) {
             return;
         }
-        // Disallow players from copying ArtMap maps in the crafting table
+        // Disallow players from copying ArtMap maps in the cartography table
         if (result.getType() == Material.FILLED_MAP) {
-            MapArt art;
-            try {
-                art = ArtMap.instance().getArtDatabase().getArtwork(ItemUtils.getMapID(result)
-                    .orElseThrow(()-> new ArtMapException("Artwork does not have a mapview!")))
-                    .orElseThrow(()-> new ArtMapException("Artwork not found!"));
-            } catch (SQLException | ArtMapException e) {
-                ArtMap.instance().getLogger().log(Level.SEVERE, "Database error!", e);
-                event.getWhoClicked().sendMessage("Error Retrieving Artwork check logs.");
-                return; 
+            Optional<MapArt> artwork = lookupArtwork(result, event.getWhoClicked());
+            if (!artwork.isPresent()) {
+                // A regular map (or a database failure, already reported): leave it to vanilla.
+                return;
             }
-            if (art != null) {
-                if (event.getWhoClicked().getUniqueId().equals(art.getArtistPlayer().getUniqueId())) {
-                    ItemStack artworkItem = art.getMapItem();
-                    result.setItemMeta(artworkItem.getItemMeta());
-                } else {
-                    Lang.NO_CRAFT_PERM.send(event.getWhoClicked());
-                    event.setResult(Event.Result.DENY);
-                    event.setCancelled(true);
-                }
+            MapArt art = artwork.get();
+            if (event.getWhoClicked().getUniqueId().equals(art.getArtistPlayer().getUniqueId())) {
+                ItemStack artworkItem = art.getMapItem();
+                result.setItemMeta(artworkItem.getItemMeta());
+            } else {
+                Lang.NO_CRAFT_PERM.send(event.getWhoClicked());
+                event.setResult(Event.Result.DENY);
+                event.setCancelled(true);
             }
-        } 
+        }
+    }
+
+    /**
+     * Resolve the ArtMap artwork behind a filled map.
+     * <p>
+     * Both crafting listeners see every filled map a player clicks, and most of
+     * those are ordinary vanilla maps that ArtMap has no record of (#377). A map
+     * that is not an artwork is not an error, so it comes back empty without any
+     * logging and the caller lets vanilla handle the click. Only a database
+     * failure is reported, and it is also returned as empty so the click still
+     * falls through to vanilla rather than being swallowed.
+     */
+    private Optional<MapArt> lookupArtwork(ItemStack map, HumanEntity who) {
+        try {
+            Optional<Integer> mapId = ItemUtils.getMapID(map);
+            if (!mapId.isPresent()) {
+                return Optional.empty();
+            }
+            return ArtMap.instance().getArtDatabase().getArtwork(mapId.get());
+        } catch (ArtMapException e) {
+            // Not a map with map meta: nothing for ArtMap to do.
+            return Optional.empty();
+        } catch (SQLException e) {
+            ArtMap.instance().getLogger().log(Level.SEVERE, "Database error!", e);
+            who.sendMessage("Error Retrieving Artwork check logs.");
+            return Optional.empty();
+        }
     }
 
 
