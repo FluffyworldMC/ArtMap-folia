@@ -25,8 +25,13 @@ public class PlayerDismountListener implements RegisteredListener {
         if (ArtMap.instance().getArtistHandler().containsPlayer(player)) {
             ArtSession session = ArtMap.instance().getArtistHandler().getCurrentSession(player);
             try {
-                //[#292] don't dismount players that painted within the last second
-                if(session.lastPaintActionWithin(1, TimeUnit.SECONDS)) {
+                //[#292] don't dismount players that painted within the last second.
+                // Only honour this while the seat still exists: if the easel is being
+                // removed, cancelling the dismount cannot put the player back on a
+                // dead entity, and returning here would leave them in the artists map
+                // forever with their entity interactions silently cancelled (#376).
+                if(session.lastPaintActionWithin(1, TimeUnit.SECONDS)
+                        && event.getDismounted() != null && event.getDismounted().isValid()) {
                     event.setCancelled(true);
                     return;
                 }

@@ -102,6 +102,21 @@
 				<groupId>org.jacoco</groupId>
 				<artifactId>jacoco-maven-plugin</artifactId>
 				<version>0.8.14</version>
+				<configuration>
+					<!-- Excluded so the coverage figure tracks logic we could actually
+					     get wrong. SoundCompat is a 500-constant enum of Bukkit sound
+					     names: 2840 instructions (11% of the module) behind 4 branches,
+					     so "covering" it would move the headline number ~11 points
+					     without reducing any risk. Menu.API/HelpMenu are inventory-GUI
+					     scaffolding - expensive to drive, little decision logic.
+					     Menu.Event and Menu.Handler are deliberately NOT excluded;
+					     they hold real event handling. -->
+					<excludes>
+						<exclude>me/Fupery/ArtMap/Menu/API/SoundCompat.*</exclude>
+						<exclude>me/Fupery/ArtMap/Menu/API/**</exclude>
+						<exclude>me/Fupery/ArtMap/Menu/HelpMenu/**</exclude>
+					</excludes>
+				</configuration>
 				<executions>
 					<execution>
 						<goals>

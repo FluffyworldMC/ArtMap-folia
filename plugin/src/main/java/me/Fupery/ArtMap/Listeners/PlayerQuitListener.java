@@ -60,6 +60,9 @@ class PlayerQuitListener implements RegisteredListener {
         PlayerQuitEvent.getHandlerList().unregister(this);
         PlayerDeathEvent.getHandlerList().unregister(this);
         PlayerTeleportEvent.getHandlerList().unregister(this);
+        // onPlayerKick / onPlayerDamage were never torn down.
+        PlayerKickEvent.getHandlerList().unregister(this);
+        EntityDamageEvent.getHandlerList().unregister(this);
     }
 
     /**
@@ -70,14 +73,18 @@ class PlayerQuitListener implements RegisteredListener {
      */
     public static void endPlayerArtSession(Player player) {
         if (ArtMap.instance().getArtistHandler().containsPlayer(player)) {
-            if (player.isInsideVehicle()) {
-                ArtMap.instance().getArtistHandler().getCurrentSession(player).removeKit(player);
-                try {
-                    ArtMap.instance().getArtistHandler().removePlayer(player);
-                } catch (SQLException | IOException e) {
-                    ArtMap.instance().getLogger().log(Level.SEVERE, "Database error!", e);
-                    return; 
-                }
+            // Always end the session, even when the player is no longer sitting on
+            // the easel. Gating this on isInsideVehicle() meant that once the seat
+            // entity was gone the player could never be cleaned up - quit, kick and
+            // death all skipped it - leaving them unable to use item frames until
+            // the server restarted. See #376.
+            // removePlayer() -> ArtSession.end() restores the art kit, and
+            // removeKit() is a no-op when it has already run.
+            try {
+                ArtMap.instance().getArtistHandler().removePlayer(player);
+            } catch (SQLException | IOException e) {
+                ArtMap.instance().getLogger().log(Level.SEVERE, "Database error!", e);
+                return; 
             }
         }
 		if (ArtMap.instance().getPreviewManager().isPreviewing(player)) {

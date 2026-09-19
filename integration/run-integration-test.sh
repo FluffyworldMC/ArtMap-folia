@@ -16,6 +16,10 @@
 #   RUN_PAINT_TEST       "true" to also run the mineflayer paint bot against
 #                        the booted server and verify strokes reach Art.db
 #                        (default: false; the bot lives in integration/bot/)
+#   RUN_REGRESSION_TEST  "true" to also run integration/bot/regression.js, the
+#                        #376 guard: a destroyed easel must never leave a player
+#                        stranded in ArtMap's artists map (which silently kills
+#                        all their item-frame interactions). (default: false)
 #   RCON_PASSWORD        RCON password used when the paint test is enabled
 #   CI_JOB_ID            Set automatically by GitLab; used to make container /
 #                        volume names unique so parallel jobs don't collide.
@@ -37,6 +41,7 @@ SERVER_IMAGE="${SERVER_IMAGE:-itzg/minecraft-server:java25}"
 PROTOCOLLIB_VERSION="${PROTOCOLLIB_VERSION:-dev-build}"
 TIMEOUT="${TIMEOUT:-600}"
 RUN_PAINT_TEST="${RUN_PAINT_TEST:-false}"
+RUN_REGRESSION_TEST="${RUN_REGRESSION_TEST:-false}"
 RCON_PASSWORD="${RCON_PASSWORD:-artmap-e2e}"
 
 # Unique suffix so parallel CI jobs don't collide on resource names.
@@ -130,7 +135,7 @@ docker run -d \
     -e VERSION="$MC_VERSION" \
     -e MEMORY=1G \
     -e ONLINE_MODE=FALSE \
-    -e ENABLE_RCON="$([ "$RUN_PAINT_TEST" = "true" ] && echo TRUE || echo FALSE)" \
+    -e ENABLE_RCON="$([ "$RUN_PAINT_TEST" = "true" ] || [ "$RUN_REGRESSION_TEST" = "true" ] && echo TRUE || echo FALSE)" \
     -e RCON_PASSWORD="$RCON_PASSWORD" \
     -v "${VOLUME_NAME}:/plugins" \
     "$SERVER_IMAGE"
@@ -243,6 +248,42 @@ if [ "$RUN_PAINT_TEST" = "true" ] && [ "$RESULT" = "success" ]; then
 fi
 
 # ──────────────────────────────────────────────────────────────────────────────
+# Optional regression phase - guards issue #376.
+#
+# ArtMap's ProtocolLib listener cancels USE_ENTITY for any player in its
+# `artists` map. Filling or rotating an item frame IS a USE_ENTITY interact, so a
+# session that is never cleaned up silently breaks every item frame for that
+# player until the server restarts, with nothing logged. regression.js destroys
+# an easel out from under a seated painter (and again across a quit/rejoin) and
+# asserts the player can still use an item frame afterwards.
+# ──────────────────────────────────────────────────────────────────────────────
+if [ "$RUN_REGRESSION_TEST" = "true" ] && [ "$RESULT" = "success" ]; then
+    echo ""
+    echo "--- Regression: #376 stranded art session ---"
+    set +e
+
+    SERVER_IP=$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' "$CONTAINER_NAME")
+
+    docker volume create "$BOT_VOLUME_NAME" >/dev/null 2>&1
+    docker create --name "$BOT_HELPER" -v "${BOT_VOLUME_NAME}:/bot" alpine echo >/dev/null
+    docker cp integration/bot/. "${BOT_HELPER}:/bot/"
+    docker rm "$BOT_HELPER" >/dev/null
+
+    docker run --rm \
+        -v "${BOT_VOLUME_NAME}:/bot" \
+        -w /bot \
+        -e MC_HOST="$SERVER_IP" \
+        -e MC_VERSION="$MC_VERSION" \
+        -e RCON_PASSWORD="$RCON_PASSWORD" \
+        node:20-alpine \
+        sh -c "npm install --no-audit --no-fund --loglevel=error && node regression.js"
+    REG_EXIT=$?
+
+    [ "$REG_EXIT" -ne 0 ] && RESULT="regression_failed"
+    set -e
+fi
+
+# ──────────────────────────────────────────────────────────────────────────────
 # Capture full server log (saved as a CI artifact for debugging)
 # ──────────────────────────────────────────────────────────────────────────────
 echo ""
@@ -264,7 +305,16 @@ case "$RESULT" in
         if [ "$RUN_PAINT_TEST" = "true" ]; then
             echo "PASS: paint bot strokes were persisted to Art.db."
         fi
+        if [ "$RUN_REGRESSION_TEST" = "true" ]; then
+            echo "PASS: #376 - a destroyed easel did not strand the art session."
+        fi
         exit 0
+        ;;
+    regression_failed)
+        echo "FAIL: #376 regression - a destroyed easel stranded the player in"
+        echo "      ArtMap's artists map, so item frames silently stopped working"
+        echo "      for them. See the bot output above and ${LOG_FILE}."
+        exit 1
         ;;
     paint_bot_failed)
         echo "FAIL: the paint bot exited with an error (see output above)."

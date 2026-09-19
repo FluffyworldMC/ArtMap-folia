@@ -165,14 +165,21 @@ public class ArtistHandler implements IArtistHandler {
 	}
 
 	public void removePlayer(final Player player) throws SQLException, IOException {
-		if (!containsPlayer(player))
+		if (player == null)
 			return;// just for safety :)
-		ArtSession session = artists.get(player.getUniqueId());
-		if (!session.isActive())
+		// Drop the map entry FIRST. Bailing out before the remove (as the old
+		// !isActive() guard did) stranded the player in `artists` for the life of
+		// the server, and ArtMap then cancels every USE_ENTITY packet they send -
+		// so item frames silently stop accepting or rotating items. See #376.
+		ArtSession session = artists.remove(player.getUniqueId());
+		if (session == null)
 			return;
-		artists.remove(player.getUniqueId());
-		session.end(player);
-		ArtMap.instance().getProtocolManager().getPacketReceiver().uninjectPlayer(player);
+		try {
+			if (session.isActive())
+				session.end(player);
+		} finally {
+			ArtMap.instance().getProtocolManager().getPacketReceiver().uninjectPlayer(player);
+		}
 	}
 
 	public ArtSession getCurrentSession(Player player) {

@@ -163,6 +163,9 @@ class PlayerInteractEaselListener implements RegisteredListener {
 	@Override
     public void unregister() {
         PlayerInteractAtEntityEvent.getHandlerList().unregister(this);
+        // onRightClick listens on PlayerInteractEvent; leaving it registered kept a
+        // dead listener wired up across a disable/reload.
+        PlayerInteractEvent.getHandlerList().unregister(this);
         PlayerArmorStandManipulateEvent.getHandlerList().unregister(this);
         PlayerInteractEntityEvent.getHandlerList().unregister(this);
         EntityDamageByEntityEvent.getHandlerList().unregister(this);

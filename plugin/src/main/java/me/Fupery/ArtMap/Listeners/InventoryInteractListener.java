@@ -114,5 +114,7 @@ class InventoryInteractListener implements RegisteredListener {
         PlayerItemHeldEvent.getHandlerList().unregister(this);
         InventoryClickEvent.getHandlerList().unregister(this);
         PlayerDropItemEvent.getHandlerList().unregister(this);
+        // onPlayerPickup was never torn down.
+        EntityPickupItemEvent.getHandlerList().unregister(this);
     }
 }

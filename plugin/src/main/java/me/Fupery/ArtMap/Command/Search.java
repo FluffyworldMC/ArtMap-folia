@@ -48,6 +48,12 @@ public class Search extends AsyncCommand {
             }
             playerId = pSender.getUniqueId();
         } else if("--player".equals(args[1].trim())) {
+            // `/art search --player` with no name still clears the length<2 guard
+            // above, so the player name has to be checked for separately.
+            if(args.length < 3) {
+                msg.message = Lang.SEARCH_USAGE.get();
+                return;
+            }
             playerName = args[2].trim();
             Optional<UUID> optPlayerId = ArtMap.instance().getHeadsCache().getPlayerUUID(playerName);
             if(!optPlayerId.isPresent()) {

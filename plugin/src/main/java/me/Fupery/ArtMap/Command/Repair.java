@@ -52,7 +52,7 @@ public class Repair extends AsyncCommand {
                 msg.message = repair(args[2], true);
                 break;
             default:
-                msg.message = Lang.COMMAND_EXPORT.get();
+                msg.message = Lang.REPAIR_USAGE.get();
                 return;
         }
 

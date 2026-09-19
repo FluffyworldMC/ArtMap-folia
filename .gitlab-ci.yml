@@ -111,6 +111,7 @@ publish:jdk21:
 #                      the integration job out.
 #   integration:       verifies ArtMap loads cleanly (every pipeline)
 #   integration:paint  also drives the mineflayer paint bot and checks Art.db
+#   integration:regression  #376 guard: a destroyed easel must not strand a session
 ################################################################################################
 
 # Shared Minecraft version + the registry ref for the pre-baked server image.
@@ -208,6 +209,22 @@ integration:paint:
     paths:
       - integration/server.log
       - integration/Art.db
+    expire_in: 1 week
+
+# Guards issue #376: ArtMap cancels USE_ENTITY for anyone in its `artists` map,
+# and filling/rotating an item frame is a USE_ENTITY interact -- so a session
+# that is never cleaned up silently breaks every item frame for that player until
+# the server restarts, with nothing in the console. The bot destroys an easel out
+# from under a seated painter (and again across a quit/rejoin) and asserts item
+# frames still work afterwards. Verified to fail on the pre-fix jar.
+integration:regression:
+  extends: integration
+  variables:
+    RUN_REGRESSION_TEST: "true"
+  artifacts:
+    when: always
+    paths:
+      - integration/server.log
     expire_in: 1 week
 
 ################################################################################################
