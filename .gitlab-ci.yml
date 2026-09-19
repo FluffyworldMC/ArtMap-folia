@@ -8,6 +8,8 @@ stages:
   - release
 
 workflow:
+  auto_cancel:
+    on_new_commit: interruptible
   rules:
     - if: '$CI_COMMIT_TAG'
       variables:
@@ -61,12 +63,15 @@ cache:
         - plugin/target/failsafe-reports/TEST-*.xml
 
 build:jdk17:
+  interruptible: true
   extends: [.jdk17, .build]
 
 build:jdk21:
+  interruptible: true
   extends: [.jdk21, .build]
 
 coverage:
+  interruptible: true
   stage: coverage
   image: registry.gitlab.com/haynes/jacoco2cobertura:1.0.11
   script:
@@ -91,12 +96,14 @@ coverage:
     - if: '$CI_COMMIT_TAG'
 
 publish:jdk17:
+  interruptible: false
   extends: .publish
   needs: ["build:jdk17"]
   variables:
     JDK: "JDK17"
 
 publish:jdk21:
+  interruptible: false
   extends: .publish
   needs: ["build:jdk21"]
   variables:
@@ -133,6 +140,7 @@ publish:jdk21:
 # pipelines reuse the already-pushed tag. Bump the image build or MC_VERSION to
 # force a rebuild. Kaniko's --cache reuses unchanged layers across runs.
 bake-server-image:
+  interruptible: false
   extends: .integration-vars
   stage: integration
   image:
@@ -162,6 +170,7 @@ bake-server-image:
         --cache-repo "${CI_REGISTRY_IMAGE}/paper-baked-cache"
 
 integration:
+  interruptible: true
   extends: .integration-vars
   stage: integration
   image: docker:latest
@@ -201,6 +210,7 @@ integration:
     expire_in: 1 week
 
 integration:paint:
+  interruptible: true
   extends: integration
   variables:
     RUN_PAINT_TEST: "true"
@@ -234,6 +244,7 @@ integration:regression:
 # Creates the GitLab Release and attaches the two published JARs as package
 # assets.  Runs only on tags, after both publish jobs have succeeded.
 release:gitlab-release:
+  interruptible: false
   stage: release
   image: registry.gitlab.com/gitlab-org/release-cli:latest
   needs: ["publish:jdk17", "publish:jdk21"]
@@ -279,6 +290,7 @@ release:gitlab-release:
 # Updates POM versions to keep them in line with the release tag.
 # Only pushes if there are changes.
 release:maven-release:
+  interruptible: false
   extends: .jdk21
   stage: release
   needs: ["publish:jdk21"]
