@@ -109,11 +109,16 @@ public abstract class PluginTestSupport {
 
     /** Configuration is immutable, so build one with the flags the session and listeners read, and install it. */
     protected static Configuration configWith(boolean forceArtKit, boolean disablePaintbrush) throws Exception {
+        return configOverriding(java.util.Map.of("FORCE_ART_KIT", forceArtKit, "DISABLE_PAINTBRUSH", disablePaintbrush));
+    }
+
+    /** A copy of the default Configuration with the named fields replaced, installed as the plugin's config. */
+    protected static Configuration configOverriding(java.util.Map<String, Object> overrides) throws Exception {
         Configuration cfg = mock(Configuration.class);
-        for (String[] f : new String[][] { { "FORCE_ART_KIT", String.valueOf(forceArtKit) }, { "DISABLE_PAINTBRUSH", String.valueOf(disablePaintbrush) } }) {
-            java.lang.reflect.Field field = Configuration.class.getDeclaredField(f[0]);
+        for (java.lang.reflect.Field field : Configuration.class.getDeclaredFields()) {
+            if (java.lang.reflect.Modifier.isStatic(field.getModifiers())) continue;
             field.setAccessible(true);
-            field.set(cfg, Boolean.parseBoolean(f[1]));
+            field.set(cfg, overrides.containsKey(field.getName()) ? overrides.get(field.getName()) : field.get(defaultConfig));
         }
         when(ArtMap.instance().getConfiguration()).thenReturn(cfg);
         return cfg;

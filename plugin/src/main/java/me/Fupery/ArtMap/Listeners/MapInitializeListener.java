@@ -49,7 +49,7 @@ public class MapInitializeListener extends BukkitRunnable implements RegisteredL
             try {
                 stop = 0;
                 if (!ArtMap.instance().getArtDatabase().containsArtwork(mapId))
-                    return;
+                    continue; // a vanilla map must not hold up the artworks queued behind it
                 stop = 1;
                 Map map = new Map(mapId);
                 stop = 2;

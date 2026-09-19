@@ -159,7 +159,7 @@ public class CustomItem {
 
     @Override
     public int hashCode() {
-        HashCodeBuilder builder = new HashCodeBuilder(14, 293);
+        HashCodeBuilder builder = new HashCodeBuilder(13, 293); // both seeds must be odd or the builder throws
         builder.append(key);
         return builder.toHashCode();
     }
