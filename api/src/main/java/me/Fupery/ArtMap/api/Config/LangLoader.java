@@ -88,9 +88,11 @@ class LangLoader {
     String[] loadArray(String key) {
         List<String> messages = lang.getStringList(key);
         if (messages.isEmpty()) {
-            //if loading as List fails try loading as String an making a list
-            messages = Collections.singletonList(lang.getString(key));
-            if(messages.isEmpty()) {
+            // A scalar entry is accepted as a one-line list; a missing key falls back to the defaults.
+            String single = lang.getString(key);
+            if (single != null) {
+                messages = Collections.singletonList(single);
+            } else {
                 logLangError(String.format("Error loading key from lang.yml: '%s'", key));
                 if (defaults == null || !defaults.contains(key)) return new String[]{"[" + key + "] NOT FOUND"};
                 messages = defaults.getStringList(key);

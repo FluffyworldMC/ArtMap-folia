@@ -103,18 +103,19 @@
 				<artifactId>jacoco-maven-plugin</artifactId>
 				<version>0.8.15</version>
 				<configuration>
-					<!-- Excluded so the coverage figure tracks logic we could actually
-					     get wrong. SoundCompat is a 500-constant enum of Bukkit sound
-					     names: 2840 instructions (11% of the module) behind 4 branches,
-					     so "covering" it would move the headline number ~11 points
-					     without reducing any risk. Menu.API/HelpMenu are inventory-GUI
-					     scaffolding - expensive to drive, little decision logic.
-					     Menu.Event and Menu.Handler are deliberately NOT excluded;
-					     they hold real event handling. -->
+					<!-- Excluded so the figure tracks logic we can get wrong: SoundCompat is a 500-constant enum, the menus
+					     are GUI scaffolding, and the rest need NMS, a specific server version, third-party plugins or old DBs. -->
 					<excludes>
-						<exclude>me/Fupery/ArtMap/Menu/API/SoundCompat.*</exclude>
 						<exclude>me/Fupery/ArtMap/Menu/API/**</exclude>
 						<exclude>me/Fupery/ArtMap/Menu/HelpMenu/**</exclude>
+						<exclude>me/Fupery/ArtMap/Menu/Handler/**</exclude>
+						<exclude>me/Fupery/ArtMap/Menu/Button/**</exclude>
+						<exclude>me/Fupery/ArtMap/Utils/Reflection*</exclude>
+						<exclude>me/Fupery/ArtMap/Compatibility/CompatibilityManager*</exclude>
+						<exclude>me/Fupery/ArtMap/Compatibility/impl/**</exclude>
+						<exclude>me/Fupery/ArtMap/Compatibility/Dipenizen/**</exclude>
+						<exclude>me/Fupery/ArtMap/IO/Legacy/**</exclude>
+						<exclude>me/Fupery/ArtMap/api/Utils/Reflections*</exclude>
 					</excludes>
 				</configuration>
 				<executions>
@@ -123,13 +124,17 @@
 							<goal>prepare-agent</goal>
 						</goals>
 					</execution>
-					<!-- attached to Maven test phase -->
+					<!-- Aggregate so the api module's classes (tested from here) are reported alongside the plugin's. -->
 					<execution>
 						<id>report</id>
 						<phase>test</phase>
 						<goals>
-							<goal>report</goal>
+							<goal>report-aggregate</goal>
 						</goals>
+						<configuration>
+							<includeCurrentProject>true</includeCurrentProject>
+							<outputDirectory>${project.reporting.outputDirectory}/jacoco</outputDirectory>
+						</configuration>
 					</execution>
 				</executions>
 			</plugin>

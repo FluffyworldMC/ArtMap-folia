@@ -23,6 +23,7 @@ public abstract class PluginTestSupport {
 
     protected static MockUtil mocks;
     protected static Database db;
+    protected static Configuration defaultConfig;
 
     protected static void bootstrap() throws Exception {
         if (mocks != null) {
@@ -40,6 +41,7 @@ public abstract class PluginTestSupport {
 
         db = new Database(plugin);
         when(plugin.getArtDatabase()).thenReturn(db);
+        defaultConfig = plugin.getConfiguration();
 
         ProtocolHandler protocol = mock(ProtocolHandler.class);
         when(protocol.getPacketReceiver()).thenReturn(mock(PacketReceiver.class));
@@ -74,6 +76,64 @@ public abstract class PluginTestSupport {
         when(stack.getType()).thenReturn(material);
         when(stack.getAmount()).thenReturn(1);
         return stack;
+    }
+
+    /** A player whose inventory really stores items: 36 storage slots, 4 armour slots, off hand at 40. */
+    protected static org.bukkit.entity.Player statefulPlayer(String name) {
+        org.bukkit.entity.Player p = mock(org.bukkit.entity.Player.class);
+        when(p.getUniqueId()).thenReturn(java.util.UUID.randomUUID());
+        when(p.getName()).thenReturn(name);
+        when(p.spigot()).thenReturn(mock(org.bukkit.entity.Player.Spigot.class));
+        when(p.getLocation()).thenAnswer(i -> new org.bukkit.Location(null, 0, 64, 0));
+        when(p.getOpenInventory()).thenReturn(mock(org.bukkit.inventory.InventoryView.class));
+        org.bukkit.inventory.ItemStack[] contents = new org.bukkit.inventory.ItemStack[41];
+        org.bukkit.inventory.PlayerInventory inv = mock(org.bukkit.inventory.PlayerInventory.class);
+        when(inv.getContents()).thenAnswer(i -> contents.clone());
+        org.mockito.Mockito.doAnswer(i -> { org.bukkit.inventory.ItemStack[] c = i.getArgument(0);
+                System.arraycopy(c, 0, contents, 0, Math.min(c.length, contents.length)); return null; })
+                .when(inv).setContents(any());
+        when(inv.getStorageContents()).thenAnswer(i -> java.util.Arrays.copyOf(contents, 36));
+        org.mockito.Mockito.doAnswer(i -> { org.bukkit.inventory.ItemStack[] c = i.getArgument(0);
+                System.arraycopy(c, 0, contents, 0, Math.min(c.length, 36)); return null; })
+                .when(inv).setStorageContents(any());
+        when(inv.getItem(org.mockito.ArgumentMatchers.anyInt())).thenAnswer(i -> contents[(int) i.getArgument(0)]);
+        org.mockito.Mockito.doAnswer(i -> { contents[(int) i.getArgument(0)] = i.getArgument(1); return null; })
+                .when(inv).setItem(org.mockito.ArgumentMatchers.anyInt(), any());
+        when(inv.getItemInOffHand()).thenAnswer(i -> contents[40]);
+        org.mockito.Mockito.doAnswer(i -> { contents[40] = i.getArgument(0); return null; }).when(inv).setItemInOffHand(any());
+        when(inv.getItemInMainHand()).thenAnswer(i -> contents[0]);
+        org.mockito.Mockito.doAnswer(i -> { contents[0] = i.getArgument(0); return null; }).when(inv).setItemInMainHand(any());
+        when(p.getInventory()).thenReturn(inv);
+        return p;
+    }
+
+    /** Configuration is immutable, so build one with the flags the session and listeners read, and install it. */
+    protected static Configuration configWith(boolean forceArtKit, boolean disablePaintbrush) throws Exception {
+        Configuration cfg = mock(Configuration.class);
+        for (String[] f : new String[][] { { "FORCE_ART_KIT", String.valueOf(forceArtKit) }, { "DISABLE_PAINTBRUSH", String.valueOf(disablePaintbrush) } }) {
+            java.lang.reflect.Field field = Configuration.class.getDeclaredField(f[0]);
+            field.setAccessible(true);
+            field.set(cfg, Boolean.parseBoolean(f[1]));
+        }
+        when(ArtMap.instance().getConfiguration()).thenReturn(cfg);
+        return cfg;
+    }
+
+    protected static void restoreConfig() {
+        when(ArtMap.instance().getConfiguration()).thenReturn(defaultConfig);
+    }
+
+    /** End a session whose art kit is swapped in. removeKit() calls InventoryView.setCursor, which the plugin
+     *  compiles against as a class while the test classpath has the 1.21 interface (Paper rewrites this at
+     *  runtime), so the kit is dropped reflectively first. */
+    protected static void endKitSessionQuietly(org.bukkit.entity.Player player) throws Exception {
+        me.Fupery.ArtMap.Painting.ArtSession session = artists().getCurrentSession(player);
+        if (session != null) {
+            java.lang.reflect.Field f = me.Fupery.ArtMap.Painting.ArtSession.class.getDeclaredField("inventory");
+            f.setAccessible(true);
+            f.set(session, null);
+        }
+        artists().removePlayer(player);
     }
 
     protected static ArtistHandler artists() {
