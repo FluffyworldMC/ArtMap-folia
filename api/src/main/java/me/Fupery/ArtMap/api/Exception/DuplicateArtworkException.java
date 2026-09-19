@@ -1,14 +1,9 @@
 package me.Fupery.ArtMap.api.Exception;
 
-/**
- * Thrown when an artmap operation cannot be completed because it would
- * overwrite another artwork.
- */
+/** Thrown when an artmap operation cannot be completed because it would
+ *  overwrite another artwork. */
 public class DuplicateArtworkException extends ArtMapException {
 
-    /**
-     *
-     */
     private static final long serialVersionUID = 1L;
 
     public DuplicateArtworkException(String msg) {

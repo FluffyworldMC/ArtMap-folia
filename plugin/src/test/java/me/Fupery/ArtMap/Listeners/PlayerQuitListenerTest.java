@@ -25,11 +25,8 @@ import me.Fupery.ArtMap.Easel.Easel;
 import me.Fupery.ArtMap.IO.Database.Map;
 import me.Fupery.ArtMap.mocks.PluginTestSupport;
 
-/**
- * The five ways an art session can end. #376 was caused by one of these paths
- * silently skipping cleanup, so each entry point is checked on its own rather
- * than trusting the shared helper they all delegate to.
- */
+/** The five ways an art session can end; #376 was one of them silently skipping cleanup, so each entry point
+ *  is checked on its own rather than trusting the shared helper. */
 public class PlayerQuitListenerTest extends PluginTestSupport {
 
     private PlayerQuitListener listener;

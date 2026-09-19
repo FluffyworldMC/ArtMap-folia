@@ -23,10 +23,7 @@ import me.Fupery.ArtMap.Easel.EaselEffect;
 import me.Fupery.ArtMap.Easel.EaselEvent;
 import me.Fupery.ArtMap.api.Easel.ClickType;
 
-/**
- * Guard rails on the easel's click state machine - the gate every mount, break
- * and canvas action goes through.
- */
+/** Guard rails on the easel's click state machine, the gate every mount, break and canvas action goes through. */
 public class EaselEventTest extends PluginTestSupport {
 
     private Player player;

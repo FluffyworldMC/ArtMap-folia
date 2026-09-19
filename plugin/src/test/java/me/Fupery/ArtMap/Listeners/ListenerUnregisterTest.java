@@ -18,20 +18,8 @@ import org.junit.jupiter.api.Test;
 
 import me.Fupery.ArtMap.mocks.PluginTestSupport;
 
-/**
- * Every {@link RegisteredListener} must tear down *all* of the events it
- * subscribes to.
- *
- * <p>{@code EventManager.unregisterAll()} (called from ArtMap.onDisable) just
- * delegates to each listener's own {@code unregister()}. Any event a listener
- * handles but forgets to unregister stays wired to the old, dead listener
- * instance after a disable/reload - so it keeps firing into a plugin whose
- * ArtMap.instance(), database and ArtistHandler have been torn down.
- *
- * <p>This is checked reflectively rather than by listing the events by hand, so
- * adding an @EventHandler without extending unregister() fails immediately
- * instead of silently leaking.
- */
+/** Every RegisteredListener must unregister all of its events, or a disable/reload leaves handlers wired to a
+ *  dead instance. Checked reflectively so a new @EventHandler without an unregister() update fails at once. */
 public class ListenerUnregisterTest extends PluginTestSupport {
 
     @org.junit.jupiter.api.BeforeAll

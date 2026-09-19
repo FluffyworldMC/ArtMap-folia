@@ -73,13 +73,8 @@ class PlayerQuitListener implements RegisteredListener {
      */
     public static void endPlayerArtSession(Player player) {
         if (ArtMap.instance().getArtistHandler().containsPlayer(player)) {
-            // Always end the session, even when the player is no longer sitting on
-            // the easel. Gating this on isInsideVehicle() meant that once the seat
-            // entity was gone the player could never be cleaned up - quit, kick and
-            // death all skipped it - leaving them unable to use item frames until
-            // the server restarted. See #376.
-            // removePlayer() -> ArtSession.end() restores the art kit, and
-            // removeKit() is a no-op when it has already run.
+            // Always end the session, even off the easel: gating on isInsideVehicle() left players stranded
+            // once the seat was gone (#376). removeKit() is a no-op when it has already run.
             try {
                 ArtMap.instance().getArtistHandler().removePlayer(player);
             } catch (SQLException | IOException e) {

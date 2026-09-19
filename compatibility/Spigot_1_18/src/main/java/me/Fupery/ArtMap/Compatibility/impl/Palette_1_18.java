@@ -130,11 +130,8 @@ public class Palette_1_18 implements Palette {
 		return getDefaultColour();
 	}
 
-	/**
-	 * GRASS was renamed to SHORT_GRASS in 1.20.3. A compile-time field reference
-	 * only keeps working on modern servers through Paper's legacy-plugin remapper,
-	 * so resolve whichever name this server actually has.
-	 */
+	/** GRASS became SHORT_GRASS in 1.20.3 and a compile-time reference only survives via Paper's legacy
+	 *  remapper, so resolve whichever name this server has. */
 	private static Material resolveGrass() {
 		Material grass = Material.matchMaterial("SHORT_GRASS");
 		return grass != null ? grass : Material.matchMaterial("GRASS");

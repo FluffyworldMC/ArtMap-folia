@@ -1,52 +1,21 @@
 #!/bin/sh
-# Integration test for ArtMap plugin.
-#
-# Starts a Paper Minecraft server in Docker, installs the built ArtMap JAR plus
-# its required dependency (ProtocolLib), waits for the server to finish loading,
-# and verifies the plugin enabled successfully.
-#
-# Designed to run inside a GitLab CI job that has a docker:dind service.
-# It also works locally when Docker is available. POSIX sh (not bash) so it runs
-# directly under the Alpine-based docker:latest CI image, which has no bash.
-#
-# Environment variables (all optional – defaults are shown):
-#   MC_VERSION           Minecraft / Paper version  (default: 1.21.11)
-#   PROTOCOLLIB_VERSION  ProtocolLib release tag     (default: 5.3.0)
-#   TIMEOUT              Seconds to wait for server  (default: 600)
-#   RUN_PAINT_TEST       "true" to also run the mineflayer paint bot against
-#                        the booted server and verify strokes reach Art.db
-#                        (default: false; the bot lives in integration/bot/)
-#   RUN_REGRESSION_TEST  "true" to also run integration/bot/regression.js:
-#                        #376 - a destroyed easel must never leave a player
-#                        stranded in ArtMap's artists map (which silently kills
-#                        all their item-frame interactions);
-#                        #377 - a regular map must laminate in a cartography
-#                        table like vanilla, with no ArtMap error. (default: false)
-#   RCON_PASSWORD        RCON password used when the paint test is enabled
-#   CI_JOB_ID            Set automatically by GitLab; used to make container /
-#                        volume names unique so parallel jobs don't collide.
+# Boots a Paper server in Docker with the built ArtMap jar + ProtocolLib and checks it enables; optional
+# phases run the paint bot and the regression suite. POSIX sh: the Alpine CI image has no bash.
 
-# -e : exit on error for setup steps (volume, copy, docker run)
-# -u : treat unset variables as errors
-# (pipefail is bash-only and not used; the polling loop disables -e on purpose so
-#  log capture and the case statement always run even when commands fail.)
+# -e/-u for the setup steps; the polling loop disables -e on purpose so the log is always captured.
 set -eu
 
-# ──────────────────────────────────────────────────────────────────────────────
-# Configuration
-# ──────────────────────────────────────────────────────────────────────────────
-MC_VERSION="${MC_VERSION:-1.21.11}"
-# The itzg image tag selects the server's Java runtime. AnvilGUI's 1.26 NMS
-# wrapper (and the ProtocolLib dev-build) ship Java 25 bytecode, which Paper's
-# plugin remapper must be able to read, so run on a Java 25 JRE.
+# --- Configuration (all overridable from the environment) ---
+MC_VERSION="${MC_VERSION:-1.21.11}"           # Minecraft / Paper version
+# java25 tag: AnvilGUI's 1.26 wrapper and the ProtocolLib dev build ship Java 25 bytecode for Paper's remapper.
 SERVER_IMAGE="${SERVER_IMAGE:-itzg/minecraft-server:java25}"
-PROTOCOLLIB_VERSION="${PROTOCOLLIB_VERSION:-dev-build}"
-TIMEOUT="${TIMEOUT:-600}"
-RUN_PAINT_TEST="${RUN_PAINT_TEST:-false}"
-RUN_REGRESSION_TEST="${RUN_REGRESSION_TEST:-false}"
-RCON_PASSWORD="${RCON_PASSWORD:-artmap-e2e}"
+PROTOCOLLIB_VERSION="${PROTOCOLLIB_VERSION:-dev-build}"  # ProtocolLib GitHub release tag
+TIMEOUT="${TIMEOUT:-600}"                     # seconds to wait for the server to start
+RUN_PAINT_TEST="${RUN_PAINT_TEST:-false}"     # also run bot/paint-bot.js and verify Art.db
+RUN_REGRESSION_TEST="${RUN_REGRESSION_TEST:-false}"  # also run bot/regression.js (#376, #377)
+RCON_PASSWORD="${RCON_PASSWORD:-artmap-e2e}"  # used by the bots
 
-# Unique suffix so parallel CI jobs don't collide on resource names.
+# CI_JOB_ID keeps container/volume names unique so parallel jobs don't collide.
 JOB_SUFFIX="${CI_JOB_ID:-local-$$}"
 
 CONTAINER_NAME="artmap-server-${JOB_SUFFIX}"
@@ -59,9 +28,7 @@ LOG_FILE="integration/server.log"
 
 PROTOCOLLIB_URL="https://github.com/dmulloy2/ProtocolLib/releases/download/${PROTOCOLLIB_VERSION}/ProtocolLib.jar"
 
-# ──────────────────────────────────────────────────────────────────────────────
-# Cleanup – always runs on exit (success or failure)
-# ──────────────────────────────────────────────────────────────────────────────
+# --- Cleanup: always runs on exit ---
 cleanup() {
     echo ""
     echo "--- Cleanup ---"
@@ -74,9 +41,7 @@ cleanup() {
 }
 trap cleanup EXIT
 
-# ──────────────────────────────────────────────────────────────────────────────
-# Locate the built ArtMap JAR (produced by mvn verify in the build stage)
-# ──────────────────────────────────────────────────────────────────────────────
+# --- Locate the built ArtMap jar (from mvn verify in the build stage) ---
 JAR=$(ls plugin/target/ArtMap-*.jar 2>/dev/null \
         | grep -v '\-sources' \
         | grep -v '\-javadoc' \
@@ -88,18 +53,8 @@ if [ -z "$JAR" ]; then
 fi
 echo "Using JAR: $JAR"
 
-# ──────────────────────────────────────────────────────────────────────────────
-# Create a Docker volume and populate it with the plugin JARs.
-#
-# NOTE: In Docker-in-Docker (dind) the Docker daemon cannot see the CI job
-# container's filesystem via bind mounts.  The workaround is:
-#   1. Create a named volume.
-#   2. Download ProtocolLib directly into the volume (Alpine + wget).
-#   3. docker create a helper container that mounts the volume, then
-#      docker cp the ArtMap JAR from the CI workspace into the helper.
-#      docker cp works with non-running containers and writes to the volume.
-#   4. Mount the volume into the Minecraft server container.
-# ──────────────────────────────────────────────────────────────────────────────
+# --- Plugin volume --- dind cannot bind-mount the job workspace, so stage the jars in a named volume:
+# wget ProtocolLib straight into it, then docker cp the ArtMap jar in through a helper container.
 echo ""
 echo "--- Docker info ---"
 docker info
@@ -108,9 +63,7 @@ echo ""
 echo "--- Setting up plugin volume ---"
 docker volume create "$VOLUME_NAME"
 
-# wget -S shows response headers so we can confirm the download succeeded even
-# when GitHub redirects the request (302 → S3).  The --no-check-certificate
-# flag is a safety net in case the runner's CA bundle is incomplete.
+# -S shows the redirect chain (GitHub 302 -> S3); --no-check-certificate covers a thin runner CA bundle.
 echo "Downloading ProtocolLib ${PROTOCOLLIB_VERSION}..."
 docker run --rm \
     -v "${VOLUME_NAME}:/plugins" \
@@ -125,9 +78,7 @@ docker cp "$JAR" "${COPY_HELPER}:/plugins/ArtMap.jar"
 docker rm "$COPY_HELPER"
 echo "ArtMap JAR copied."
 
-# ──────────────────────────────────────────────────────────────────────────────
-# Start the Paper Minecraft server
-# ──────────────────────────────────────────────────────────────────────────────
+# --- Start the Paper server ---
 echo ""
 echo "--- Starting Paper ${MC_VERSION} server ---"
 docker run -d \
@@ -142,11 +93,8 @@ docker run -d \
     -v "${VOLUME_NAME}:/plugins" \
     "$SERVER_IMAGE"
 
-# ──────────────────────────────────────────────────────────────────────────────
-# Poll the container logs until the server finishes loading or the timeout fires.
-# set -e is disabled here so that transient docker command failures don't abort
-# the loop before we have a chance to save the log.
-# ──────────────────────────────────────────────────────────────────────────────
+# --- Wait for the server --- poll the logs for "Done (" or the timeout. -e is off so a transient docker
+# failure cannot abort the loop before the log is saved.
 echo ""
 echo "--- Waiting for server to start (timeout: ${TIMEOUT}s) ---"
 START_TIME=$(date +%s)
@@ -194,14 +142,8 @@ while true; do
 done
 set -e
 
-# ──────────────────────────────────────────────────────────────────────────────
-# Optional paint test – drive a mineflayer client against the live server and
-# verify the strokes were persisted to ArtMap's database.
-#
-# Same dind constraint as the plugin JAR: bind mounts don't work, so the bot
-# sources are docker-cp'd into a volume and run from a node container that
-# shares the default bridge network with the server.
-# ──────────────────────────────────────────────────────────────────────────────
+# --- Paint test --- run the mineflayer bot from a node container on the server's bridge network (sources
+# docker-cp'd into a volume, same dind constraint as the jar), then verify strokes landed in Art.db.
 if [ "$RUN_PAINT_TEST" = "true" ] && [ "$RESULT" = "success" ]; then
     echo ""
     echo "--- Paint test: running mineflayer bot ---"
@@ -249,21 +191,8 @@ if [ "$RUN_PAINT_TEST" = "true" ] && [ "$RESULT" = "success" ]; then
     set -e
 fi
 
-# ──────────────────────────────────────────────────────────────────────────────
-# Optional regression phase - guards issues #376 and #377.
-#
-# #376: ArtMap's ProtocolLib listener cancels USE_ENTITY for any player in its
-# `artists` map. Filling or rotating an item frame IS a USE_ENTITY interact, so a
-# session that is never cleaned up silently breaks every item frame for that
-# player until the server restarts, with nothing logged. regression.js destroys
-# an easel out from under a seated painter (and again across a quit/rejoin) and
-# asserts the player can still use an item frame afterwards.
-#
-# #377: the crafting listener treated any filled map that is not an ArtMap
-# artwork as a "Database error!" and messaged the player on every cartography
-# table click. regression.js laminates a plain vanilla map (and a saved artwork)
-# and asserts no ArtMap error reaches the player while vanilla completes it.
-# ──────────────────────────────────────────────────────────────────────────────
+# --- Regression suite --- #376 (a destroyed easel must not strand a session; item frames keep working) and
+# #377 (a regular map laminates in a cartography table with no ArtMap error). See integration/README.md.
 if [ "$RUN_REGRESSION_TEST" = "true" ] && [ "$RESULT" = "success" ]; then
     echo ""
     echo "--- Regression: #376 stranded art session, #377 cartography table ---"
@@ -290,16 +219,12 @@ if [ "$RUN_REGRESSION_TEST" = "true" ] && [ "$RESULT" = "success" ]; then
     set -e
 fi
 
-# ──────────────────────────────────────────────────────────────────────────────
-# Capture full server log (saved as a CI artifact for debugging)
-# ──────────────────────────────────────────────────────────────────────────────
+# --- Save the full server log (CI artifact) ---
 echo ""
 echo "--- Saving server log to ${LOG_FILE} ---"
 docker logs "$CONTAINER_NAME" > "$LOG_FILE" 2>&1 || true
 
-# ──────────────────────────────────────────────────────────────────────────────
-# Report result
-# ──────────────────────────────────────────────────────────────────────────────
+# --- Report ---
 echo ""
 echo "=============================="
 echo " Integration Test: ${RESULT}"

@@ -41,9 +41,7 @@ public class PreviewManager {
     }
 
     public void endAllPreviews() {
-        // Iterate a copy: endPreview() removes from the map, so walking keySet()
-        // directly mutates the collection being iterated the moment the scheduler
-        // runs the task on the same tick.
+        // Iterate a copy: endPreview() removes from the map, and the scheduler can run the task on the same tick.
         for (UUID uuid : new java.util.ArrayList<>(activePreviews.keySet())) {
             endPreview(uuid);
         }
@@ -53,10 +51,8 @@ public class PreviewManager {
         ArtMap.instance().getScheduler().SYNC.run(() -> {
             Player player = Bukkit.getPlayer(uuid);
             if (player == null) {
-                // TimedPreview schedules this 300 ticks out; if the player logged
-                // off in the meantime Bukkit.getPlayer returns null. Drop the stale
-                // entry rather than dereferencing it - otherwise they stay flagged
-                // as previewing and their next clicks get swallowed.
+                // Scheduled 300 ticks out; if the player logged off, Bukkit.getPlayer is null. Drop the stale
+                // entry rather than dereferencing it, or their next clicks stay swallowed as "previewing".
                 activePreviews.remove(uuid);
                 return;
             }

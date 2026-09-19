@@ -21,9 +21,7 @@ variables:
   # This will suppress any download for dependencies and plugins or upload messages which would clutter the console log.
   # `showDateTime` will show the passed time in milliseconds. You need to specify `--batch-mode` to make this work.
   MAVEN_OPTS: "-Dhttps.protocols=TLSv1.2 -Dmaven.repo.local=$CI_PROJECT_DIR/.m2/repository -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=WARN -Dorg.slf4j.simpleLogger.showDateTime=true -Djava.awt.headless=true"
-  # As of Maven 3.3.0 instead of this you may define these options in `.mvn/maven.config` so the same config is used
-  # when running from the command line.
-  # `installAtEnd` and `deployAtEnd` are only effective with recent version of the corresponding plugins.
+  # Maven 3.3+ could take these from .mvn/maven.config; installAtEnd/deployAtEnd need recent plugin versions.
   MAVEN_CLI_OPTS: "--batch-mode --errors --fail-at-end --show-version -DinstallAtEnd=true -DdeployAtEnd=true"
 
 # Cache downloaded dependencies and plugins between builds.
@@ -32,9 +30,7 @@ cache:
   paths:
     - .m2/repository
 
-################################################################################################
-# Build
-################################################################################################
+# ===== Build =====
 
 # 1.18
 .jdk17:
@@ -84,9 +80,7 @@ coverage:
         coverage_format: cobertura
         path: plugin/target/site/cobertura.xml
 
-################################################################################################
-# Publish
-################################################################################################
+# ===== Publish =====
 
 .publish:
   stage: publish
@@ -114,37 +108,17 @@ publish:jdk21:
   variables:
     JDK: "JDK21"
 
-################################################################################################
-# Integration - Start a real Paper server in Docker.
-#   bake-server-image: builds a Paper image with the Mojang jar pre-patched
-#                      (every pipeline; reuses the registry copy when MC_VERSION
-#                      is unchanged) so the runtime boot skips the slow, flaky
-#                      "Downloading mojang_<version>.jar" step that was timing
-#                      the integration job out.
-#   integration:       verifies ArtMap loads cleanly (every pipeline)
-#   integration:paint  also drives the mineflayer paint bot and checks Art.db
-#   integration:regression  #376 guard (destroyed easel must not strand a session)
-#                           and #377 guard (regular maps laminate like vanilla)
-################################################################################################
+# ===== Integration ===== bake-server-image pre-patches the Mojang jar (reused while MC_VERSION is unchanged);
+# integration checks ArtMap enables, :paint drives the paint bot, :regression runs the #376/#377 guards.
 
-# Shared Minecraft version + the registry ref for the pre-baked server image.
-# The image is tagged by MC_VERSION so an unchanged version reuses the cached
-# build. Keep MC_VERSION in sync between this job and the integration jobs.
+# Shared MC version + registry ref for the baked image (tagged by MC_VERSION; keep in sync with the integration jobs).
 .integration-vars:
   variables:
     MC_VERSION: "1.21.11"
     BAKED_IMAGE: "${CI_REGISTRY_IMAGE}/paper-baked:${MC_VERSION}"
 
-# Build the pre-baked server image and push it to the project's container
-# registry. Built with Kaniko, NOT docker:dind: the bake's RUN step downloads
-# the ~56MB Mojang server jar, and large transfers hang indefinitely through
-# the dind nested network (egress to Mojang is otherwise fine, and --mtu=1400
-# didn't help). Kaniko runs the build on the normal runner network, where the
-# download works.
-#
-# Only runs when the bake inputs change (the image definition), so unchanged
-# pipelines reuse the already-pushed tag. Bump the image build or MC_VERSION to
-# force a rebuild. Kaniko's --cache reuses unchanged layers across runs.
+# Build and push the pre-baked image with Kaniko, not dind: the ~56MB Mojang download hangs through the nested dind
+# network. Runs only when the image definition changes; bump it or MC_VERSION to force a rebuild.
 bake-server-image:
   interruptible: false
   extends: .integration-vars
@@ -193,10 +167,7 @@ integration:
     SERVER_IMAGE: "${BAKED_IMAGE}"
     PROTOCOLLIB_VERSION: "dev-build"
     TIMEOUT: "600"
-  # bake-server-image is optional: it only runs when the image definition
-  # changes, so most pipelines reuse the already-pushed tag and integration
-  # just pulls it. optional:true keeps integration runnable when the bake is
-  # skipped this pipeline.
+  # optional: the bake only runs when the image definition changes, so integration must still run without it.
   needs:
     - "build:jdk21"
     - job: "bake-server-image"
@@ -227,14 +198,8 @@ integration:paint:
       - integration/Art.db
     expire_in: 1 week
 
-# Guards issue #376: ArtMap cancels USE_ENTITY for anyone in its `artists` map,
-# and filling/rotating an item frame is a USE_ENTITY interact -- so a session
-# that is never cleaned up silently breaks every item frame for that player until
-# the server restarts, with nothing in the console. The bot destroys an easel out
-# from under a seated painter (and again across a quit/rejoin) and asserts item
-# frames still work afterwards. It also laminates a plain vanilla map and a saved
-# artwork in a cartography table (#377) and asserts no ArtMap error reaches the
-# player. Both verified to fail on their pre-fix jars.
+# #376: destroy an easel under a seated painter (and across quit/rejoin), assert item frames still work.
+# #377: laminate a vanilla map and a saved artwork, assert no ArtMap error. Both fail on their pre-fix jars.
 integration:regression:
   extends: integration
   variables:
@@ -245,9 +210,7 @@ integration:regression:
       - integration/server.log
     expire_in: 1 week
 
-################################################################################################
-# Release
-################################################################################################
+# ===== Release =====
 
 # Creates the GitLab Release and attaches the two published JARs as package
 # assets.  Runs only on tags, after both publish jobs have succeeded.
@@ -262,10 +225,7 @@ release:gitlab-release:
   before_script:
     - apk add --no-cache git
   script:
-    # Find the tag that immediately preceded this one (version-sorted).
-    # awk prints the first non-current tag but keeps reading to EOF, so nothing
-    # upstream gets SIGPIPE'd under the runner's pipefail (head -1 was killing
-    # git tag with exit 141).
+    # Previous tag, version-sorted. awk reads to EOF so nothing upstream gets SIGPIPE'd under pipefail.
     - PREV_TAG=$(git tag --sort=-version:refname | awk -v t="${CI_COMMIT_TAG}" '!found && $0 != t { print; found=1 }')
     # Build the commit range: either since the last tag, or the whole history.
     - |
@@ -305,9 +265,8 @@ release:maven-release:
   variables:
     COMMIT_MESSAGE: "chore(release): [skip ci] Release ${NEXT_VERSION}"
   before_script:
-    # Push with the ephemeral job token instead of a stored GITLAB_TOKEN (which
-    # kept expiring). Requires Settings > CI/CD > Job token permissions >
-    # "Allow Git push requests to the repository" to be enabled.
+    # Push with the job token (a stored GITLAB_TOKEN kept expiring). Needs Settings > CI/CD > Job token
+    # permissions > "Allow Git push requests to the repository".
     - git remote set-url origin https://gitlab-ci-token:${CI_JOB_TOKEN}@${CI_SERVER_FQDN}/${CI_PROJECT_PATH}.git
     - git config --global user.email "${GITLAB_USER_EMAIL}"
     - git config --global user.name "${GITLAB_USER_ID}"

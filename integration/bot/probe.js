@@ -1,10 +1,5 @@
-// Shared harness for ArtMap session-lifecycle / item-frame repro scenarios.
-//
-// The observable everything hangs off: can this player put an item into an item
-// frame? ArtMap's ProtocolLib listener cancels USE_ENTITY for any player in its
-// `artists` map, and rotating/filling a frame IS a USE_ENTITY interact -- so a
-// stranded art session shows up exactly as "right-click on a frame does nothing".
-// That makes one probe cover both the lifecycle bugs and issue #376.
+// Shared harness for the session-lifecycle scenarios. The one observable: can this player still put an item
+// into an item frame? A stranded art session cancels exactly that USE_ENTITY packet (#376).
 import mineflayer from 'mineflayer';
 import { Vec3 } from 'vec3';
 import { Rcon } from 'rcon-client';
@@ -59,11 +54,8 @@ export async function spawnFrame(origin, dx = 0, invulnerable = true) {
   const pos = new Vec3(origin.x + dx, origin.y + 1, origin.z + 2);
   await rc(`kill @e[type=item_frame,distance=..12]`, true);
   await sleep(300);
-  // Facing 2 = north (-z): the frame's front points back toward the player, and
-  // it attaches to the wall block at +z.
-  // Invulnerable by default so a stray hit can't destroy the frame mid-probe --
-  // but the ATTACK probe needs a frame that CAN actually be punched, otherwise
-  // "nothing happened" is indistinguishable from "the packet was cancelled".
+  // Facing 2 = north: front toward the player, attached to the wall at +z. Invulnerable by default, but the
+  // ATTACK probe needs a breakable frame or "nothing happened" is indistinguishable from "cancelled".
   await rc(`summon item_frame ${pos.x} ${pos.y} ${pos.z} `
     + `{Facing:2b,Fixed:0b,Invulnerable:${invulnerable ? 1 : 0}b}`);
   await sleep(500);
@@ -77,9 +69,7 @@ export async function frameHasItem() {
   return /Item:\s*\{/.test(reply) || /\bid:\s*"minecraft:/.test(reply);
 }
 
-// THE PROBE: right-click the frame holding `itemName` and report whether the
-// server actually accepted the interaction. Retries a few times so one dropped
-// packet doesn't read as a failure.
+// THE PROBE: right-click the frame holding `itemName`; retries so one dropped packet does not read as a failure.
 export async function tryFillFrame(bot, framePos, itemName = 'stone_button', attempts = 6) {
   await rc(`clear ${bot.username}`, true);
   await rc(`give ${bot.username} minecraft:${itemName} 1`);
@@ -114,25 +104,14 @@ export function withTimeout(p, ms, label) {
   ]);
 }
 
-// Server-side truth for "is this player riding something". mineflayer's
-// bot.vehicle can lag or desync, and a player who is legitimately still seated on
-// an easel SHOULD be unable to use item frames -- that's ArtMap working, not a
-// strand. Only "not riding AND frame unfillable" is a real strand.
-/**
- * Fill the frame server-side (RCON, not the player) so a stranded player can still
- * be tested against a NON-empty frame.
- */
+/** Fill the frame server-side so a stranded player can still be tested against a non-empty frame. */
 export async function fillFrameViaRcon() {
   await rc(`data modify entity @e[type=item_frame,limit=1] Item set value {id:"minecraft:stone_button",count:1}`);
   await sleep(500);
   return frameHasItem();
 }
 
-/**
- * THE ATTACK PROBE: left-click (USE_ENTITY ATTACK) the frame and report whether
- * the server acted on it. A filled frame empties when punched, so "frame no longer
- * has an item" means the ATTACK packet was NOT cancelled.
- */
+/** THE ATTACK PROBE: punch the frame; a filled frame empties when hit, so "item gone" means ATTACK was not cancelled. */
 export async function tryBreakFrame(bot, framePos, attempts = 5) {
   for (let i = 0; i < attempts; i++) {
     const frame = Object.values(bot.entities)
@@ -150,6 +129,8 @@ export async function tryBreakFrame(bot, framePos, attempts = 5) {
   return false;
 }
 
+// Server-side truth: bot.vehicle lags, and a player legitimately still seated SHOULD be unable to use frames.
+// Only "not riding AND frame unfillable" is a real strand.
 export async function isRiding(name) {
   const reply = await rc(`data get entity ${name} RootVehicle`, true);
   return !/No such tag|Found no elements|Can't get /i.test(reply);

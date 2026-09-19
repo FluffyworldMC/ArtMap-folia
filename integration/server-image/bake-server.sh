@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
-# Boot the itzg server once at image-build time so Paper downloads and patches
-# the Mojang vanilla jar and generates the world, then stop it cleanly. Run from
-# the Dockerfile's RUN step; the resulting /data is committed into the image.
+# Boot the itzg server once at image-build time (Paper downloads and patches the Mojang jar, generates the world),
+# stop it cleanly, and commit /data into the image. Run from the Dockerfile's RUN step.
 set -eu
 
 # itzg's entrypoint runs as root and drops to uid 1000 ("server") via gosu; the
@@ -57,9 +56,8 @@ if ! ls /data/*.jar >/dev/null 2>&1; then
     exit 1
 fi
 
-# /data is a declared VOLUME, so anything written to it during `docker build` is
-# discarded when the RUN layer commits. Copy the baked result to a plain path
-# that survives into the image; seed-and-start.sh restores it to /data at boot.
+# /data is a VOLUME, so build-time writes are discarded; copy to a plain path that survives, and
+# seed-and-start.sh restores it at boot.
 echo "[bake] copying /data -> /baked-data so it persists into the image..."
 rm -rf /baked-data
 cp -a /data /baked-data

@@ -1,10 +1,5 @@
-// Standalone diagnostic for #377 ("Error when laminating any map").
-//
-// Drives a real client through a cartography table with (A) a plain vanilla map
-// and (B) a saved ArtMap artwork, printing the table state after every click and
-// any "Error Retrieving Artwork" chat message. When run on the host next to the
-// server container (CONTAINER=<name>), it also counts "Artwork not found" lines
-// in the server log per click. The CI guard for this is in regression.js.
+// Standalone #377 diagnostic: laminate a vanilla map (A) and a saved artwork (B), printing table state per click.
+// With CONTAINER=<name> it also counts "Artwork not found" server-log lines. The CI guard is in regression.js.
 import { execSync } from 'node:child_process';
 import { Vec3 } from 'vec3';
 import * as H from './probe.js';

@@ -15,12 +15,8 @@ import org.junit.jupiter.api.Test;
 import me.Fupery.ArtMap.api.Config.Lang;
 import me.Fupery.ArtMap.mocks.PluginTestSupport;
 
-/**
- * Argument handling for the admin commands. These are entirely untested in the
- * suite and parse user-supplied argv by hand, so the interesting cases are the
- * malformed ones - a player typing half a command must get usage text, never a
- * stack trace.
- */
+/** Argument handling for the admin commands, which parse argv by hand and were untested; malformed input
+ *  must yield usage text, never a stack trace. */
 public class CommandArgumentTest extends PluginTestSupport {
 
     private Player player;

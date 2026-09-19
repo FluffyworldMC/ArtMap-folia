@@ -5,9 +5,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.inventory.Inventory;
 
-/**
- * Wrapper for menu types that supports both InventoryType and inventory size
- */
+/** Wrapper for menu types that supports both InventoryType and inventory size */
 public class MenuType {
 
     private final InventoryType inventoryType;

@@ -29,9 +29,7 @@ import me.Fupery.ArtMap.Easel.Canvas.CanvasCopy;
 import me.Fupery.ArtMap.IO.CompressedMap;
 import me.Fupery.ArtMap.IO.MapArt;
 
-/**
- * Database entry point for interacting with saved artwork.
- */
+/** Database entry point for interacting with saved artwork. */
 public final class Database implements IDatabase {
     private final ArtTable artworks;
     private final MapTable maps;
@@ -292,9 +290,7 @@ public final class Database implements IDatabase {
         }
     }
 
-    /**
-     * Prepare to close the database.
-     */
+    /** Prepare to close the database. */
     @Override
     public void close() {
         this.autosaveTask.cancel();

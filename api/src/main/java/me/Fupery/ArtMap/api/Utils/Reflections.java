@@ -10,11 +10,7 @@ import java.util.regex.Pattern;
 
 import org.bukkit.Bukkit;
 
-/**
- * An utility class that simplifies reflection in Bukkit plugins.
- *
- * @author Kristian
- */
+/** A utility class that simplifies reflection in Bukkit plugins. Author: Kristian */
 public final class Reflections {
 
     // Deduce the net.minecraft.server.v* package
@@ -367,9 +363,7 @@ public final class Reflections {
         }
     }
 
-    /**
-     * An interface for invoking a specific constructor.
-     */
+    /** An interface for invoking a specific constructor. */
     public interface ConstructorInvoker {
         /**
          * Invoke a constructor for a specific class.
@@ -380,9 +374,7 @@ public final class Reflections {
         public Object invoke(Object... arguments);
     }
 
-    /**
-     * An interface for invoking a specific method.
-     */
+    /** An interface for invoking a specific method. */
     public interface MethodInvoker {
         /**
          * Invoke a method on a specific target object.

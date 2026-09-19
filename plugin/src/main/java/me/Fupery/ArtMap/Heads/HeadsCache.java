@@ -41,18 +41,12 @@ import me.Fupery.ArtMap.api.Compatability.IHeadsRetriever.HeadCacheType;
 import me.Fupery.ArtMap.api.Compatability.IHeadsRetriever.TextureData;
 import me.Fupery.ArtMap.api.Exception.HeadFetchException;
 
-/**
- * Heads handler to be used with caching head textures.
- * 
- * @author wispoffates
- */
+/** Heads handler that caches head textures. Author: wispoffates */
 public class HeadsCache {
 	private static String					API_PROFILE_LINK	= "https://sessionserver.mojang.com/session/minecraft/profile/";
 
 	private static final Map<UUID, TextureData>	textureCache	= Collections.synchronizedMap( new HashMap<>());
-	/** Map to convert names to UUIDs for players that have never logged in to the server.
-	 * This is temporary till DB schema update that adds names to db.
-	 */
+	/** Name -> UUID for players never seen on this server; temporary until the DB schema stores names. */
 	private static final Map<String, UUID> nameToUUID = new HashMap<>();
 	private File						   cacheFile;
 	private ArtMap plugin;
@@ -284,9 +278,7 @@ public class HeadsCache {
 		return textureCache.size();
 	}
 
-	/*
-	 * HTTP Methods
-	 */
+	/* HTTP Methods */
 	private static String getContent(String link) throws HeadFetchException {
 		BufferedReader br = null;
 		try {

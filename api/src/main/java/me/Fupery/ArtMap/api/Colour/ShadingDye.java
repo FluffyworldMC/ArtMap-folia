@@ -42,11 +42,6 @@ public class ShadingDye extends ArtDye {
                 return currentPixelColour;
             }
         }
-		/*
-		 * ArtMap.instance().getLogger().info("Current color=" + current +
-		 * " Current shade=" + shade + " Shift=" + shift + "New Color=" + (byte)
-		 * (current + shift));
-		 */
 		return (byte) (current + shift);
     }
 

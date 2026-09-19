@@ -1,11 +1,5 @@
-// Discriminating experiment for #376.
-//
-// Strand VictimBot via paint -> dismount -> break easel, then ask three
-// questions against the SAME item frame:
-//   1. can the stranded player fill it?          (expect no, if bug)
-//   2. can a fresh second player fill it?        (yes => player-scoped,
-//                                                 no  => location/frame-scoped)
-//   3. does the stranded player recover on relog? (ashley: "rejoining doesnt fix")
+// #376 discriminator: strand VictimBot, then against the SAME frame ask whether the victim can fill it, whether
+// a fresh player can (player- vs frame-scoped), and whether the victim recovers on relog.
 import { Vec3 } from 'vec3';
 import * as H from './probe.js';
 import * as E from './easel.js';

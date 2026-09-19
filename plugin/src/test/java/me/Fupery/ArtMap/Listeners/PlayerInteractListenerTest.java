@@ -51,11 +51,7 @@ public class PlayerInteractListenerTest extends PluginTestSupport {
         return (BlockFace) m.invoke(null, p);
     }
 
-    /**
-     * getFacing returns the direction the *easel* should face, which is the
-     * opposite of where the player is looking - the easel turns to face them.
-     * Minecraft yaw 0 means looking south, and the easel then faces north.
-     */
+    /** getFacing returns the easel's facing, the opposite of the player's look: yaw 0 looks south, easel faces north. */
     @Test
     @DisplayName("getFacing maps yaw to the easel facing (opposite the player)")
     public void getFacingMapsAllQuadrants() throws Exception {

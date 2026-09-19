@@ -20,9 +20,7 @@ public class ArtMapArtists implements dObject {
 	protected String prefix = "artmapartists";
 	protected List<UUID> artists;
 
-	/////////////////////
 	// OBJECT FETCHER
-	/////////////////
 
 	public static ArtMapArtists valueOf(String string) {
 		return valueOf(string, null);
@@ -46,16 +44,12 @@ public class ArtMapArtists implements dObject {
 		return arg.startsWith("artmapartists@");
 	}
 
-	/////////////////////
 	// STATIC CONSTRUCTORS
-	/////////////////
 	public ArtMapArtists(List<UUID> artists) {
 		this.artists = artists;
 	}
 
-	/////////////////////
 	// dObject Methods
-	/////////////////
 	@Override
 	public boolean equals(Object a) {
 		if (a instanceof ArtMapArtists) {

@@ -19,10 +19,7 @@ import me.Fupery.ArtMap.Utils.ItemUtils;
 import me.Fupery.ArtMap.api.Config.Lang;
 import me.Fupery.ArtMap.api.Exception.ArtMapException;
 
-/**
- * Represents a painting canvas..
- *
- */
+/** Represents a painting canvas.. */
 public class Canvas {
 
 	protected int mapId;
@@ -112,9 +109,6 @@ public class Canvas {
 		return this.mapId;
 	}
 
-	/**
-	 * 
-	 */
 	public static class CanvasCopy extends Canvas {
 
 		private MapArt original;

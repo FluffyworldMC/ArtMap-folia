@@ -66,9 +66,7 @@ import me.Fupery.ArtMap.Utils.Reflection;
 import me.Fupery.ArtMap.Utils.Scheduler;
 import me.Fupery.ArtMap.Utils.Scheduler.TaskScheduler;
 
-/**
- * Keeping the reused mocks in one place.
- */
+/** Keeping the reused mocks in one place. */
 @SuppressWarnings( "deprecation" )
 public class MockUtil {
     private ArtMap pluginMock; // Mocked plugin
@@ -108,10 +106,7 @@ public class MockUtil {
         pluginMock = Mockito.mock(ArtMap.class);
     } // Hides constructor
 
-    /**
-     * Builds a MapView mock that remembers its renderers, so Map.setRenderer's
-     * remove-then-add cycle behaves like the real thing.
-     */
+    /** A MapView mock that remembers its renderers, so Map.setRenderer's remove-then-add behaves like the real thing. */
     private MapView buildMapView(int id) {
         MapView view = mock(MapView.class);
         when(view.getId()).thenReturn(id);
@@ -124,10 +119,7 @@ public class MockUtil {
         return view;
     }
 
-    /**
-     * Gives a player mock a working main/off hand so brush and recipe checks can
-     * read what the "client" is holding.
-     */
+    /** Gives a player mock a working main/off hand so brush and recipe checks can read what is held. */
     private void mockPlayerInventory(Player player) {
         PlayerInventory inv = mock(PlayerInventory.class);
         // lazy AIR: new ItemStack() needs the server, not set yet at mock build time
@@ -387,10 +379,7 @@ public class MockUtil {
          return this;
     }
 
-    /**
-     * The player mocks are shared across tests, so op/permission stubs added by one
-     * test leak into the next. Call this in @Before to restore the defaults.
-     */
+    /** The player mocks are shared, so op/permission stubs leak between tests; call in @Before to reset them. */
     public void resetMockPlayerPermissions() {
         for (Player player : mockPlayers.values()) {
             when(player.isOp()).thenReturn(false);

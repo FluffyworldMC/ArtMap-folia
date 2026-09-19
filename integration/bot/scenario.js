@@ -1,19 +1,11 @@
-// ArtMap session-lifecycle repro scenarios.
-//
-// Every scenario ends with the same probe: can this player still put an item in
-// an item frame? ArtMap cancels USE_ENTITY for anyone left in its `artists` map,
-// so "frame no longer fillable" == "art session was stranded" == issue #376's
-// reported symptom.
-//
-// SCENARIO=<name> node scenario.js
+// Session-lifecycle repro scenarios (SCENARIO=<name> node scenario.js). Each ends with the same probe: can the
+// player still fill an item frame? "No" means a stranded art session, which is #376's symptom.
 import { Vec3 } from 'vec3';
 import * as H from './probe.js';
 import * as E from './easel.js';
 
 const SCENARIO = process.env.SCENARIO ?? 'baseline';
-// Distinct player per scenario: the `artists` map is keyed by UUID and lives
-// for the server's lifetime, so a stranded player from one run would poison the
-// next. Names must be <=16 chars and alphanumeric.
+// Distinct player per scenario: `artists` is keyed by UUID for the server's life. Names: <=16 alphanumeric chars.
 const NAMES = { baseline: 'ReproBase', 'break-easel': 'ReproBreak',
                 'kill-easel-seated': 'ReproKill', 'kill-easel-then-quit': 'ReproQuit' };
 const NAME = NAMES[SCENARIO] ?? 'ReproBot';

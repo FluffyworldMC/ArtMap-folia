@@ -4,9 +4,7 @@ import me.Fupery.ArtMap.IO.Database.Map;
 
 import java.io.IOException;
 
-/**
- * Compresses 32x32 pixel maps into a byte array to be stored as a SQL BLOB
- */
+/** Compresses 32x32 pixel maps into a byte array to be stored as a SQL BLOB */
 public class f32x32 implements MapFormatter {
     private static byte[] foldMap(byte[] mapData, int magnitude) {
         byte[] foldedData = new byte[Map.Size.STANDARD.value];

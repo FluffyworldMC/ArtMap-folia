@@ -1,13 +1,8 @@
 package me.Fupery.ArtMap.api.Exception;
 
-/**
- * Thrown when a SQL Exception occurs.
- */
+/** Thrown when a SQL Exception occurs. */
 public class ArtMapSQLException extends ArtMapException {
 
-    /**
-     *
-     */
     private static final long serialVersionUID = 1L;
 
     public ArtMapSQLException(String msg) {

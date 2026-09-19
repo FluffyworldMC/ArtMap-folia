@@ -167,10 +167,7 @@ public class CommandExport extends AsyncCommand {
         }
     }
 
-    /**
-     * Class to gson export and import ArtMap data. Purposefully exludes mapId as it
-     * will need to be given a new id on the import side.
-     */
+    /** Gson export/import of ArtMap data. Purposefully excludes mapId, which is reassigned on import. */
     public static class ArtworkExport {
         private String title;
         private UUID artist;
@@ -198,10 +195,7 @@ public class CommandExport extends AsyncCommand {
             this.mapData = Base64.getEncoder().encodeToString(map.getCompressedMap());
         }
 
-        /**
-         * Import this artwork in the database.
-         * 
-         */
+        /** Import this artwork into the database. */
         public void importArtwork(CommandSender sender) {
             // 1.14 requires create map to be run on the main thread!
             ArtMap.instance().getScheduler().SYNC.run(() -> {

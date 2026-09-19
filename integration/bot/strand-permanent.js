@@ -1,12 +1,5 @@
-// Reproduce ashley's exact reported behaviour (#376):
-//   "Cant put items in an item frame, cant rotate them. Dying or rejoining
-//    doesnt fix the issue, full server restart does."
-//
-// The trick is to get the player OUT of the easel seat while leaving them in
-// ArtMap's `artists` map. PlayerQuitListener.endPlayerArtSession only cleans up
-// `if (player.isInsideVehicle())`, so once the seat entity is gone, quit/kick/
-// death can never remove them -- and the ProtocolLib listener keeps cancelling
-// their USE_ENTITY packets for the life of the server.
+// #376 as reported: "Cant put items in an item frame ... full server restart does." Get the player out of the
+// seat while leaving them in `artists`; quit, kick and death only cleaned up while still in a vehicle.
 import { Vec3 } from 'vec3';
 import * as H from './probe.js';
 import * as E from './easel.js';
@@ -27,9 +20,7 @@ const easel = await E.placeEasel(bot, NAME, ORIGIN);
 await E.mountCanvasAndRide(bot, easel);
 await E.paintStrokes(bot, easel, 9);
 
-// Destroy the easel (including the invisible SEAT) out from under the painter.
-// Stands in for anything that removes the seat without routing through
-// ArtistHandler.removePlayer: chunk unload, /kill, WorldEdit, another plugin.
+// Destroy the easel (invisible SEAT included) under the painter, as chunk unload, /kill or WorldEdit would.
 console.log('\nkilling easel entities while seated...');
 await H.rc(`kill @e[type=armor_stand,x=${ORIGIN.x-20},y=${ORIGIN.y-6},z=${ORIGIN.z-20},dx=40,dy=16,dz=40]`);
 await H.sleep(2000);

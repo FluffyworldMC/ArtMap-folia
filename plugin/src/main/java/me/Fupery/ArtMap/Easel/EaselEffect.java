@@ -7,13 +7,7 @@ import me.Fupery.ArtMap.ArtMap;
 import me.Fupery.ArtMap.Menu.API.SoundCompat;
 
 public enum EaselEffect {
-	SPAWN(location -> {/*
-	                    * SoundCompat.BLOCK_WOOD_HIT.play(location, 1, 0); Block floorBlock = new
-	                    * LocationHelper(location).shiftTowards(BlockFace.DOWN).getBlock();
-	                    * location.getWorld().spawnParticle(Particle.BLOCK_DUST, location, 0, 0.10d,
-	                    * 0.15d, 0.10d, 0.08d);
-	                    */
-    }),
+	SPAWN(location -> {}),
     BREAK(location -> {
         SoundCompat.BLOCK_WOOD_BREAK.play(location, 1, -1);
 		playEffect(location, Particle.CLOUD);

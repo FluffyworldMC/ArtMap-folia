@@ -94,16 +94,8 @@ class PlayerCraftListener implements RegisteredListener {
         }
     }
 
-    /**
-     * Resolve the ArtMap artwork behind a filled map.
-     * <p>
-     * Both crafting listeners see every filled map a player clicks, and most of
-     * those are ordinary vanilla maps that ArtMap has no record of (#377). A map
-     * that is not an artwork is not an error, so it comes back empty without any
-     * logging and the caller lets vanilla handle the click. Only a database
-     * failure is reported, and it is also returned as empty so the click still
-     * falls through to vanilla rather than being swallowed.
-     */
+    // Artwork behind a filled map; empty for a regular map (#377) or a database failure (logged and
+    // messaged). Either way the caller returns and vanilla handles the click.
     private Optional<MapArt> lookupArtwork(ItemStack map, HumanEntity who) {
         try {
             Optional<Integer> mapId = ItemUtils.getMapID(map);

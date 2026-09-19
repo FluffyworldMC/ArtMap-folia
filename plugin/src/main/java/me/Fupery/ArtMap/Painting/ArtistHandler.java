@@ -59,12 +59,8 @@ public class ArtistHandler implements IArtistHandler {
 					.getCraftItemType(sender.getInventory().getItemInMainHand()) == ArtMaterial.PAINT_BRUSH) {
 				return this.handlePaintBrush(sender, session);
 			} else if (type == PacketType.ARM_ANIMATION) {
-				// Through MC 1.21.11 the client sent USE_ENTITY ATTACK when left-clicking the
-				// canvas from the easel seat. Starting with MC 26.1 (undocumented client change,
-				// likely the mounted-combat/input rework) it only sends the arm swing - so treat
-				// the swing as a left click. See gitlab.com/BlockStack/ArtMap issue #373.
-				// A swing that trails an interact or attack packet (older clients send both) is
-				// swallowed by the brush cooldown in ArtSession.paint().
+				// Through MC 1.21.11 the client sent USE_ENTITY ATTACK for a canvas left-click; from 26.1 it only
+				// swings, so treat the swing as a click (#373). Trailing swings are absorbed by the brush cooldown.
 				session.paint(sender.getInventory().getItemInMainHand(), BrushAction.LEFT_CLICK);
 				session.sendMap(sender);
 				return true;
@@ -167,10 +163,8 @@ public class ArtistHandler implements IArtistHandler {
 	public void removePlayer(final Player player) throws SQLException, IOException {
 		if (player == null)
 			return;// just for safety :)
-		// Drop the map entry FIRST. Bailing out before the remove (as the old
-		// !isActive() guard did) stranded the player in `artists` for the life of
-		// the server, and ArtMap then cancels every USE_ENTITY packet they send -
-		// so item frames silently stop accepting or rotating items. See #376.
+		// Remove the map entry first: bailing out on !isActive() stranded players in `artists` and cancelled
+		// all their USE_ENTITY packets, so item frames silently stopped working (#376).
 		ArtSession session = artists.remove(player.getUniqueId());
 		if (session == null)
 			return;

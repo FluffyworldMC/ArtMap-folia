@@ -11,9 +11,7 @@ export function isVisibleEntity(e) {
   return (flags & 0x20) === 0;
 }
 
-// mineflayer's activateBlock pins block_place `sequence` to 0, which modern
-// Paper treats as a stale action -- no PlayerInteractEvent fires and ArtMap's
-// easel listener is never entered. Write the packet with a monotonic sequence.
+// mineflayer pins block_place sequence to 0, which Paper treats as stale (no interact event); use a monotonic one.
 let placeSequence = 0;
 export async function placeOnUpFace(bot, pos) {
   await bot.lookAt(pos.offset(0.5, 1.0, 0.5), true);

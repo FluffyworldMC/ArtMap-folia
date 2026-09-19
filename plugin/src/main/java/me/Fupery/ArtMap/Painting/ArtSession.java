@@ -160,9 +160,7 @@ public class ArtSession implements IArtSession {
         }
     }
 
-    /*
-     * Set the contents of the inventory without replacing the hotkey bar.
-     */
+    /* Set the contents of the inventory without replacing the hotkey bar. */
     private void updateKitPage(Player player) {
         ItemStack[] kit = this.getArtKit(this.artkitPage);
         ItemStack[] current = player.getInventory().getStorageContents();

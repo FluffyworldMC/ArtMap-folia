@@ -17,13 +17,8 @@ import me.Fupery.ArtMap.api.Config.Lang;
 import me.Fupery.ArtMap.api.Utils.VersionHandler;
 import me.Fupery.ArtMap.api.Utils.VersionHandler.BukkitVersion;
 
-/**
- * Shared bootstrap for tests that need a live-ish ArtMap: a mocked server + ArtMap instance
- * wired up far enough that the event handlers can actually run.
- *
- * <p>MockUtil guards its own re-initialisation, so several test classes can call
- * {@link #bootstrap()} in their own {@code @BeforeAll} safely.
- */
+/** Shared bootstrap: a mocked server + ArtMap instance wired far enough for event handlers to run.
+ *  MockUtil guards its re-initialisation, so several test classes can call bootstrap() in @BeforeAll. */
 public abstract class PluginTestSupport {
 
     protected static MockUtil mocks;
@@ -66,20 +61,14 @@ public abstract class PluginTestSupport {
         mocks = util;
     }
 
-    /**
-     * Lang.ActionBar sends through player.spigot(), which the shared mocks leave
-     * null. Call this on any player a listener might message.
-     */
+    /** Lang.ActionBar sends through player.spigot(), which the shared mocks leave null; call for any messaged player. */
     protected static org.bukkit.entity.Player preparePlayer(org.bukkit.entity.Player player) {
         org.bukkit.entity.Player.Spigot spigot = mock(org.bukkit.entity.Player.Spigot.class);
         when(player.spigot()).thenReturn(spigot);
         return player;
     }
 
-    /**
-     * A stand-in ItemStack. `new ItemStack(mat)` outside a real server has no craft
-     * delegate, so getType() blows up as soon as production code inspects it.
-     */
+    /** A stand-in ItemStack: new ItemStack(mat) has no craft delegate outside a server, so getType() blows up. */
     protected static org.bukkit.inventory.ItemStack item(org.bukkit.Material material) {
         org.bukkit.inventory.ItemStack stack = mock(org.bukkit.inventory.ItemStack.class);
         when(stack.getType()).thenReturn(material);

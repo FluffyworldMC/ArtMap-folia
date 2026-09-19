@@ -14,9 +14,7 @@ public abstract class ArtDye {
     private final ChatColor chatColour;
     private Material material;
 
-    /**
-     * Durability value of -1 indicates that items of any durability will be accepted
-     */
+    /** Durability value of -1 indicates that items of any durability will be accepted */
 	protected ArtDye(String localizedName, String englishName, ChatColor chatColor, Material material) {
         this.localizedName = localizedName;
         this.englishName = englishName;

@@ -16,9 +16,7 @@ public class ArtMapArt implements dObject {
 	protected String prefix = "artmapart";
 	protected int artId;
 
-	/////////////////////
 	// OBJECT FETCHER
-	/////////////////
 
 	public static ArtMapArt valueOf(String string) {
 		return valueOf(string, null);
@@ -43,17 +41,13 @@ public class ArtMapArt implements dObject {
 		return arg.startsWith("artmapart@");
 	}
 
-	/////////////////////
 	// STATIC CONSTRUCTORS
-	/////////////////
 	public ArtMapArt(int artId) {
 		this.artId = artId;
 		//ArtMap.instance().getArtDatabase().getArtwork(this.artId);
 	}
 
-	/////////////////////
 	// dObject Methods
-	/////////////////
 	@Override
 	public boolean equals(Object a) {
 		if (a instanceof ArtMapArt) {

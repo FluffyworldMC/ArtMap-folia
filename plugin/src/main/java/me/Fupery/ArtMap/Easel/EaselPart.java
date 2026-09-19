@@ -16,9 +16,7 @@ import org.bukkit.entity.ItemFrame;
 
 import me.Fupery.ArtMap.api.Config.Lang;
 
-/**
- * Represents a part of an easel object
- */
+/** Represents a part of an easel object */
 public enum EaselPart {
 	STAND(ARMOR_STAND, 0.4, -1, true), FRAME(ITEM_FRAME, 1, 0, false), SIGN(ARMOR_STAND, 0, 0, false), SEAT(ARMOR_STAND,
 			ArtMap.instance().getBukkitVersion().getVersion().getSeatXOffset(), ArtMap.instance().getBukkitVersion().getVersion().getSeatYOffset(),

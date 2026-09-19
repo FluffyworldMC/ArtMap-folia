@@ -4,10 +4,8 @@ import java.util.Arrays;
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.Plugin;
 
-/**
- * Version handles the minor changes between different MC versions.
- * Such as dye and sign renames.
- */
+/** Version handles the minor changes between different MC versions.
+ *  Such as dye and sign renames. */
 public class Version implements Comparable<Version> {
     private final int[] numbers;
 
@@ -33,12 +31,8 @@ public class Version implements Comparable<Version> {
         return new Version(parseNumbers(bukkit));
     }
 
-    /**
-     * Parse the leading numeric dot-segments of a version string, stopping at the
-     * first non-numeric segment. Handles suffixes like "1.13.2-R0.1-SNAPSHOT",
-     * "7.0.0;02b731f", "7.0.4+f7ff984", bare commit hashes "f7652b23", and
-     * Paper's "26.1.2.build.72-stable".
-     */
+    /** Parse the leading numeric dot-segments of a version string, stopping at the first non-numeric one.
+     *  Handles "1.13.2-R0.1-SNAPSHOT", "7.0.0;02b731f", "7.0.4+f7ff984", bare hashes and "26.1.2.build.72-stable". */
     private static int[] parseNumbers(String version) {
         //chop -R0.1-SNAPSHOT / ;hash / +hash style suffixes off the string
         for (char sep : new char[] {'-', ';', '+'}) {

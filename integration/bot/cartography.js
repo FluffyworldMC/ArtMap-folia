@@ -1,12 +1,5 @@
-// Cartography-table helpers for the #377 lamination scenarios.
-//
-// #377: ArtMap's PlayerCraftListener looked up EVERY filled map clicked while a
-// cartography table was open and treated "not an ArtMap artwork" as an error --
-// a SEVERE "Database error! ... Artwork not found!" in the console and an
-// "Error Retrieving Artwork check logs." chat message to the player, on every
-// click of a plain vanilla map. The player-visible chat message is the
-// observable used here, because the bot may run in a container with no access
-// to the server log.
+// Cartography-table helpers for #377. The observable is the "Error Retrieving Artwork" chat line the old listener
+// sent on every click of a non-artwork map; the CI bot cannot read the server log.
 import { Vec3 } from 'vec3';
 import * as H from './probe.js';
 
@@ -26,9 +19,7 @@ export async function craftVanillaMap(bot, name) {
   return !!(bot.heldItem && bot.heldItem.name === 'filled_map');
 }
 
-// mineflayer's activateBlock pins the interaction `sequence` to 0, which modern
-// Paper drops; write the packet ourselves with a monotonic sequence (same as
-// easel.js).
+// mineflayer pins the interaction sequence to 0, which Paper drops; write block_place with a monotonic sequence.
 let seq = 500;
 async function openTable(bot, tablePos) {
   await H.rc(`setblock ${tablePos.x} ${tablePos.y} ${tablePos.z} cartography_table`, true);
@@ -55,16 +46,8 @@ function describe(win) {
   return `map=${s(0)} mat=${s(1)} out=${s(2)} cursor=${win.selectedItem ? win.selectedItem.name : '-'}`;
 }
 
-/**
- * Laminate the filled map in the bot's inventory with a glass pane, clicking
- * through the table the way a player does: pick the map up out of the hotbar,
- * drop it in slot 0, pane into slot 1, take the result from slot 2, put it away.
- *
- * `onStep(label, state)` is called after every click. Returns:
- *   errors      - chat lines matching ERROR_CHAT seen during the flow
- *   outputShown - the table produced a filled_map in the output slot
- *   tookResult  - the output was picked up (i.e. vanilla completed the craft)
- */
+// Laminate the filled map in the inventory with a glass pane, click by click, the way a player would.
+// Returns { errors: matching chat lines, outputShown: slot 2 showed a map, tookResult: it was picked up }.
 export async function laminate(bot, name, tablePos, { onStep } = {}) {
   const errors = [];
   const listener = (m) => { const s = m.toString(); if (ERROR_CHAT.test(s)) errors.push(s); };

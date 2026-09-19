@@ -10,9 +10,7 @@ import org.bukkit.entity.Player;
 
 import me.Fupery.ArtMap.Menu.API.TextPagination;
 
-/**
- * Page command handles pagination requests from other commands.
- */
+/** Page command handles pagination requests from other commands. */
 public class Page extends AsyncCommand {
 
     private static Map<UUID,TextPagination> pageMap = new HashMap<>();

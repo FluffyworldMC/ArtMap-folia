@@ -6,9 +6,7 @@ import org.bukkit.event.Cancellable;
 import org.bukkit.event.HandlerList;
 import org.bukkit.event.player.PlayerEvent;
 
-/**
- * Cancellable event called when a player mounts an easel
- */
+/** Cancellable event called when a player mounts an easel */
 public class PlayerMountEaselEvent extends PlayerEvent implements Cancellable {
     private static final HandlerList handlers = new HandlerList();
     private final Easel easel;

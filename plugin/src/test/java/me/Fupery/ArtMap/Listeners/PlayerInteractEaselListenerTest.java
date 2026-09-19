@@ -20,11 +20,8 @@ import me.Fupery.ArtMap.mocks.PluginTestSupport;
 
 import me.Fupery.ArtMap.ArtMap;
 
-/**
- * The listener that decides which clicks ArtMap swallows. #376 lived in here, so
- * the important property is the negative one: it must not cancel interactions
- * that have nothing to do with an easel.
- */
+/** Decides which clicks ArtMap swallows; #376 lived here, so the key property is that it must not cancel
+ *  interactions unrelated to an easel. */
 public class PlayerInteractEaselListenerTest extends PluginTestSupport {
 
     private PlayerInteractEaselListener listener;

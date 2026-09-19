@@ -1,14 +1,9 @@
 package me.Fupery.ArtMap.api.Exception;
 
-/**
- * Thrown when an artmap operation cannot be completed because it
- * the player does not have permisison.
- */
+/** Thrown when an artmap operation cannot be completed because it
+ *  the player does not have permisison. */
 public class PermissionException extends ArtMapException {
 
-    /**
-     *
-     */
     private static final long serialVersionUID = 1L;
 
     public PermissionException(String msg) {

@@ -1,27 +1,12 @@
-// E2E paint bot: joins the Paper server booted by run-integration-test.sh (or
-// docker-compose.yml locally), places a real ArtMap easel, mounts a canvas,
-// rides it and paints strokes by sending the look/swing packets a painting
-// player sends. On dismount ArtMap persists the in-progress map to Art.db,
-// which the shell script then verifies.
-//
-// The in-JVM PaintingIntegrationTest covers everything downstream of packet
-// decoding (brushes, renderer, compression, SQLite); the goal here is only to
-// prove the real network path: join -> easel -> strokes arrive -> dismount
-// persists. So we don't need pixel precision, just strokes that land on the
-// canvas and reach the database.
-//
-// Easel setup uses ArtMap's own `give` command over RCON rather than crafting
-// the custom-NBT items by hand over protocol, then the bot drives the physical
-// interactions (place, mount, look, swing, sneak) like a player would.
+// E2E paint bot: join, place a real easel, mount a canvas, ride and paint with real packets; ArtMap persists
+// strokes to Art.db on dismount and the run script verifies them. Setup items come from `artmap give` over RCON.
 
 import mineflayer from 'mineflayer';
 import { Vec3 } from 'vec3';
 import { Rcon } from 'rcon-client';
 
 const HOST = process.env.MC_HOST ?? 'localhost';
-// Must match the MC_VERSION the run script boots the server with (default
-// 1.21.11); the script passes it through as MC_VERSION, this fallback only
-// applies when the bot is run standalone against a manually started server.
+// Fallback for standalone runs only; the run script passes MC_VERSION through.
 const VERSION = process.env.MC_VERSION ?? '1.21.11';
 const RCON_PASSWORD = process.env.RCON_PASSWORD ?? 'artmap-e2e';
 const BOT_NAME = 'PainterBot';
@@ -72,9 +57,7 @@ async function paint() {
   // the bot is the simplest way to grant them on the throwaway test server.
   await rconLog(`op ${BOT_NAME}`);
 
-  // Flat staging area so the easel has a clear block to sit on and clear air
-  // above it. Build a solid floor and clear the space above it, then teleport
-  // the bot to a known spot so placement geometry is deterministic.
+  // Flat floor and clear air, then teleport to a known spot so placement geometry is deterministic.
   const origin = bot.entity.position.floored();
   const floorY = origin.y - 1;
   await rconLog(`fill ${origin.x - 5} ${floorY} ${origin.z - 5} ${origin.x + 5} ${floorY} ${origin.z + 5} stone`);
@@ -97,14 +80,9 @@ async function paint() {
   const dyeItem = bot.inventory.items().find((i) => i.name === 'red_dye');
   if (!dyeItem) throw new Error('bot never received a dye');
 
-  // 1. Place the easel by right-clicking the top face of a floor block ahead.
-  // ArtMap requires the click to land on the UP face and spawns the armor-stand
-  // easel two blocks above the clicked block. We target a floor block two ahead
-  // and look down at its top face so the raycast clearly hits UP.
+  // 1. Place the easel: ArtMap needs the click on a floor block's UP face and spawns the stand above it.
   await bot.equip(easelItem, 'hand');
-  // Click the floor block directly in front of the bot (1 ahead). ArtMap only
-  // accepts the click when it lands on the block's UP face, so aim at the top
-  // face and confirm via the cursor raycast before sending the interaction.
+  // Aim at the top face of the block one ahead and confirm with the cursor raycast before clicking.
   const floorPos = new Vec3(origin.x, floorY, origin.z + 1);
   const referenceBlock = await waitForBlock(floorPos, 'placement floor block');
 
@@ -133,20 +111,8 @@ async function paint() {
   }
   console.log(`placing easel on UP face of ${referenceBlock.name}@${referenceBlock.position}` +
     ` (held=${bot.heldItem ? bot.heldItem.name : 'none'})`);
-  // Send the right-click ourselves. mineflayer's activateBlock/placeBlock pin
-  // the block_place packet's `sequence` field to 0; on 1.21.x Paper treats a
-  // repeated sequence as a stale action and never fires a fresh
-  // RIGHT_CLICK_BLOCK PlayerInteractEvent, so ArtMap's easel listener is never
-  // entered (it only saw the LEFT_CLICK_AIR arm swing). Writing the packet with
-  // a monotonically incrementing sequence makes the server register a real
-  // right-click on the UP face, which ArtMap then turns into an easel.
-  //
-  // The first block_place after the RCON teleport is dropped by the server
-  // (position desync — the client hasn't reconciled the tp yet). The length of
-  // that window depends on round-trip latency, which is far higher in CI than
-  // locally, so a single fixed-delay warm-up isn't reliable. Instead, re-send
-  // the placement click and poll for the visible easel STAND to appear, until
-  // it does or we exhaust the attempts.
+  // Write block_place ourselves: mineflayer pins sequence=0, which Paper treats as stale (no interact event).
+  // The first click after an RCON teleport is dropped (position desync), so re-send and poll for the stand.
   const easelTarget = floorPos.offset(0.5, 2.0, 0.5);
   const isEaselStand = (e) => e.name === 'armor_stand' && isVisibleEntity(e)
     && e.position.distanceTo(easelTarget) < 3;
@@ -163,24 +129,16 @@ async function paint() {
     if (!easel) console.log(`easel not up after attempt ${attempt}; retrying click`);
   }
   if (!easel) throw new Error('timed out waiting for visible easel stand');
-  // ArtMap spawns several armor stands per easel (visible STAND + invisible
-  // SEAT + invisible small MARKER); only the visible one is the clickable STAND
-  // part — getPartType returns SEAT/MARKER (and bails) for the invisible ones.
+  // An easel is several armor stands (visible STAND, invisible SEAT and MARKER); only the visible one is clickable.
   console.log('easel (visible STAND) at', easel.position);
 
-  // 2. Mount a canvas: right-click the easel holding the canvas item.
-  // Use activateEntityAt (use_entity mouse=2, "interact at"), NOT activateEntity
-  // (mouse=0): ArtMap's mount logic runs on PlayerInteractAtEntityEvent, whereas
-  // a plain interact fires PlayerInteractEntityEvent — which ArtMap calls with a
-  // null clicker and bails out of. The hit point is on the stand body.
+  // 2. Mount a canvas with "interact at" (use_entity mouse=2): ArtMap's mount logic runs on
+  // PlayerInteractAtEntityEvent, and a plain interact reaches it with a null clicker.
   await bot.equip(canvasItem, 'hand');
   await interactAtEasel(easel);
   await sleep(1000);
 
-  // 3. Ride the easel: right-click it again (now holding the dye) to start the
-  // painting session. ArtMap seats the player on a hidden armor stand. As with
-  // placement, re-click and poll for bot.vehicle rather than trusting a fixed
-  // delay, so CI latency doesn't make this flaky.
+  // 3. Ride: right-click again holding the dye. Re-click and poll for bot.vehicle; fixed delays are flaky in CI.
   await bot.equip(dyeItem, 'hand');
   for (let attempt = 1; attempt <= 10 && !bot.vehicle; attempt++) {
     await interactAtEasel(easel);
@@ -190,9 +148,7 @@ async function paint() {
   if (!bot.vehicle) throw new Error('bot failed to mount the easel');
   console.log('mounted easel, painting...');
 
-  // 4. Paint: sweep the cursor across the canvas and swing. We aim straight at
-  // the canvas (it sits just in front of the seated player) and nudge yaw/pitch
-  // over a small grid so strokes spread out. The brush cooldown is ~150ms.
+  // 4. Paint: nudge yaw/pitch over a small grid and swing at the canvas. The brush cooldown is ~150ms.
   const baseYaw = bot.entity.yaw;
   const basePitch = bot.entity.pitch;
   let strokes = 0;
@@ -221,19 +177,14 @@ async function paint() {
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
-// True if the entity is NOT invisible. Shared entity flags live at metadata
-// index 0; bit 0x20 is the invisible flag. ArtMap's visible armor stand is the
-// clickable easel STAND; the invisible ones are the SEAT/MARKER.
+// Shared entity flags live at metadata index 0; bit 0x20 = invisible. Only the visible stand is the clickable STAND.
 function isVisibleEntity(e) {
   const flags = e.metadata && e.metadata[0];
   if (typeof flags !== 'number') return true; // unknown → assume visible
   return (flags & 0x20) === 0;
 }
 
-// Right-click the easel stand as an "interact at entity" so the server fires
-// PlayerInteractAtEntityEvent (which ArtMap's mount handler listens for), aiming
-// at the stand body. activateEntityAt sends use_entity with mouse=2 plus the hit
-// offset. We look at the stand first and force the look packet out.
+// "Interact at" the stand body (use_entity mouse=2) so PlayerInteractAtEntityEvent fires; look at it first.
 async function interactAtEasel(easel) {
   const hit = easel.position.offset(0, 1.0, 0);
   await bot.lookAt(hit, true);
@@ -241,22 +192,11 @@ async function interactAtEasel(easel) {
   await bot.activateEntityAt(easel, hit);
 }
 
-// Right-click the UP (+y) face of the block at `pos` by writing the block_place
-// packet directly with a fresh, incrementing sequence number. mineflayer's
-// built-in activateBlock/placeBlock hardcode sequence:0, which 1.21.x Paper
-// rejects as a stale action (no PlayerInteractEvent fires); a monotonic
-// sequence makes the server register a genuine right-click on the block.
-//
-// Packet schema for 1.21.11 (protocol 774):
-//   { hand, location, direction, cursorX/Y/Z (f32), insideBlock,
-//     worldBorderHit, sequence }
-// direction 1 = UP; cursor is the hit point on the face (centre of the top).
+// Right-click the UP face by writing block_place with an incrementing sequence (mineflayer's sequence:0 is rejected
+// as stale). 1.21.11 fields: hand, location, direction (1 = UP), cursorX/Y/Z, insideBlock, worldBorderHit, sequence.
 let placeSequence = 0;
 async function placeOnUpFace(pos) {
-  // Look directly at the centre of the block's top face first and force the
-  // look packet out, so the server's view of where we're aiming matches the
-  // block_place hit data; Paper rejects an interaction whose raycast doesn't
-  // reach the claimed block/face.
+  // Look at the face centre and flush the look packet first; Paper rejects a click whose raycast misses the block.
   await bot.lookAt(pos.offset(0.5, 1.0, 0.5), true);
   await sleep(100);
   bot.swingArm('right');

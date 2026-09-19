@@ -181,9 +181,7 @@ public interface IDatabase {
 
     List<MapArt> searchArtworks(String search, UUID playerId) throws SQLException;
 
-    /**
-     * Prepare to close the database.
-     */
+    /** Prepare to close the database. */
     void close();
 
     //Not assuming that createMap is threadsafe

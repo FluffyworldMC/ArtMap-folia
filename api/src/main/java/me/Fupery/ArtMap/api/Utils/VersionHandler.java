@@ -16,10 +16,8 @@ public class VersionHandler {
         VersionHandler.plugin = plugin;
     }
 
-    /**
-     * Unit tests
-     * Do not use this.
-     */
+    /** Unit tests
+     *  Do not use this. */
     public VersionHandler(BukkitVersion bv, JavaPlugin plugin) {
         version = bv;
         VersionHandler.plugin = plugin;

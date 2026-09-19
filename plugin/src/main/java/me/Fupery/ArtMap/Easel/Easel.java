@@ -177,15 +177,11 @@ public class Easel {
         }
     }
 
-    /**
-     * Breaks the easel, dropping it along with any mounted items.
-     */
+    /** Breaks the easel, dropping it along with any mounted items. */
     public void breakEasel() {
         if (!spawned.getAndSet(false)) return;
-        // End the painter's session before the parts (including the seat they are
-        // riding) are removed. Without this the seat vanishes underneath them and
-        // they stay in ArtistHandler's map forever, which silently cancels all
-        // their entity interactions. See #376.
+        // End the painter's session before the seat is removed, or they stay in ArtistHandler's map
+        // forever with all entity interactions cancelled (#376).
         endUserSession();
 
         ArtMap.instance().getScheduler().SYNC.run(() -> {
@@ -258,10 +254,7 @@ public class Easel {
         return user;
     }
 
-    /**
-     * Ends the art session of whoever is currently painting at this easel, if any.
-     * Safe to call when nobody is using it or the painter is offline.
-     */
+    /** Ends the session of whoever is painting here, if anyone; safe when nobody is or they are offline. */
     private void endUserSession() {
         if (user == null) return;
         Player painter = ArtMap.instance().getServer().getPlayer(user);

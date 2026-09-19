@@ -46,25 +46,8 @@ import me.Fupery.ArtMap.api.Utils.VersionHandler.BukkitVersion;
 import me.Fupery.ArtMap.api.Config.Lang;
 import me.Fupery.ArtMap.mocks.MockUtil;
 
-/**
- * Regression tests for issue #376 - "Item frames bug out after using a canvas".
- *
- * <p>ArtMap's ProtocolLib listener cancels a client packet whenever
- * {@link ArtistHandler#handlePacket} returns {@code false}:
- *
- * <pre>if (!onPacketPlayIn(handler, player, packet)) event.setCancelled(true);</pre>
- *
- * <p>USE_ENTITY is one of the intercepted packets, and putting an item into an
- * item frame (or rotating one) IS a USE_ENTITY interact. So for any player left
- * behind in the {@code artists} map, every item frame silently stops working -
- * the packet is dropped before any Bukkit event fires, which is why the reporter
- * saw nothing in the console. Because the map is keyed by UUID and lives as long
- * as the server, neither dying nor relogging recovered it; only a restart did.
- *
- * <p>Each test therefore asserts the user-visible symptom directly:
- * {@code handlePacket(player, INTERACT)} must return {@code true} once the player
- * is no longer painting, i.e. "this player can still use an item frame".
- */
+/** #376: a player left in the artists map has every USE_ENTITY packet cancelled, so item frames silently stop
+ *  working until restart. Each test asserts handlePacket(player, INTERACT) is true once painting has ended. */
 public class SessionStrandTest {
 
     private static MockUtil mocks;
@@ -125,9 +108,7 @@ public class SessionStrandTest {
     }
 
     private void startSession(Player player) throws Exception {
-        // handlePacket reads the held item to tell a paint brush from a dye, and a
-        // bare `new ItemStack(Material.AIR)` has no craft delegate outside a real
-        // server, so put something concrete in the painter's hand.
+        // handlePacket reads the held item; a bare ItemStack(AIR) has no craft delegate outside a real server.
         player.getInventory().setItemInMainHand(new ItemStack(Material.RED_DYE));
         handler.addPlayer(player, mockEasel(), new Map(nextMapId++), 0);
         assertTrue(handler.containsPlayer(player), "precondition: session should be registered");
@@ -151,16 +132,8 @@ public class SessionStrandTest {
                 "while painting, USE_ENTITY is consumed as a brush stroke - this is correct");
     }
 
-    /**
-     * #376 follow-up. The reporter's video appeared to show left-click on item
-     * frames still working (frames emptied, frames broken) while right-click did
-     * nothing. A stranded session can only explain that if ArtMap treats the two
-     * differently - so pin what it actually does.
-     *
-     * <p>Note this asserts the {@link ArtistHandler#handlePacket} decision only.
-     * The USE_ENTITY packet is decoded upstream in ProtocolLibReceiver.getPacketType(),
-     * which is version-specific; an asymmetry could still live there.
-     */
+    /** #376 follow-up: pin that left- and right-click on frames are treated alike here (the video suggested
+     *  otherwise). Only the handlePacket decision; USE_ENTITY decoding upstream is version-specific. */
     @Test
     @DisplayName("#376 probe: ATTACK and INTERACT are treated identically while painting")
     public void attackAndInteractAreBothCancelledWhilePainting() throws Exception {
@@ -207,20 +180,14 @@ public class SessionStrandTest {
 
     // ── the four defects ─────────────────────────────────────────────────────
 
-    /**
-     * removePlayer used to read the session, bail out on {@code !isActive()} and
-     * return <em>before</em> removing the map entry, so an inactive-but-present
-     * session could never be cleared.
-     */
+    /** removePlayer used to bail on !isActive() before removing the map entry, so the session was never cleared. */
     @Test
     @DisplayName("#376: removePlayer clears the map even when the session is already inactive")
     public void removePlayerClearsInactiveSession() throws Exception {
         Player player = players[2];
         startSession(player);
 
-        // Reproduce the state the old early-return could never escape: still in the
-        // map, but no longer active. ArtSession.end() sets this in production; there
-        // is also a window in addPlayer between the put and setActive(true).
+        // Still in the map but inactive: ArtSession.end() sets this, and addPlayer has a window before setActive(true).
         ArtSession session = handler.getCurrentSession(player);
         assertNotNull(session, "precondition: session present");
         Method setActive = ArtSession.class.getDeclaredMethod("setActive", boolean.class);
@@ -235,12 +202,8 @@ public class SessionStrandTest {
                 "#376: item frames must work again once the session is gone");
     }
 
-    /**
-     * The one that made #376 permanent: endPlayerArtSession only cleaned up
-     * {@code if (player.isInsideVehicle())}. Once the easel seat was destroyed the
-     * player was out of the vehicle, so quit, kick and death all skipped cleanup
-     * and no amount of relogging helped.
-     */
+    /** What made #376 permanent: cleanup ran only if (player.isInsideVehicle()), so once the seat was gone
+     *  quit, kick, death and relogging all skipped it. */
     @Test
     @DisplayName("#376: quitting clears the session even when the player is not in a vehicle")
     public void quitClearsSessionWithoutVehicle() throws Exception {
@@ -258,10 +221,7 @@ public class SessionStrandTest {
                 "#376: rejoining must recover a player whose easel was destroyed");
     }
 
-    /**
-     * Breaking an easel removed its parts - including the seat the painter was
-     * riding - without ever ending their session.
-     */
+    /** Breaking an easel removed its parts, seat included, without ending the painter's session. */
     @Test
     @DisplayName("#376: breaking an easel ends the occupant's art session")
     public void breakEaselEndsOccupantSession() throws Exception {
@@ -279,11 +239,7 @@ public class SessionStrandTest {
                 "#376: item frames must work after the easel you were using is broken");
     }
 
-    /**
-     * The #292 guard cancels a dismount for a second after the last stroke. When
-     * the seat is being destroyed that cancel cannot re-seat the player, so
-     * returning early just stranded them.
-     */
+    /** The #292 dismount cancel cannot re-seat a player whose seat is being destroyed; returning early stranded them. */
     @Test
     @DisplayName("#376: the #292 paint guard does not strand a player whose seat is gone")
     public void dismountGuardDoesNotStrandWhenSeatInvalid() throws Exception {
@@ -334,10 +290,7 @@ public class SessionStrandTest {
 
     // ── helpers ──────────────────────────────────────────────────────────────
 
-    /**
-     * Easel's constructor is private and needs a chunk; build one over mocks so
-     * breakEasel() can run for real.
-     */
+    /** Easel's constructor is private and needs a chunk; build one over mocks so breakEasel() runs for real. */
     private static Easel newRealEasel() throws Exception {
         World world = mock(World.class);
         Chunk chunk = mock(Chunk.class);
@@ -346,9 +299,7 @@ public class SessionStrandTest {
         when(chunk.getWorld()).thenReturn(world);
         when(world.getName()).thenReturn("test-world");
 
-        // breakEasel's scheduled body clears the sign block and drops the easel
-        // item; give it enough of a world to run quietly. It is wrapped in its own
-        // try/catch, so this only keeps the test log clean.
+        // breakEasel's scheduled body clears the sign and drops the item; give it enough world to run quietly.
         org.bukkit.block.Block block = mock(org.bukkit.block.Block.class);
         when(world.getBlockAt(any(Location.class))).thenReturn(block);
 

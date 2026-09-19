@@ -1,10 +1,6 @@
 #!/usr/bin/env bash
-# Container entrypoint for the pre-baked ArtMap server image.
-#
-# /data is a volume, so the server state baked at build time lives in /baked-data
-# instead. Seed /data from it on first start (when /data is empty), then hand off
-# to the stock itzg entrypoint. Seeding the patched Mojang jar + generated world
-# this way skips the slow "Downloading mojang_<version>.jar" step at runtime.
+# Entrypoint for the pre-baked image: seed an empty /data from /baked-data (patched jar + world), then hand off
+# to the stock itzg entrypoint, skipping the slow Mojang jar download.
 set -eu
 
 # Consider /data unseeded if the patched-jar dir is absent — i.e. a fresh volume.

@@ -1,8 +1,5 @@
-// #376 follow-up: does a stranded player lose LEFT-click (ATTACK) on item frames
-// as well as right-click? The reporter's video appeared to show frames still being
-// emptied and broken while right-click did nothing. handlePacket treats the two
-// identically, so if the real path shows an asymmetry it must come from
-// ProtocolLibReceiver.getPacketType()'s version-specific USE_ENTITY decoding.
+// #376 follow-up: does a stranded player also lose LEFT-click on frames? handlePacket treats both alike, so any
+// asymmetry would come from ProtocolLibReceiver's version-specific USE_ENTITY decoding.
 import { Vec3 } from 'vec3';
 import * as H from './probe.js';
 import * as E from './easel.js';

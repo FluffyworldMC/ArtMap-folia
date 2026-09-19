@@ -14,12 +14,8 @@ import org.bukkit.entity.Player;
 import me.Fupery.ArtMap.api.Compatability.RegionHandler;
 import me.Fupery.ArtMap.api.Easel.ClickType;
 
-/**
- * Support for Sabre Factions.
- * 
- * Looks to be a fork of an old version of MassiveCraft Fractions.
- * Does not appear to have player permissions or at least the wiki is too sparse to see them.
- */
+/** Support for Sabre Factions, apparently a fork of an old MassiveCraft Factions. It does not appear to
+ *  have player permissions, or the wiki is too sparse to show them. */
 public class SabreFactionsCompat implements RegionHandler {
     private boolean loaded = false;
 

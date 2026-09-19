@@ -17,11 +17,8 @@ import org.junit.jupiter.api.Test;
 
 import me.Fupery.ArtMap.mocks.PluginTestSupport;
 
-/**
- * PreviewManager decides whether a click is swallowed as "end the preview" - one
- * of the two cancel paths that had to be ruled out while diagnosing #376, and
- * previously almost entirely untested.
- */
+/** PreviewManager decides whether a click is swallowed as "end the preview", one of the cancel paths ruled
+ *  out while diagnosing #376 and previously almost untested. */
 public class PreviewManagerTest extends PluginTestSupport {
 
     private PreviewManager manager;
@@ -114,12 +111,8 @@ public class PreviewManagerTest extends PluginTestSupport {
         assertTrue(manager.isPreviewing(player), "an allowed event must not end the preview");
     }
 
-    /**
-     * The timeout path: TimedPreview schedules endPreview(uuid) 300 ticks out. If
-     * the player logged off in the meantime Bukkit.getPlayer(uuid) returns null,
-     * and the UUID overload used to hand that null straight to endPreview(Player),
-     * which dereferences it for getUniqueId().
-     */
+    /** Timeout path: endPreview(uuid) runs 300 ticks later; if the player logged off Bukkit.getPlayer is null,
+     *  and the UUID overload used to pass that null straight to endPreview(Player). */
     @Test
     @DisplayName("ending an offline player's preview must not throw, and must clear it")
     public void endPreviewForOfflinePlayerIsSafe() {

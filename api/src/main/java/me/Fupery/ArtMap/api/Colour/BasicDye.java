@@ -9,9 +9,7 @@ public class BasicDye extends ArtDye {
 
     private final byte colour;
 
-    /**
-     * Durability value of -1 indicates that items of any durability will be accepted
-     */
+    /** Durability value of -1 indicates that items of any durability will be accepted */
 	public BasicDye(String localizedName, String englishName, int colour, ChatColor chatColor, Material material) {
 		super(localizedName, englishName, chatColor, material);
         this.colour = (byte) colour;

@@ -1,12 +1,5 @@
-# Local convenience equivalent of what run-integration-test.sh sets up in CI:
-# a Paper server with ArtMap + ProtocolLib. Stage the jars first:
-#
-#   mvn -pl plugin -am package
-#   mkdir -p server-data/plugins
-#   cp ../plugin/target/ArtMap-*.jar server-data/plugins/
-#   (download a ProtocolLib build matching VERSION into server-data/plugins/)
-#
-# Then: docker compose up -d && (cd bot && npm install && node paint-bot.js)
+# Local equivalent of the CI server. Stage jars first (mvn -pl plugin -am package; copy plugin/target/ArtMap-*.jar and
+# a matching ProtocolLib into server-data/plugins/), then: docker compose up -d && (cd bot && node paint-bot.js)
 services:
   mc:
     image: itzg/minecraft-server

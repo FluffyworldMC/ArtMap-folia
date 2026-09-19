@@ -25,9 +25,7 @@ public interface IHeadsRetriever {
 		}
 	}
 
-		/** Where the skin was loaded from.
-	 * Used by the prefetch to know when it needs to rate limit.
-	 */
+	/** Where the skin was loaded from; the prefetch uses it to know when to rate limit. */
 	public enum HeadCacheResponeType {
 		/** Retrieved from Cache */
 		CACHE, 
