@@ -348,7 +348,7 @@
 		<dependency>
 			<groupId>org.xerial</groupId>
 			<artifactId>sqlite-jdbc</artifactId>
-			<version>3.51.2.0</version>
+			<version>3.53.4.0</version>
 			<scope>test</scope>
 		</dependency>
 		<!-- Version matches the junit-jupiter MockBukkit 3.133.2 ships at runtime scope. -->
