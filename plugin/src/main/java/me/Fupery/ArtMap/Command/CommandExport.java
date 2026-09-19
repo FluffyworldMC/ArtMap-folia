@@ -6,7 +6,6 @@ import java.io.IOException;
 import java.lang.reflect.Type;
 import java.sql.SQLException;
 import java.text.MessageFormat;
-import java.util.Arrays;
 import java.util.Base64;
 import java.util.LinkedList;
 import java.util.List;
@@ -82,8 +81,8 @@ public class CommandExport extends AsyncCommand {
                         if(p==null) {
                             if(sender != null) {
                                 sender.sendMessage("Player not found! :: " + args[2]);
-                                return;
                             }
+                            return;
                         }
                         arts = ArtMap.instance().getArtDatabase().listMapArt(p.getUniqueId());
                     } catch (SQLException e) {
@@ -125,6 +124,7 @@ public class CommandExport extends AsyncCommand {
             default:
                 // TODO: need usage
                 msg.message = Lang.COMMAND_EXPORT.get();
+                return;
         }
 
         if (artToExport.isEmpty()) {

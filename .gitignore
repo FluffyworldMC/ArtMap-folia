@@ -12,6 +12,8 @@ integration/Art.db
 integration/run.log
 *.DS_STORE
 .claude
+proxmox_mcp.log
+FOLIA_SUPPORT.md
 
 **/dependency-reduced-pom.xml
 

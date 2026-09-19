@@ -81,6 +81,10 @@ public class FlatDatabaseConverter extends DatabaseConverter {
                 OfflinePlayer player = (map.contains("artist"))
                         ? Bukkit.getOfflinePlayer(UUID.fromString(map.getString("artist")))
                         : null;
+                if (player == null) {
+                    sendMessage(String.format("    Ignoring '%s' (no artist recorded) ...", title));
+                    continue;
+                }
                 String date = map.getString("date");
                 MapView mapView = ArtMap.getMap(mapIDValue);
                 if (mapView == null) {

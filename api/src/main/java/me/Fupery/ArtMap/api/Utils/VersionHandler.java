@@ -13,7 +13,7 @@ public class VersionHandler {
 
     public VersionHandler(JavaPlugin plugin) {
         this.version = checkVersion();
-        this.plugin = plugin;
+        VersionHandler.plugin = plugin;
     }
 
     /**
@@ -22,7 +22,7 @@ public class VersionHandler {
      */
     public VersionHandler(BukkitVersion bv, JavaPlugin plugin) {
         version = bv;
-        this.plugin = plugin;
+        VersionHandler.plugin = plugin;
     }
 
     public static BukkitVersion checkVersion() {

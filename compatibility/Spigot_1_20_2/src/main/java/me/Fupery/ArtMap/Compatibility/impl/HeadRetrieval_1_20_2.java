@@ -1,7 +1,7 @@
 package me.Fupery.ArtMap.Compatibility.impl;
 
 import java.net.MalformedURLException;
-import java.net.URL;
+import java.net.URI;
 import java.util.Base64;
 import java.util.Optional;
 import java.util.UUID;
@@ -46,15 +46,15 @@ public class HeadRetrieval_1_20_2 implements IHeadsRetriever {
         PlayerTextures textures = profile.getTextures();
         try {
             if(textureData.type == HeadCacheType.URL) {
-                textures.setSkin(new URL(textureData.texture));
+                textures.setSkin(URI.create(textureData.texture).toURL());
             } else {
                 //old profile format lets do some magic to extract the url
                 String json = new String(Base64.getDecoder().decode(textureData.texture.getBytes()));
                 JsonElement root = JsonParser.parseString(json);
                 String url = root.getAsJsonObject().get("textures").getAsJsonObject().get("SKIN").getAsJsonObject().get("url").getAsString();
-                textures.setSkin(new URL(url));
+                textures.setSkin(URI.create(url).toURL());
             }
-        } catch (MalformedURLException e) {
+        } catch (MalformedURLException | IllegalArgumentException e) {
             throw new HeadFetchException("Failed to parse URL", e);
         } catch (NullPointerException| IllegalStateException e) {
             throw new HeadFetchException("Failed to parse json tp get skin url", e);
