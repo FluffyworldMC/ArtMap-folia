@@ -170,7 +170,7 @@
 		<dependency>
 			<groupId>net.md-5</groupId>
 			<artifactId>bungeecord-chat</artifactId>
-			<version>1.20-R0.2</version>
+			<version>1.21-R0.4</version>
 			<scope>provided</scope>
 		</dependency>
 		<!-- Same story as bungeecord-chat: paper-api 1.21's YamlConfiguration needs a
