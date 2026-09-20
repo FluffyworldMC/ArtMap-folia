@@ -86,9 +86,20 @@ coverage:report:
   script:
     - cp integration/jacoco-it.exec plugin/target/jacoco-it.exec
     - 'mvn $MAVEN_CLI_OPTS -pl plugin -am -DskipTests test'
+    # One summary line from the merged CSV. The `coverage:` regex below reads the instruction figure off it, which
+    # is what the pipeline page, the merge request widget and the README badge show.
+    - |
+      awk -F, 'NR > 1 { im += $4; ic += $5; bm += $6; bc += $7 }
+               END { printf "Total coverage: %.1f%% instructions, %.1f%% branches (%d classes)\n",
+                     100 * ic / (ic + im), 100 * bc / (bc + bm), NR - 1 }' plugin/target/site/jacoco/jacoco.csv
+  coverage: '/Total coverage: ([0-9.]+)%/'
   artifacts:
+    # The HTML report is browsable from the job's artifacts (index.html) and linked from the merge request widget.
+    name: "jacoco-${CI_COMMIT_REF_SLUG}"
+    expose_as: "JaCoCo coverage report"
     paths:
       - plugin/target/site/jacoco/
+    expire_in: 1 month
 
 coverage:
   interruptible: true
@@ -103,6 +114,24 @@ coverage:
       coverage_report:
         coverage_format: cobertura
         path: plugin/target/site/cobertura.xml
+
+# The merged HTML report for the default branch, served by GitLab Pages at <group>.gitlab.io/ArtMap/coverage/ so
+# the latest figure is always one click away (the README badge links here). Feature branches keep theirs as
+# job artifacts only.
+pages:
+  interruptible: false
+  stage: publish
+  image: alpine:3.20
+  needs: ["coverage:report"]
+  rules:
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+  script:
+    - mkdir -p public/coverage
+    - cp -r plugin/target/site/jacoco/. public/coverage/
+    - printf '<!doctype html><meta http-equiv="refresh" content="0; url=coverage/">' > public/index.html
+  artifacts:
+    paths:
+      - public
 
 # ===== Publish =====
 

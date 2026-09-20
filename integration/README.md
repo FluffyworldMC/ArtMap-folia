@@ -50,7 +50,14 @@ mvn -pl plugin -am -DskipTests test      # report-aggregate merges every *.exec 
 ```
 
 In CI that is the `coverage:report` job, which runs after `integration` and
-feeds the merged `jacoco.xml` to the `coverage` job. Server-bound code such as
+feeds the merged `jacoco.xml` to the `coverage` job. The merged figure is
+visible in three places: the job prints a `Total coverage:` line that GitLab
+reads for the pipeline page, the merge request widget and the README badge;
+the HTML report is a browsable artifact of `coverage:report` (linked from the
+merge request as "JaCoCo coverage report"); and on the default branch the
+`pages` job publishes it to GitLab Pages under `/coverage/`, which is where the
+badge links. The `coverage` job's Cobertura conversion is what annotates
+changed lines in merge request diffs. Server-bound code such as
 the heads cache, the plugin main class, the scheduler, the menus and the
 ProtocolLib receiver only ever gets coverage from this path.
 

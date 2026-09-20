@@ -1,13 +1,13 @@
 ![ArtMap](http://puu.sh/kRWAF/2c81256338.jpg)
 
-### 1.21.0 Support
-
-Requires the latest development build of ProtocolLib.  The paintbrush for saving artwork will not work till
-AnvilGUI is updated.
-
 ### Supported Versions
 
-* Spigot/Paper 1.20.6, 1.19, 1.18.1, 1.17.1, 1.16.1,  1.15.2, 1.14.4, 1.13.2 - Master Branch
+* Paper 26.1 and 1.21 - Master Branch. Every commit is tested against a real Paper 26.1.2 server with
+  a scripted client (easels, painting, the paintbrush save dialog, menus, commands); 1.21.11 went through the
+  same suite before it. Both need the current ProtocolLib development build. Paper 26.2 and later are not
+  tested yet.
+* Spigot/Paper 1.20.2 - 1.20.6, 1.19, 1.18.1, 1.17.1, 1.16.1, 1.15.2, 1.14.4, 1.13.2 - Master Branch, built
+  against but not covered by the automated server tests.
 * Spigot/Paper 1.8.8 - 1.12.2 - 1.12 Branch
 
 ### Downloads
@@ -16,9 +16,9 @@ AnvilGUI is updated.
 <img src="/uploads/1507dccfd03a212b8544848cd49a24ad/image.png"/></a>
 
 * Downloads are available on the releases page in gitlab.
-* Downloads are now availble for 3 different JDKs. Use the version that matches the JDL you are using. 
+* Downloads are built for two JDKs. Use the one that matches the Java your server runs on.
   * 1.13-1.19 - Use the JDK17 version.
-  * 1.20+ - Use the JDK21 version.
+  * 1.20, 1.21 and 26.x - Use the JDK21 version (Paper 26.x itself runs on Java 25; the JDK21 build works there).
 
 ### Features
 
@@ -43,3 +43,11 @@ This is not my original work and belongs to Fupery.  I continue maintenance of t
 
 Bukkit plugin - allows players to draw directly onto minecraft maps. 
 User guide at [ArtMap Wiki](https://gitlab.com/BlockStack/ArtMap/wikis/home).
+
+### Build and Coverage
+
+[![pipeline](https://gitlab.com/BlockStack/ArtMap/badges/master/pipeline.svg)](https://gitlab.com/BlockStack/ArtMap/-/pipelines)
+[![coverage](https://gitlab.com/BlockStack/ArtMap/badges/master/coverage.svg)](https://blockstack.gitlab.io/ArtMap/coverage/)
+
+The coverage figure merges the unit tests with the integration run against a real Paper server; the badge
+links to the full JaCoCo report for the master branch.
