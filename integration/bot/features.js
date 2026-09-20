@@ -81,14 +81,19 @@ const inv = () => bot.currentWindow || bot.inventory;
 const count = (name) => inv().items().filter((i) => i.name === name).reduce((n, i) => n + i.count, 0);
 const mapCount = () => count('filled_map');
 
-// Strokes at distinct angles. bot.look without `force` lets the physics tick send a real LOOK packet, which
-// is what moves ArtMap's cursor; a forced look only records the angle client-side. Right-click strokes go
-// through USE_ENTITY, left-click ones through ATTACK + the arm swing.
+// Strokes at distinct angles. A seated mineflayer bot sends no rotation packets at all (its physics loop is
+// idle in a vehicle), and the client's LOOK packet is the only thing that moves ArtMap's cursor, so the packet
+// is written directly, in the degrees the protocol uses. Right-click strokes go through USE_ENTITY, left-click
+// ones through ATTACK + the arm swing.
 async function strokes(easel, n = 6, { rightClick = false } = {}) {
   const yaw0 = bot.entity.yaw, pitch0 = bot.entity.pitch;
   for (let i = 0; i < n; i++) {
     const yaw = yaw0 + ((i % 3) - 1) * 0.06, pitch = pitch0 + (Math.floor(i / 3) - 1) * 0.06;
-    await H.withTimeout(bot.look(yaw, pitch), 2000, 'look').catch(() => {});
+    await bot.look(yaw, pitch, true);
+    bot._client.write('look', {
+      yaw: (Math.PI - yaw) * 180 / Math.PI, pitch: -pitch * 180 / Math.PI,
+      flags: { onGround: false, hasHorizontalCollision: false },
+    });
     await H.sleep(200);
     bot.swingArm('right');
     try {
@@ -270,6 +275,14 @@ await check('/art preview needs an empty hand, reports unknown titles, and ends 
   assert(await H.waitUntil(async () => (await H.heldId(ARTIST, 'offhand')) === 'filled_map', 5000), 'the preview map is not in the off hand');
   bot.setQuickBarSlot((bot.quickBarSlot + 1) % 9);
   assert(await H.waitUntil(async () => (await H.heldId(ARTIST, 'offhand')) === null, 5000), 'a hotbar change did not end the preview');
+  // Clicking an easel while previewing ends the preview instead of acting on the easel.
+  const standing = E.findEasel(bot, origin);
+  assert(standing, 'the setup easel is gone');
+  await say(`/art preview ${title('ArtA')}`, /Previewing artwork/);
+  assert(await H.waitUntil(async () => (await H.heldId(ARTIST, 'offhand')) === 'filled_map', 5000), 'the preview map is not in the off hand');
+  await E.interactAtEasel(bot, standing);
+  assert(await H.waitUntil(async () => (await H.heldId(ARTIST, 'offhand')) === null, 5000), 'an easel click did not end the preview');
+  assert(!(await H.isRiding(ARTIST)), 'the easel click acted on the easel instead of ending the preview');
   await H.rc(`give ${ARTIST} minecraft:stone 1`, true);
   await H.sleep(600);
   await bot.equip(bot.inventory.items().find((i) => i.name === 'stone'), 'hand');
@@ -318,6 +331,7 @@ await check('menus deny drags and hand swaps, and close on death and on quit', a
   await bot.equip(bot.inventory.items().find((i) => i.name === 'stone'), 'hand');
   let win = await M.openArtMenu(bot);
   await M.dragAcross(bot, win, 1);
+  await M.click(bot, win, win.inventoryStart, { wait: 'none' }); // a click in the player's own inventory is swallowed too
   H.swapHands(bot);
   await H.sleep(800);
   assert((await H.heldId(ARTIST, 'offhand')) === null, 'a hand swap went through while a menu was open');
@@ -453,6 +467,7 @@ await check('the command surface answers as documented', async () => {
   await say(`/art export -artist ${ARTIST} feat${RUN}byname`, /Completed export/);
   await say(`/art export -artist ${artistId} feat${RUN}byid`, /Completed export/);
   await say('/art export -artist NoSuchOne x', /Player not found/);
+  await say('/art export -artist x', /export/);
   await say('/art export -title NoSuchArt x', /could not be found/);
   await say('/art export -bogus x', /export/);
   await say('/art export', /export/);
@@ -461,6 +476,7 @@ await check('the command surface answers as documented', async () => {
   await say(`/art import -title ${title('EditA')} feat${RUN}export`, /Import complete/, 20000);
   await say(`/art import -artist ${ARTIST} feat${RUN}export`, /Import complete/, 20000);
   await say(`/art import -artist NoSuchOne feat${RUN}export`, /Player not found/);
+  await say(`/art import -artist feat${RUN}export`, /export/);
   await say('/art import -all nosuchfile', /cannot be found/);
   await say(`/art import -bogus feat${RUN}export`, /export/);
   await say('/art import -title x', /export/);

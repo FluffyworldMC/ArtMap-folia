@@ -140,9 +140,10 @@ artworks earlier ones create:
   one and refuses a duplicate; a saved artwork goes back on the easel for
   editing and re-saves under its own title; an unfinished painting survives
   breaking the easel (it drops as an "Unfinished" map) and mounts again.
-  Strokes here use unforced looks, so the physics tick sends the real `LOOK`
-  packet that moves ArtMap's cursor, and some are right-clicks so `USE_ENTITY`
-  is exercised too.
+  Strokes here write the client's rotation packet (`look`) themselves: a
+  seated mineflayer bot sends no rotation at all, and that packet is the only
+  thing that moves ArtMap's cursor, so without it every stroke lands on the
+  same pixel. Some strokes are right-clicks so `USE_ENTITY` is exercised too.
 - **Commands.** Every `/art` sub-command with its documented replies:
   `search`/`page`, `export`/`import` in all three modes plus their error
   paths, `give`, `repair`, `convert`, `palette`, `delete`, `preview`, `test`,

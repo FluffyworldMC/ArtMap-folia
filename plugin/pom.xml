@@ -112,6 +112,9 @@
 						<exclude>me/Fupery/ArtMap/Menu/Button/**</exclude>
 						<exclude>me/Fupery/ArtMap/Utils/Reflection*</exclude>
 						<exclude>me/Fupery/ArtMap/Compatibility/CompatibilityManager*</exclude>
+						<exclude>me/Fupery/ArtMap/Compatibility/DenizenCompat*</exclude>
+						<exclude>me/Fupery/ArtMap/Compatibility/iDisguiseCompat*</exclude>
+						<exclude>me/Fupery/ArtMap/Compatibility/VanillaReflectionHandler*</exclude>
 						<exclude>me/Fupery/ArtMap/Compatibility/impl/**</exclude>
 						<exclude>me/Fupery/ArtMap/Compatibility/Dipenizen/**</exclude>
 						<exclude>me/Fupery/ArtMap/IO/Legacy/**</exclude>
