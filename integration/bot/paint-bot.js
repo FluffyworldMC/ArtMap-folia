@@ -7,7 +7,9 @@ import { Rcon } from 'rcon-client';
 
 const HOST = process.env.MC_HOST ?? 'localhost';
 // Fallback for standalone runs only; the run script passes MC_VERSION through.
-const VERSION = process.env.MC_VERSION ?? '1.21.11';
+// mineflayer names year-based protocols by major.minor (26.1 covers every 26.1.x server), so trim a patch level.
+const botVersion = v => v.replace(/^(\d{2}\.\d+)\.\d+$/, '$1');
+const VERSION = botVersion(process.env.MC_VERSION ?? '26.1');
 const RCON_PASSWORD = process.env.RCON_PASSWORD ?? 'artmap-e2e';
 const BOT_NAME = 'PainterBot';
 
@@ -34,6 +36,24 @@ async function rconLog(cmd) {
   const reply = await rcon.send(cmd);
   console.log(`[rcon] ${cmd} -> ${reply.trim() || '(no output)'}`);
   return reply;
+}
+
+// Server-side seat check: the RootVehicle tag exists only while the player rides something.
+async function serverRiding() {
+  const reply = await rcon.send(`data get entity ${BOT_NAME} RootVehicle`);
+  return !/No such tag|Found no elements|Can't get |No entity was found/i.test(reply);
+}
+
+// On a mount failure, print what the server has around the easel so the CI log says which part is missing.
+async function describeEasel(easel) {
+  const { x, y, z } = easel.position.floored();
+  const at = `x=${x},y=${y},z=${z},distance=..4`;
+  for (const type of ['armor_stand', 'item_frame']) {
+    await rconLog(`execute if entity @e[type=${type},${at}]`);
+  }
+  await rconLog(`data get entity @e[type=item_frame,${at},limit=1] Item.id`);
+  await rconLog(`data get block ${x} ${y + 1} ${z}`);
+  await rconLog(`data get entity ${BOT_NAME} SelectedItem.id`);
 }
 
 bot.once('spawn', async () => {
@@ -138,15 +158,23 @@ async function paint() {
   await interactAtEasel(easel);
   await sleep(1000);
 
-  // 3. Ride: right-click again holding the dye. Re-click and poll for bot.vehicle; fixed delays are flaky in CI.
+  // 3. Ride: right-click again holding the dye. Re-click and poll; fixed delays are flaky in CI. The client's
+  // bot.vehicle can lag or stay unset, so the server's own RootVehicle tag is the authority (as in regression.js).
   await bot.equip(dyeItem, 'hand');
-  for (let attempt = 1; attempt <= 10 && !bot.vehicle; attempt++) {
+  let seated = false;
+  for (let attempt = 1; attempt <= 10 && !seated; attempt++) {
     await interactAtEasel(easel);
-    for (let i = 0; i < 10 && !bot.vehicle; i++) await sleep(250);
-    if (!bot.vehicle) console.log(`not seated after attempt ${attempt}; retrying`);
+    for (let i = 0; i < 10 && !seated; i++) {
+      await sleep(250);
+      seated = !!bot.vehicle || await serverRiding();
+    }
+    if (!seated) console.log(`not seated after attempt ${attempt}; retrying`);
   }
-  if (!bot.vehicle) throw new Error('bot failed to mount the easel');
-  console.log('mounted easel, painting...');
+  if (!seated) {
+    await describeEasel(easel);
+    throw new Error('bot failed to mount the easel');
+  }
+  console.log(`mounted easel (client vehicle: ${!!bot.vehicle}), painting...`);
 
   // 4. Paint: nudge yaw/pitch over a small grid and swing at the canvas. The brush cooldown is ~150ms.
   const baseYaw = bot.entity.yaw;

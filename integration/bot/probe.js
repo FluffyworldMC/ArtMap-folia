@@ -5,7 +5,9 @@ import { Vec3 } from 'vec3';
 import { Rcon } from 'rcon-client';
 
 export const HOST = process.env.MC_HOST ?? 'localhost';
-export const VERSION = process.env.MC_VERSION ?? '26.2';
+// mineflayer names year-based protocols by major.minor (26.1 covers every 26.1.x server), so trim a patch level.
+const botVersion = v => v.replace(/^(\d{2}\.\d+)\.\d+$/, '$1');
+export const VERSION = botVersion(process.env.MC_VERSION ?? '26.1');
 export const RCON_PASSWORD = process.env.RCON_PASSWORD ?? 'artmap-e2e';
 export const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
@@ -40,7 +42,10 @@ export async function stage(bot, name, origin) {
   // a stale STAND within range would otherwise be picked up as "the" easel.
   await rc(`kill @e[type=armor_stand,x=${x - 20},y=${y - 6},z=${z - 20},dx=40,dy=16,dz=40]`);
   await rc(`kill @e[type=item_frame,x=${x - 20},y=${y - 6},z=${z - 20},dx=40,dy=16,dz=40]`);
+  await rc(`kill @e[type=item,x=${x - 20},y=${y - 6},z=${z - 20},dx=40,dy=16,dz=40]`, true);
   await sleep(300);
+  // The air fill below also clears an old easel's wall sign: with the sign block still there ArtMap refuses
+  // the position, so killing the entities alone is not enough between placements.
   await rc(`fill ${x - 6} ${y - 1} ${z - 6} ${x + 6} ${y - 1} ${z + 6} stone`);
   await rc(`fill ${x - 6} ${y} ${z - 6} ${x + 6} ${y + 5} ${z + 6} air`);
   // Wall the frames get mounted on, 3 blocks north of the stand point.
@@ -134,6 +139,78 @@ export async function tryBreakFrame(bot, framePos, attempts = 5) {
 export async function isRiding(name) {
   const reply = await rc(`data get entity ${name} RootVehicle`, true);
   return !/No such tag|Found no elements|Can't get /i.test(reply);
+}
+
+// Every chat, system and action-bar line the bot receives, with a wait helper. ArtMap answers commands and
+// menu clicks in chat, so this is the observable for most feature checks. RCON echoes are dropped.
+export function recordChat(bot) {
+  const lines = [];
+  let waiters = [];
+  bot.on('message', (m) => {
+    const s = m.toString();
+    if (!s.trim() || s.startsWith('[Rcon')) return;
+    lines.push(s);
+    const hit = waiters.filter((w) => w.re.test(s));
+    waiters = waiters.filter((w) => !w.re.test(s));
+    hit.forEach((w) => w.res(s));
+  });
+  return {
+    lines,
+    has: (re) => lines.some((l) => re.test(l)),
+    clear: () => { lines.length = 0; },
+    // Resolves with the first line matching `re`, already received or arriving within `ms`.
+    waitFor(re, ms = 8000) {
+      const seen = lines.find((l) => re.test(l));
+      if (seen) return Promise.resolve(seen);
+      return new Promise((res, rej) => {
+        const t = setTimeout(() => {
+          waiters = waiters.filter((w) => w.res !== ok);
+          rej(new Error(`no chat matching ${re} within ${ms}ms (last: ${lines.slice(-3).join(' | ') || 'nothing'})`));
+        }, ms);
+        const ok = (s) => { clearTimeout(t); res(s); };
+        waiters.push({ re, res: ok });
+      });
+    },
+  };
+}
+
+// The F key: swap main and off hand (block_dig status 6). mineflayer has no API for it.
+export function swapHands(bot) {
+  bot._client.write('block_dig', { status: 6, location: new Vec3(0, 0, 0), face: 0, sequence: 0 });
+}
+
+// Poll `fn` until it returns truthy or `ms` elapses; resolves with the value or false.
+export async function waitUntil(fn, ms = 6000, step = 200) {
+  const deadline = Date.now() + ms;
+  for (;;) {
+    const v = await fn();
+    if (v) return v;
+    if (Date.now() > deadline) return false;
+    await sleep(step);
+  }
+}
+
+// Wipe every easel part (stands, frames, signs are blocks and go with the arena rebuild) around `o`.
+export async function killEasels(o) {
+  await rc(`kill @e[type=armor_stand,x=${o.x - 20},y=${o.y - 6},z=${o.z - 20},dx=40,dy=16,dz=40]`, true);
+  await rc(`kill @e[type=item_frame,x=${o.x - 20},y=${o.y - 6},z=${o.z - 20},dx=40,dy=16,dz=40]`, true);
+  await rc(`kill @e[type=item,x=${o.x - 20},y=${o.y - 6},z=${o.z - 20},dx=40,dy=16,dz=40]`, true);
+}
+
+// The server's view of the player's off hand (or an armour slot): the client's inventory can lag behind a
+// plugin-side change made while a container was open. Player NBT has no `equipment.mainhand`; the main hand is
+// `Inventory[SelectedItemSlot]`, so use serverStacks() for that.
+export async function heldId(name, slot = 'offhand') {
+  const reply = await rc(`data get entity ${name} equipment.${slot}.id`, true);
+  const m = reply.match(/"(minecraft:[a-z_]+)"/);
+  return m ? m[1].replace('minecraft:', '') : null;
+}
+
+// How many stacks of `item` the server says `name` carries. The client's inventory model can be wrong right after
+// a cancelled menu click, so assertions about "got nothing" ask the server.
+export async function serverStacks(name, item) {
+  const reply = await rc(`data get entity ${name} Inventory`, true);
+  return (reply.match(new RegExp(`id: "minecraft:${item}"`, 'g')) || []).length;
 }
 
 export async function shutdown(bots, code) {

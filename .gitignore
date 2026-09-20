@@ -28,3 +28,4 @@ license.rtf
 **/.vscode/
 **/.settings/
 .factorypath
+integration/jacoco-it.exec

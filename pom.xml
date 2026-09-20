@@ -13,6 +13,9 @@
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<maven.compiler.source>17</maven.compiler.source>
 		<maven.compiler.target>17</maven.compiler.target>
+		<jacoco.version>0.8.15</jacoco.version>
+		<!-- Set to true by the it-coverage profile: its classes are instrumented, so the unit report cannot run. -->
+		<jacoco.report.skip>false</jacoco.report.skip>
 	</properties>
 
 	<modules>
@@ -137,4 +140,37 @@
 		<system>gitlab</system>
 		<url>https://gitlab.com/BlockStack/ArtMap/issues</url>
 	</issueManagement>
+
+	<profiles>
+		<!-- Integration coverage: offline-instrument the classes before shade re-serialises them and before Paper can
+		     remap them, so probes hit at runtime report under the compiled classes' ids and merge with the unit exec. -->
+		<profile>
+			<id>it-coverage</id>
+			<build>
+				<plugins>
+					<plugin>
+						<groupId>org.jacoco</groupId>
+						<artifactId>jacoco-maven-plugin</artifactId>
+						<version>${jacoco.version}</version>
+						<executions>
+							<execution>
+								<id>it-instrument</id>
+								<phase>process-classes</phase>
+								<goals>
+									<goal>instrument</goal>
+								</goals>
+							</execution>
+							<execution>
+								<id>it-restore</id>
+								<phase>package</phase>
+								<goals>
+									<goal>restore-instrumented-classes</goal>
+								</goals>
+							</execution>
+						</executions>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
+	</profiles>
 </project>

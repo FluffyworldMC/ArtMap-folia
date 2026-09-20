@@ -16,11 +16,11 @@
 # still mounted into /plugins at runtime by run-integration-test.sh.
 #
 # Build args let CI bake the same MC_VERSION the test uses:
-#   docker build --build-arg MC_VERSION=1.21.11 -t <ref> integration/server-image
+#   docker build --build-arg MC_VERSION=26.1.2 -t <ref> integration/server-image
 ARG BASE_IMAGE=itzg/minecraft-server:java25
 FROM ${BASE_IMAGE}
 
-ARG MC_VERSION=1.21.11
+ARG MC_VERSION=26.1.2
 
 ENV EULA=TRUE \
     TYPE=PAPER \

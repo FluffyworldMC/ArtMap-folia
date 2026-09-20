@@ -6,13 +6,14 @@
 set -eu
 
 # --- Configuration (all overridable from the environment) ---
-MC_VERSION="${MC_VERSION:-1.21.11}"           # Minecraft / Paper version
+MC_VERSION="${MC_VERSION:-26.1.2}"            # Minecraft / Paper version (must be one the bots can speak)
 # java25 tag: AnvilGUI's 1.26 wrapper and the ProtocolLib dev build ship Java 25 bytecode for Paper's remapper.
 SERVER_IMAGE="${SERVER_IMAGE:-itzg/minecraft-server:java25}"
 PROTOCOLLIB_VERSION="${PROTOCOLLIB_VERSION:-dev-build}"  # ProtocolLib GitHub release tag
 TIMEOUT="${TIMEOUT:-600}"                     # seconds to wait for the server to start
 RUN_PAINT_TEST="${RUN_PAINT_TEST:-true}"      # run bot/paint-bot.js and verify Art.db (false to skip)
 RUN_REGRESSION_TEST="${RUN_REGRESSION_TEST:-true}"   # run bot/regression.js, #376 and #377 (false to skip)
+RUN_FEATURE_TEST="${RUN_FEATURE_TEST:-true}"         # run bot/features.js: menus, save dialog, commands, reload (false to skip)
 RCON_PASSWORD="${RCON_PASSWORD:-artmap-e2e}"  # used by the bots
 
 # CI_JOB_ID keeps container/volume names unique so parallel jobs don't collide.
@@ -41,18 +42,34 @@ cleanup() {
 }
 trap cleanup EXIT
 
-# --- Locate the built ArtMap jar (from mvn verify in the build stage); newest first, so a stale jar
-# left in target/ by an earlier build is never the one tested ---
-JAR=$(ls -t plugin/target/ArtMap-*.jar 2>/dev/null \
-        | grep -v '\-sources' \
-        | grep -v '\-javadoc' \
-        | head -1 || true)
+# --- Locate the built ArtMap jar. An instrumented *-it.jar (mvn -P it-coverage) wins and switches on
+# coverage collection; otherwise the newest plain jar, so a stale one left in target/ is never tested ---
+JAR=$(ls -t plugin/target/ArtMap-*-it.jar 2>/dev/null | grep -v 'original-' | head -1 || true)
+COVERAGE=false
+if [ -n "$JAR" ]; then
+    COVERAGE=true
+else
+    JAR=$(ls -t plugin/target/ArtMap-*.jar 2>/dev/null \
+            | grep -v '\-sources' \
+            | grep -v '\-javadoc' \
+            | grep -v 'original-' \
+            | head -1 || true)
+fi
 
 if [ -z "$JAR" ]; then
     echo "ERROR: No ArtMap JAR found in plugin/target/. Was the build stage run?"
     exit 1
 fi
-echo "Using JAR: $JAR"
+echo "Using JAR: $JAR (coverage: ${COVERAGE})"
+EXEC_FILE="integration/jacoco-it.exec"
+JACOCO_VERSION="${JACOCO_VERSION:-0.8.15}"     # must match the jacoco-maven-plugin that instrumented the jar
+JACOCO_AGENT_URL="https://repo1.maven.org/maven2/org/jacoco/org.jacoco.agent/${JACOCO_VERSION}/org.jacoco.agent-${JACOCO_VERSION}-runtime.jar"
+# The agent is the runtime the offline-instrumented classes call into. It cannot live inside the plugin (Paper
+# closes plugin classloaders before exit, so the dump-on-exit hook would fail) and the javaagent's own place, the
+# system class path, is not visible to Paper's plugin loaders either; the bootstrap class path is visible to all.
+# With includes matching nothing the agent instruments no classes itself and only collects and writes the data.
+JACOCO_AGENT_JAR="/plugins/.jacoco/jacocoagent.jar"
+JACOCO_JVM_OPTS="-Xbootclasspath/a:${JACOCO_AGENT_JAR} -javaagent:${JACOCO_AGENT_JAR}=destfile=/data/jacoco-it.exec,output=file,dumponexit=true,includes=none.*"
 
 # --- Plugin volume --- dind cannot bind-mount the job workspace, so stage the jars in a named volume:
 # wget ProtocolLib straight into it, then docker cp the ArtMap jar in through a helper container.
@@ -79,6 +96,17 @@ docker cp "$JAR" "${COPY_HELPER}:/plugins/ArtMap.jar"
 docker rm "$COPY_HELPER"
 echo "ArtMap JAR copied."
 
+if [ "$COVERAGE" = "true" ]; then
+    # A sub-directory of /plugins: Paper only scans top-level jars, so the agent is not mistaken for a plugin.
+    echo "Downloading JaCoCo agent ${JACOCO_VERSION}..."
+    docker run --rm \
+        -v "${VOLUME_NAME}:/plugins" \
+        alpine \
+        sh -c "mkdir -p /plugins/.jacoco && wget -q --no-check-certificate -O /plugins/.jacoco/jacocoagent.jar '${JACOCO_AGENT_URL}' \
+               && echo 'JaCoCo agent downloaded successfully.' \
+               || { echo 'ERROR: JaCoCo agent download failed'; exit 1; }"
+fi
+
 # --- Start the Paper server ---
 echo ""
 echo "--- Starting Paper ${MC_VERSION} server ---"
@@ -89,8 +117,9 @@ docker run -d \
     -e VERSION="$MC_VERSION" \
     -e MEMORY=1G \
     -e ONLINE_MODE=FALSE \
-    -e ENABLE_RCON="$([ "$RUN_PAINT_TEST" = "true" ] || [ "$RUN_REGRESSION_TEST" = "true" ] && echo TRUE || echo FALSE)" \
+    -e ENABLE_RCON="$([ "$RUN_PAINT_TEST" = "true" ] || [ "$RUN_REGRESSION_TEST" = "true" ] || [ "$RUN_FEATURE_TEST" = "true" ] && echo TRUE || echo FALSE)" \
     -e RCON_PASSWORD="$RCON_PASSWORD" \
+    -e JVM_OPTS="$([ "$COVERAGE" = "true" ] && echo "$JACOCO_JVM_OPTS")" \
     -v "${VOLUME_NAME}:/plugins" \
     "$SERVER_IMAGE"
 
@@ -220,6 +249,53 @@ if [ "$RUN_REGRESSION_TEST" = "true" ] && [ "$RESULT" = "success" ]; then
     set -e
 fi
 
+# --- Feature suite --- the server-only surface: inventory menus and their close paths, the paintbrush save
+# dialog, editing/copying saved artworks, the admin commands, a plain player, session ends by death/kick/chunk
+# unload, and a plugin reload with live sessions. See integration/README.md.
+if [ "$RUN_FEATURE_TEST" = "true" ] && [ "$RESULT" = "success" ]; then
+    echo ""
+    echo "--- Feature suite: menus, save dialog, commands, sessions, reload ---"
+    set +e
+
+    SERVER_IP=$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' "$CONTAINER_NAME")
+
+    docker volume create "$BOT_VOLUME_NAME" >/dev/null 2>&1
+    docker create --name "$BOT_HELPER" -v "${BOT_VOLUME_NAME}:/bot" alpine echo >/dev/null
+    docker cp integration/bot/. "${BOT_HELPER}:/bot/"
+    docker rm "$BOT_HELPER" >/dev/null
+
+    docker run --rm \
+        -v "${BOT_VOLUME_NAME}:/bot" \
+        -w /bot \
+        -e MC_HOST="$SERVER_IP" \
+        -e MC_VERSION="$MC_VERSION" \
+        -e RCON_PASSWORD="$RCON_PASSWORD" \
+        node:20-alpine \
+        sh -c "npm install --no-audit --no-fund --loglevel=error && node features.js"
+    FEAT_EXIT=$?
+
+    [ "$FEAT_EXIT" -ne 0 ] && RESULT="feature_failed"
+    set -e
+fi
+
+# --- Coverage --- the exec file is written by a JVM shutdown hook, so the server has to stop cleanly
+# (docker stop hands Paper a "stop"; give it time to save the world) before the file is copied out.
+if [ "$COVERAGE" = "true" ]; then
+    echo ""
+    echo "--- Coverage: stopping the server and collecting ${EXEC_FILE} ---"
+    set +e
+    docker stop -t 120 "$CONTAINER_NAME" >/dev/null 2>&1
+    rm -f "$EXEC_FILE"
+    docker cp "${CONTAINER_NAME}:/data/jacoco-it.exec" "$EXEC_FILE" 2>/dev/null
+    if [ -s "$EXEC_FILE" ]; then
+        echo "Collected $(wc -c < "$EXEC_FILE") bytes of execution data."
+    else
+        echo "WARNING: no execution data was written (did the server stop cleanly?)."
+        [ "$RESULT" = "success" ] && RESULT="coverage_missing"
+    fi
+    set -e
+fi
+
 # --- Save the full server log (CI artifact) ---
 echo ""
 echo "--- Saving server log to ${LOG_FILE} ---"
@@ -242,7 +318,24 @@ case "$RESULT" in
             echo "PASS: #376 - a destroyed easel did not strand the art session."
             echo "PASS: #377 - regular maps laminate like vanilla with no ArtMap error."
         fi
+        if [ "$RUN_FEATURE_TEST" = "true" ]; then
+            echo "PASS: feature suite - menus, save dialog, commands, sessions and reload behave as documented."
+        fi
+        if [ "$COVERAGE" = "true" ]; then
+            echo "PASS: coverage data collected in ${EXEC_FILE}."
+        fi
         exit 0
+        ;;
+    coverage_missing)
+        echo "FAIL: every phase passed but the server wrote no coverage data."
+        echo "      The offline JaCoCo runtime dumps on JVM exit; check ${LOG_FILE} for the shutdown."
+        exit 1
+        ;;
+    feature_failed)
+        echo "FAIL: feature suite - see the failure list in the bot output above."
+        echo "      Each entry names the check and the assertion that failed; the checks are"
+        echo "      described in integration/README.md. Server side: ${LOG_FILE}."
+        exit 1
         ;;
     regression_failed)
         echo "FAIL: regression suite - see the failure list in the bot output above."

@@ -133,6 +133,7 @@
 							<goal>report-aggregate</goal>
 						</goals>
 						<configuration>
+							<skip>${jacoco.report.skip}</skip>
 							<includeCurrentProject>true</includeCurrentProject>
 							<outputDirectory>${project.reporting.outputDirectory}/jacoco</outputDirectory>
 						</configuration>
@@ -385,4 +386,20 @@
 		<system>gitlab</system>
 		<url>https://gitlab.com/BlockStack/ArtMap/issues</url>
 	</issueManagement>
+
+	<profiles>
+		<!-- See the it-coverage profile in the parent pom. Here: a distinct jar name so the plain jar is still the
+		     one released, and the unit report skipped (its classes are instrumented). The JaCoCo runtime the probes
+		     call is NOT shaded in: Paper closes plugin classloaders before the JVM exits, which breaks the dump-on-exit
+		     hook, so run-integration-test.sh supplies it as a javaagent on the JVM's own classpath instead. -->
+		<profile>
+			<id>it-coverage</id>
+			<properties>
+				<jacoco.report.skip>true</jacoco.report.skip>
+			</properties>
+			<build>
+				<finalName>${project.artifactId}-${project.version}-it</finalName>
+			</build>
+		</profile>
+	</profiles>
 </project>

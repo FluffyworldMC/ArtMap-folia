@@ -2,8 +2,8 @@ stages:
   - generate-release
   - sast
   - build
-  - coverage
   - integration
+  - coverage
   - publish
   - release
 
@@ -52,6 +52,7 @@ cache:
   artifacts:
     paths:
       - plugin/target/*.jar                             #Grab the built jars
+      - plugin/target/jacoco.exec                       # unit-test execution data, merged with integration's later
       - plugin/target/site/jacoco/jacoco.xml
     reports:
       junit:
@@ -65,15 +66,38 @@ build:jdk17:
 build:jdk21:
   interruptible: true
   extends: [.jdk21, .build]
+  script:
+    - mvn versions::set -DnewVersion=${NEXT_VERSION}
+    - mvn versions::commit
+    - 'mvn $MAVEN_CLI_OPTS verify'
+    # Instrumented twin of the jar (ArtMap-<v>-it.jar) for the integration job's coverage. The profile restores
+    # the compiled classes afterwards, so the plain jar above is untouched and stays the one released.
+    - 'mvn $MAVEN_CLI_OPTS -pl plugin -am -P it-coverage -DskipTests package'
+
+# ===== Coverage ===== unit (build:jdk21) and integration (integration) execution data merged into one report.
+
+# report-aggregate picks up every *.exec under plugin/target, so dropping the integration file there merges it.
+# The classes are recompiled here with the same JDK image, which keeps JaCoCo's class ids identical.
+coverage:report:
+  interruptible: true
+  stage: coverage
+  extends: .jdk21
+  needs: ["build:jdk21", "integration"]
+  script:
+    - cp integration/jacoco-it.exec plugin/target/jacoco-it.exec
+    - 'mvn $MAVEN_CLI_OPTS -pl plugin -am -DskipTests test'
+  artifacts:
+    paths:
+      - plugin/target/site/jacoco/
 
 coverage:
   interruptible: true
   stage: coverage
   image: registry.gitlab.com/haynes/jacoco2cobertura:1.0.11
   script:
-    # Convert the aggregate JaCoCo report (plugin + api classes) to Cobertura; one source root per module.
+    # Convert the merged JaCoCo report (plugin + api classes) to Cobertura; one source root per module.
     - python /opt/cover2cover.py plugin/target/site/jacoco/jacoco.xml $CI_PROJECT_DIR/plugin/src/main/java/ $CI_PROJECT_DIR/api/src/main/java/ > plugin/target/site/cobertura.xml
-  needs: ["build:jdk21"]
+  needs: ["coverage:report"]
   artifacts:
     reports:
       coverage_report:
@@ -109,13 +133,15 @@ publish:jdk21:
     JDK: "JDK21"
 
 # ===== Integration ===== bake-server-image pre-patches the Mojang jar (reused while MC_VERSION is unchanged);
-# integration boots one server and runs every phase on every pipeline: the load check, the paint bot and
-# the #376/#377 regression guards (integration/README.md).
+# integration boots one server with the instrumented jar and runs every phase on every pipeline: the load
+# check, the paint bot, the #376/#377 regression guards and the feature suite, then collects coverage
+# (integration/README.md).
 
 # Shared MC version + registry ref for the baked image (tagged by MC_VERSION; keep in sync with the integration jobs).
 .integration-vars:
   variables:
-    MC_VERSION: "1.21.11"
+    # Latest Paper the mineflayer bots can speak: 26.2 (protocol 776) and 26.3 (777) are ahead of minecraft-protocol.
+    MC_VERSION: "26.1.2"
     BAKED_IMAGE: "${CI_REGISTRY_IMAGE}/paper-baked:${MC_VERSION}"
 
 # Build and push the pre-baked image with Kaniko, not dind: the ~56MB Mojang download hangs through the nested dind
@@ -171,6 +197,7 @@ integration:
     # All phases, every pipeline: the self-hosted runner makes a full run cheap enough not to gate.
     RUN_PAINT_TEST: "true"
     RUN_REGRESSION_TEST: "true"
+    RUN_FEATURE_TEST: "true"
   # optional: the bake only runs when the image definition changes, so integration must still run without it.
   needs:
     - "build:jdk21"
@@ -184,11 +211,13 @@ integration:
     # Invoke with sh explicitly: the docker:latest image is Alpine and has no bash.
     - sh integration/run-integration-test.sh
   artifacts:
-    # Always upload the server log and the painted database so failed runs can be diagnosed.
+    # Always upload the server log and the painted database so failed runs can be diagnosed; the exec file feeds
+    # coverage:report.
     when: always
     paths:
       - integration/server.log
       - integration/Art.db
+      - integration/jacoco-it.exec
     expire_in: 1 week
 
 # ===== Release =====

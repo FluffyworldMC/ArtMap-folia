@@ -2,12 +2,12 @@
 # a matching ProtocolLib into server-data/plugins/), then: docker compose up -d && (cd bot && node paint-bot.js)
 services:
   mc:
-    image: itzg/minecraft-server
+    image: itzg/minecraft-server:java25
     environment:
       EULA: "TRUE"
       TYPE: PAPER
       # Must match a version supported by both ArtMap and the mineflayer bot.
-      VERSION: "1.21.4"
+      VERSION: "26.1.2"
       ONLINE_MODE: "FALSE"   # lets the bot join without auth
       MEMORY: 2G
       RCON_PASSWORD: artmap-e2e

@@ -31,7 +31,20 @@ export async function interactAtEasel(bot, easel) {
   const hit = easel.position.offset(0, 1.0, 0);
   await bot.lookAt(hit, true);
   await H.sleep(120);
-  await bot.activateEntityAt(easel, hit);
+  rightClickEasel(bot, easel);
+}
+
+// Right-click the stand without turning towards it: a stroke at the current aim. bot.activateEntityAt would first
+// await an unforced lookAt, which never settles while the bot is seated, so the packet is written directly. The
+// packet's own sneaking flag matters: the server takes it as the player's shift state, so a click sent with
+// `sneaking: false` cancels a sneak the bot announced through player_input, and ArtMap's break gesture (sneak +
+// right-click) turns into a plain ride.
+export function rightClickEasel(bot, easel) {
+  const hit = easel.position.offset(0, 1.0, 0);
+  bot._client.write('use_entity', {
+    target: easel.id, mouse: 2, sneaking: bot.getControlState('sneak'), hand: 0,
+    x: 0, y: 1.0, z: 0, location: hit.subtract(easel.position),
+  });
 }
 
 export async function placeEasel(bot, name, origin) {
@@ -71,12 +84,25 @@ export async function mountCanvasAndRide(bot, easel) {
 
   const dye = bot.inventory.items().find((i) => i.name === 'red_dye');
   if (dye) await bot.equip(dye, 'hand');
-  for (let attempt = 1; attempt <= 10 && !bot.vehicle; attempt++) {
+  // The client's bot.vehicle can lag or stay unset; the server's RootVehicle tag is the authority.
+  let seated = false;
+  for (let attempt = 1; attempt <= 10 && !seated; attempt++) {
     await interactAtEasel(bot, easel);
-    for (let i = 0; i < 12 && !bot.vehicle; i++) await H.sleep(250);
+    for (let i = 0; i < 12 && !seated; i++) {
+      await H.sleep(250);
+      seated = !!bot.vehicle || await H.isRiding(bot.username);
+    }
   }
-  if (!bot.vehicle) throw new Error('failed to mount easel');
+  if (!seated) throw new Error('failed to mount easel');
   console.log('  mounted easel');
+}
+
+// The visible STAND of the easel standing on the arena's placement block, e.g. after its chunk was reloaded
+// and the entity ids changed. Null when none is in view.
+export function findEasel(bot, origin) {
+  const target = new Vec3(origin.x, origin.y - 1, origin.z + 1).offset(0.5, 2.0, 0.5);
+  return Object.values(bot.entities).find((e) => e.name === 'armor_stand' && isVisibleEntity(e)
+    && e.position.distanceTo(target) < 3) || null;
 }
 
 export async function paintStrokes(bot, easel, n = 9) {
