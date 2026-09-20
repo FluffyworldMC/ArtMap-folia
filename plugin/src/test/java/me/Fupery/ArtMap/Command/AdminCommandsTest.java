@@ -305,7 +305,8 @@ public class AdminCommandsTest extends PluginTestSupport {
         assertEquals("page syntax incorrect!", run(new Page(), "page").message);
         assertEquals("Player not found.", run(new Page(), "page", "not-a-uuid", "1").message);
         assertEquals("Player not found.", run(new Page(), "page", UUID.randomUUID().toString(), "1").message);
-        Player other = mocks.getRandomMockPlayers(10)[0] == admin ? mocks.getRandomMockPlayers(10)[1] : mocks.getRandomMockPlayers(10)[0];
+        Player[] candidates = mocks.getRandomMockPlayers(2);
+        Player other = candidates[0] == admin ? candidates[1] : candidates[0];
         assertEquals("Pagination for this player has expired.", run(new Page(), "page", other.getUniqueId().toString(), "1").message);
     }
 
