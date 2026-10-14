@@ -1,6 +1,8 @@
 package me.Fupery.ArtMap.IO.Protocol.In;
 
 import java.lang.reflect.Method;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.logging.Level;
 
 import com.comphenix.protocol.PacketType;
@@ -19,8 +21,28 @@ import static me.Fupery.ArtMap.IO.Protocol.In.Packet.ArtistPacket.PacketInteract
 
 public class ProtocolLibReceiver extends PacketReceiver {
 
+    // The client's left-click on the canvas: the arm swing, or from 26.3 the punch (CompatibilityManager picks it).
+    // Null when this ProtocolLib build has no such packet type, e.g. one older than the server's Minecraft version.
+    private final PacketType leftClick;
+
     public ProtocolLibReceiver() {
+        String name = ArtMap.instance().getCompatManager().getLeftClickPacket();
+        leftClick = clientType(name);
+        if (leftClick == null) {
+            ArtMap.instance().getLogger().warning("This ProtocolLib build has no " + name + " packet for this "
+                    + "Minecraft version, so left-click painting is disabled. Update ProtocolLib.");
+        }
         registerListeners(ArtMap.instance());
+    }
+
+    /** A client packet type by its PacketType.Play.Client field name, or null on a ProtocolLib that predates it.
+     *  ArtMap builds against ProtocolLib 5.3.0, which has no PUNCH (added for 26.3). */
+    static PacketType clientType(String name) {
+        try {
+            return (PacketType) PacketType.Play.Client.class.getField(name).get(null);
+        } catch (ReflectiveOperationException | ClassCastException e) {
+            return null;
+        }
     }
 
     private void registerListeners(JavaPlugin plugin) {
@@ -29,18 +51,21 @@ public class ProtocolLibReceiver extends PacketReceiver {
         options.optionAsync();
         options.connectionSide(ConnectionSide.CLIENT_SIDE);
         options.listenerPriority(ListenerPriority.HIGH);
-        options.types(PacketType.Play.Client.ARM_ANIMATION, PacketType.Play.Client.LOOK,
-                PacketType.Play.Client.USE_ENTITY);
+        List<PacketType> types = new ArrayList<>();
+        if (leftClick != null) types.add(leftClick);
+        types.add(PacketType.Play.Client.LOOK);
+        types.add(PacketType.Play.Client.USE_ENTITY);
+        options.types(types.toArray(new PacketType[0]));
         ProtocolLibrary.getProtocolManager().addPacketListener(new DefaultPacketAdapter(options));
     }
 
-    private ArtistPacket getPacketType(PacketContainer packet) {
+    static ArtistPacket getPacketType(PacketContainer packet, PacketType leftClick) {
         if (packet.getType() == PacketType.Play.Client.LOOK) {
             float yaw = packet.getFloat().read(0);
             float pitch = packet.getFloat().read(1);
             return new ArtistPacket.PacketLook(yaw, pitch);
 
-        } else if (packet.getType() == PacketType.Play.Client.ARM_ANIMATION) {
+        } else if (packet.getType() == leftClick) {
             return new ArtistPacket.PacketArmSwing();
 
         } else if (packet.getType() == PacketType.Play.Client.USE_ENTITY) {
@@ -84,7 +109,7 @@ public class ProtocolLibReceiver extends PacketReceiver {
             try {
                 if (!handler.containsPlayer(event.getPlayer()))
                     return;
-                ArtistPacket packet = getPacketType(event.getPacket());
+                ArtistPacket packet = getPacketType(event.getPacket(), leftClick);
                 if (packet == null)
                     return;
                 if (!onPacketPlayIn(handler, event.getPlayer(), packet))

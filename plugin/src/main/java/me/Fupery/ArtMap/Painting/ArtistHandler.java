@@ -60,7 +60,8 @@ public class ArtistHandler implements IArtistHandler {
 				return this.handlePaintBrush(sender, session);
 			} else if (type == PacketType.ARM_ANIMATION) {
 				// Through MC 1.21.11 the client sent USE_ENTITY ATTACK for a canvas left-click; from 26.1 it only
-				// swings, so treat the swing as a click (#373). Trailing swings are absorbed by the brush cooldown.
+				// swings (26.3: punches, which arrives here as the same packet), so treat the swing as a click (#373).
+				// Trailing swings are absorbed by the brush cooldown.
 				session.paint(sender.getInventory().getItemInMainHand(), BrushAction.LEFT_CLICK);
 				session.sendMap(sender);
 				return true;

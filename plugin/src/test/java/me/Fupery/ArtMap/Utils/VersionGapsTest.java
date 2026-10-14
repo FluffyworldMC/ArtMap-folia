@@ -37,7 +37,7 @@ public class VersionGapsTest extends PluginTestSupport {
     }
 
     @Test
-    @DisplayName("1.17, 1.18 through 1.20.1, and everything from 1.20.2 up land in their brackets")
+    @DisplayName("1.17, 1.18 through 1.20.1, 1.20.2 through 26.2, and everything from 26.3 up land in their brackets")
     public void newerBrackets() {
         assertEquals(BukkitVersion.v1_17, bracketFor("1.17.1-R0.1-SNAPSHOT"));
         assertEquals(BukkitVersion.v1_18, bracketFor("1.18.2-R0.1-SNAPSHOT"));
@@ -45,6 +45,10 @@ public class VersionGapsTest extends PluginTestSupport {
         assertEquals(BukkitVersion.v1_18, bracketFor("1.20-R0.1-SNAPSHOT"), "the 1.20.0 release string has two segments");
         assertEquals(BukkitVersion.v1_20_2, bracketFor("1.20.4-R0.1-SNAPSHOT"));
         assertEquals(BukkitVersion.v1_20_2, bracketFor("26.1.2.build.72-stable"));
+        assertEquals(BukkitVersion.v1_20_2, bracketFor("26.2.build.1-stable"));
+        assertEquals(BukkitVersion.v26_3, bracketFor("26.3.build.181-stable"), "26.3 swapped the swing packet for a punch");
+        assertEquals(BukkitVersion.v26_3, bracketFor("27.1.build.3-stable"));
+        restoreServerVersion();
         VersionHandler handler = new VersionHandler(mocks.getPluginMock());
         assertEquals(BukkitVersion.v1_20_2, handler.getVersion());
         assertEquals("v1_20_2", handler.toString());
@@ -78,6 +82,7 @@ public class VersionGapsTest extends PluginTestSupport {
         assertEquals(1.219, BukkitVersion.v1_18.getSeatXOffset());
         assertEquals(-2.24979, BukkitVersion.v1_18.getSeatYOffset());
         assertEquals(-2.49979, BukkitVersion.v1_20_2.getSeatYOffset());
+        assertEquals(-2.49979, BukkitVersion.v26_3.getSeatYOffset(), "the 1.20.2 seat height carries on");
         assertEquals(Material.OAK_WALL_SIGN, BukkitVersion.v1_18.getWallSign());
         assertEquals(Material.OAK_SIGN, BukkitVersion.v1_18.getSign());
         // The 1.13 names no longer exist in the API on the test classpath.

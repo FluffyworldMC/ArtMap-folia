@@ -51,6 +51,7 @@ public class CompatibilityManager implements RegionHandler {
     private ReflectionHandler reflectionHandler;
     private Palette palette;
     private IHeadsRetriever headsRetriever;
+    private String leftClickPacket;
 
     public CompatibilityManager(JavaPlugin plugin) {
         regionHandlers = new ArrayList<>();
@@ -104,6 +105,13 @@ public class CompatibilityManager implements RegionHandler {
         } else {
             headsRetriever = new HeadRetrieval_1_20_2();
         }
+
+        //which client packet carries a left-click on the canvas: 26.3 replaced the arm swing with a punch
+        if(version.isLessThan(BukkitVersion.v26_3)) {
+            leftClickPacket = "ARM_ANIMATION";
+        } else {
+            leftClickPacket = "PUNCH";
+        }
     }
 
     public boolean isPluginLoaded(String pluginName) {
@@ -145,6 +153,12 @@ public class CompatibilityManager implements RegionHandler {
 
     public IHeadsRetriever getHeadsRetriever() {
         return headsRetriever;
+    }
+
+    /** The ProtocolLib PacketType.Play.Client field name of this server's canvas left-click packet. A name rather
+     *  than the type: ArtMap builds against a ProtocolLib that predates 26.3's PUNCH. */
+    public String getLeftClickPacket() {
+        return leftClickPacket;
     }
 
     private ReflectionHandler loadReflectionHandler() {
