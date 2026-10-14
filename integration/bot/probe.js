@@ -199,18 +199,21 @@ export async function killEasels(o) {
 
 // The server's view of the player's off hand (or an armour slot): the client's inventory can lag behind a
 // plugin-side change made while a container was open. Player NBT has no `equipment.mainhand`; the main hand is
-// `Inventory[SelectedItemSlot]`, so use serverStacks() for that.
+// `Inventory[SelectedItemSlot]`, so use serverCount() for that.
 export async function heldId(name, slot = 'offhand') {
   const reply = await rc(`data get entity ${name} equipment.${slot}.id`, true);
   const m = reply.match(/"(minecraft:[a-z_]+)"/);
   return m ? m[1].replace('minecraft:', '') : null;
 }
 
-// How many stacks of `item` the server says `name` carries. The client's inventory model can be wrong right after
-// a cancelled menu click, so assertions about "got nothing" ask the server.
-export async function serverStacks(name, item) {
-  const reply = await rc(`data get entity ${name} Inventory`, true);
-  return (reply.match(new RegExp(`id: "minecraft:${item}"`, 'g')) || []).length;
+// How many `item`s the server says `name` carries. The client's inventory model can be wrong right after a cancelled
+// menu click, so assertions about "got nothing" ask the server. Not through `data get ... Inventory`: the server
+// truncates a long reply (an artwork map's components fill it after a slot or two); `clear <player> <item> 0` only
+// counts.
+export async function serverCount(name, item) {
+  const reply = await rc(`clear ${name} minecraft:${item} 0`, true);
+  const m = reply.match(/Found (\d+)/);
+  return m ? Number(m[1]) : 0;
 }
 
 export async function shutdown(bots, code) {

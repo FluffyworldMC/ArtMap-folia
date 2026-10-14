@@ -318,6 +318,9 @@ await check('deleting through the confirmation menu', async () => {
   const page = await toArtPiece(title('ArtB'));
   const confirm = await M.click(bot, page, 2);
   assert(M.slotName(confirm, 1) === 'redstone', 'confirmation menu: ' + M.describe(confirm));
+  // Only a left-click confirms; anything else leaves the artwork and the menu alone.
+  await M.click(bot, confirm, 1, { button: 1, wait: 'none' });
+  assert(bot.currentWindow && !chat.has(/deleted/i), 'a right-click on accept deleted the artwork');
   await M.click(bot, confirm, 1);
   await chat.waitFor(new RegExp(`deleted '${title('ArtB')}'`, 'i'));
   await M.closeMenu(bot);
@@ -363,12 +366,26 @@ await check('an artist with more than 25 artworks gets page buttons', async () =
     win = await M.click(bot, l, 0);
   }
   assert(list, 'no artist list showed a next-page button');
+  // The arrows are named after the page they lead to ("Page 2 of N"), past the 64 a stack size can show.
+  const arrowName = (s) => JSON.stringify(list.slots[s]?.customName ?? '');
+  assert(/Page 2 of \d+/.test(arrowName(26)), 'the next arrow is not named after its page: ' + arrowName(26));
   await M.click(bot, list, 26, { wait: 'none' });
   assert(await H.waitUntil(() => M.slotName(list, 0) === 'barrier' && M.slotName(list, 1) === 'filled_map', 6000),
     'page 2 did not render: ' + M.describe(list));
+  assert(/Page 1 of \d+/.test(arrowName(0)), 'the back arrow is not named after its page: ' + arrowName(0));
   await M.click(bot, list, 0, { wait: 'none' });
   assert(await H.waitUntil(() => M.slotName(list, 26) === 'magenta_glazed_terracotta', 6000),
     'back to page 1 did not render: ' + M.describe(list));
+  // Shift-click jumps 10 pages, stopping at the last page and at the first.
+  const pages = Number(arrowName(26).match(/Page 2 of (\d+)/)?.[1] ?? 0);
+  await M.click(bot, list, 26, { mode: 1, wait: 'none' });
+  const expected = Math.min(11, pages);
+  assert(await H.waitUntil(() => new RegExp(`Page ${expected - 1} of`).test(arrowName(0)), 6000),
+    `shift-click next did not land on page ${expected}: back arrow ${arrowName(0)}`);
+  await M.click(bot, list, 0, { mode: 1, wait: 'none' });
+  // Page 1's back slot is the close button, not a page arrow.
+  assert(await H.waitUntil(() => /Page 2 of/.test(arrowName(26)) && !/Page \d+ of/.test(arrowName(0)), 6000),
+    `shift-click back did not return to page 1: ${M.describe(list)}`);
 });
 
 // ---------------------------------------------------------------- painting
@@ -504,7 +521,7 @@ await check('the command surface answers as documented', async () => {
   await H.rc(`clear ${ARTIST}`, true);
   await H.sleep(300);
   bot.chat('/art palette');
-  assert(await H.waitUntil(async () => (await H.serverStacks(ARTIST, 'filled_map')) > 0, 6000), '/art palette put no map in hand');
+  assert(await H.waitUntil(async () => (await H.serverCount(ARTIST, 'filled_map')) > 0, 6000), '/art palette put no map in hand');
   await say('/art delete NoSuchArt', /could not be found/);
   await say('/art delete', /specify a title/);
   await say('/art test', /export/);
@@ -583,11 +600,11 @@ await check('a plain player can browse the menus but not craft, edit, save or ad
     else win = await M.click(other, l, 0);
   }
   assert(list, 'no other artist with artworks in the list: ' + M.describe(win));
-  const had = await H.serverStacks(OTHER, 'filled_map');
+  const had = await H.serverCount(OTHER, 'filled_map');
   await M.click(other, list, 1, { button: 1, wait: 'none' });
   await M.closeMenu(other);
   await H.sleep(800);
-  assert((await H.serverStacks(OTHER, 'filled_map')) === had, 'a plain player got a copy from the list');
+  assert((await H.serverCount(OTHER, 'filled_map')) === had, 'a plain player got a copy from the list');
 
   const sayOther = async (cmd, re) => { otherChat.clear(); other.chat(cmd); return otherChat.waitFor(re); };
   await sayOther('/art export -all x', /permission/);
@@ -607,7 +624,7 @@ await check('a plain player can browse the menus but not craft, edit, save or ad
   await otherChat.waitFor(/can't copy other players/);
   // The refusal message is the observable; the ingredient map stays in the crafting grid (not part of the
   // saved inventory), so the server must show at most the one stack it was given, never a second one.
-  assert((await H.serverStacks(OTHER, 'filled_map')) <= 1, 'a plain player copied someone else\'s artwork');
+  assert((await H.serverCount(OTHER, 'filled_map')) <= 1, 'a plain player copied someone else\'s artwork');
 
   await H.stage(bot, ARTIST, origin);
   const easel = await E.placeEasel(bot, ARTIST, origin);
@@ -619,6 +636,84 @@ await check('a plain player can browse the menus but not craft, edit, save or ad
   await E.interactAtEasel(other, seen);
   await otherChat.waitFor(/permission/);
   await H.rc(`tp ${OTHER} ${otherOrigin.x + 0.5} ${otherOrigin.y} ${otherOrigin.z + 0.5} 180 0`, true);
+});
+
+// Another artist's artworks list, as seen by the plain player.
+async function otherArtworksList() {
+  let win = await M.openArtMenu(other);
+  win = await M.click(other, win, 4, { ms: 45000 });
+  for (let s = 2; s <= 5; s++) {
+    if (M.slotName(win, s) !== 'player_head') break;
+    const l = await M.click(other, win, s, { ms: 20000 });
+    if (M.slotName(l, 1) === 'filled_map') return l;
+    win = await M.click(other, l, 0);
+  }
+  throw new Error('no other artist with artworks in the list: ' + M.describe(win));
+}
+
+await check('a plain player gets nothing from a dye or someone else\'s artwork page, and cannot rename or delete it', async () => {
+  try {
+    await H.rc(`clear ${OTHER}`, true);
+    await H.sleep(300);
+    let win = await M.openArtMenu(other);
+    win = await M.click(other, win, 2);
+    assert(/generic_9x3/.test(win.type), 'dye menu: ' + M.describe(win));
+    const dye = M.slotName(win, 2);
+    await M.click(other, win, 2, { button: 1, wait: 'none' });
+    await H.sleep(800);
+    assert((await H.serverCount(OTHER, dye)) === 0, `a plain player was handed ${dye} from the dye menu`);
+    await M.closeMenu(other);
+
+    const list = await otherArtworksList();
+    const page = await M.click(other, list, 1);
+    assert(M.slotName(page, 1) === 'filled_map', 'artwork page: ' + M.describe(page));
+    assert(M.slotName(page, 2) === '-' && M.slotName(page, 3) === '-',
+      'a plain player sees rename or delete on someone else\'s artwork: ' + M.describe(page));
+    otherChat.clear();
+    await M.click(other, page, 1, { button: 1, wait: 'none' });
+    await otherChat.waitFor(/permission/);
+    assert((await H.serverCount(OTHER, 'filled_map')) === 0, 'a plain player got a copy from the artwork page');
+  } finally {
+    await M.closeMenu(other);
+  }
+});
+
+await check('an artist without admin copies their own artwork from its page with an empty map, and previews only with a free off hand', async () => {
+  // Without op the artist reaches the owner's paths instead of the admin ones. Ops are exempt from the chat spam
+  // limit, so the commands sent so far still count against a de-opped artist: let the counter drain first (one
+  // point per tick, 20 per command, kicked at 200) or the next /art kicks them for spamming.
+  await H.rc(`deop ${ARTIST}`, true);
+  await H.sleep(10000);
+  try {
+    await H.rc(`clear ${ARTIST}`, true);
+    await H.sleep(500);
+    let page = await toArtPiece(title('EditA'));
+    chat.clear();
+    await M.click(bot, page, 1, { button: 1, wait: 'none' });
+    await chat.waitFor(/empty map/);
+    assert((await H.serverCount(ARTIST, 'filled_map')) === 0, 'a copy was made without an empty map');
+    await M.closeMenu(bot);
+
+    await H.rc(`give ${ARTIST} minecraft:map 2`, true);
+    await H.sleep(600);
+    page = await toArtPiece(title('EditA'));
+    await M.click(bot, page, 1, { button: 1, wait: 'none' });
+    await M.closeMenu(bot);
+    assert(await H.waitUntil(async () => (await H.serverCount(ARTIST, 'filled_map')) === 1, 5000), 'the artist got no copy of their artwork');
+    assert((await H.serverCount(ARTIST, 'map')) === 1, 'the copy did not use exactly one empty map');
+
+    await H.rc(`item replace entity ${ARTIST} weapon.offhand with minecraft:stone`, true);
+    await H.sleep(500);
+    page = await toArtPiece(title('EditA'));
+    chat.clear();
+    await M.click(bot, page, 1, { wait: 'none' });
+    await chat.waitFor(/empty hand to preview/);
+    assert((await H.heldId(ARTIST, 'offhand')) === 'stone', 'the off hand was replaced by a preview');
+  } finally {
+    await M.closeMenu(bot);
+    await H.rc(`op ${ARTIST}`, true);
+    await H.rc(`clear ${ARTIST}`, true);
+  }
 });
 
 // ---------------------------------------------------------------- sessions and the world
@@ -676,7 +771,8 @@ await check('a plugin reload with a painter seated and a menu open leaves both p
   await M.openArtMenu(other);
   const closed = M.nextClose(other, 30000).catch(() => null);
   // Paper 26.x: the bare `reload` is Mojang's datapack reload; the plugin reload is the bukkit-namespaced one.
-  await H.rc('bukkit:reload confirm', true);
+  // The reload holds the main thread past rcon-client's reply timeout on a busy machine; the reply is not needed.
+  await H.rc('bukkit:reload confirm', true).catch(() => {});
   await H.sleep(12000);
   await closed;
   assert(!other.currentWindow, 'the reload left a menu open');

@@ -139,10 +139,14 @@ artworks earlier ones create:
   hand and a hand swap (or `/art preview` plus a hotbar change) ends it; an
   admin right-click hands over a copy from either list; rename goes through
   the anvil dialog (`name_item` + output slot, exactly what a client sends);
-  delete goes through the confirmation menu; drags and hand swaps are refused
-  while a menu is open and the menu reopens cleanly after dying or quitting
-  with it open; an artist with more than 25 artworks (`/art test -create 30`)
-  gets working page buttons.
+  delete goes through the confirmation menu, and only on a left-click; drags
+  and hand swaps are refused while a menu is open and the menu reopens cleanly
+  after dying or quitting with it open; an artist with more than 25 artworks
+  (`/art test -create 30`) gets page arrows named after the page they lead to,
+  and shift-click jumps 10 pages. Without op, the artist copies their own
+  artwork from its page at the cost of an empty map (and is told when they
+  have none), and a preview needs a free off hand; a plain player gets nothing
+  from a dye or another artist's artwork and sees no rename or delete there.
 - **Painting.** The paintbrush save dialog rejects a bad title, saves a good
   one and refuses a duplicate; a saved artwork goes back on the easel for
   editing and re-saves under its own title; an unfinished painting survives

@@ -103,13 +103,11 @@
 				<artifactId>jacoco-maven-plugin</artifactId>
 				<version>0.8.15</version>
 				<configuration>
-					<!-- Excluded so the figure tracks logic we can get wrong: SoundCompat is a 500-constant enum, the menus
-					     are GUI scaffolding, and the rest need NMS, a specific server version, third-party plugins or old DBs. -->
+					<!-- Excluded so the figure tracks logic we can get wrong: SoundCompat is a 500-constant enum, and the
+					     rest need NMS, a specific server version, third-party plugins or old DBs. The menus are measured:
+					     the integration feature suite drives them on a live server. -->
 					<excludes>
-						<exclude>me/Fupery/ArtMap/Menu/API/**</exclude>
-						<exclude>me/Fupery/ArtMap/Menu/HelpMenu/**</exclude>
-						<exclude>me/Fupery/ArtMap/Menu/Handler/**</exclude>
-						<exclude>me/Fupery/ArtMap/Menu/Button/**</exclude>
+						<exclude>me/Fupery/ArtMap/Menu/API/SoundCompat*</exclude>
 						<exclude>me/Fupery/ArtMap/Utils/Reflection*</exclude>
 						<exclude>me/Fupery/ArtMap/Compatibility/CompatibilityManager*</exclude>
 						<exclude>me/Fupery/ArtMap/Compatibility/DenizenCompat*</exclude>

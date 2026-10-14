@@ -124,6 +124,7 @@ ITEM_NAME_SPONGE: "§e•§6§lEyedropper§e•"
 ITEM_SPONGE_MESSAGE: "Picked up Dye colour"
 ARTKIT_NEXT: "Next"
 ARTKIT_PREV: "Prev"
+MENU_PAGE_JUMP: "Shift-click to jump %s pages" #lore on the menu page arrows, %s is the number of pages
 #---------------------------------------[Menu Buttons]---------------------------------------#
 HELP_GETTING_STARTED:
   - "§6§l⊱§e§lGetting Started§6§l⊰"

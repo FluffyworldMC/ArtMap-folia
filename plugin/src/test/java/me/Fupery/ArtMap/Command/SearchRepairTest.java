@@ -112,6 +112,23 @@ public class SearchRepairTest extends PluginTestSupport {
     }
 
     @Test
+    @DisplayName("an artwork whose artist name is unknown still lists instead of failing the whole search")
+    public void searchWithUnknownArtistName() throws Exception {
+        // The artist's name comes from the heads cache and is null when it was never cached
+        // (an artist who never joined, or `/art test -create` artworks).
+        MapArt nameless = new MapArt(2, "Orphan", UUID.randomUUID(), null, "01-01-2026");
+        when(database.searchArtworks("o", null)).thenReturn(List.of(art("Owl", UUID.randomUUID()), nameless));
+
+        assertNull(run(new Search(), "search", "o").message);
+
+        List<String> lines = linesSent();
+        assertTrue(lines.get(2).contains(Lang.SEARCH_ARTWORKS.get() + ": 2"), lines.toString());
+        assertTrue(lines.get(3).contains("Owl"), lines.toString());
+        assertTrue(lines.get(4).contains("Orphan") && lines.get(4).contains(Lang.SEARCH_PREVIEW_BUTTON.get()),
+                lines.toString());
+    }
+
+    @Test
     @DisplayName("an admin also gets a give button on every artwork")
     public void adminSearchHasGiveButton() throws Exception {
         when(player.hasPermission("artmap.admin")).thenReturn(true);

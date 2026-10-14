@@ -110,8 +110,10 @@ public class Search extends AsyncCommand {
     private TextComponent clickableArtwork(Player user, MapArt art) {
         TextComponent text = new TextComponent(art.getTitle());
         text.setColor(ChatColor.AQUA);
-        text.addExtra(ChatColor.WHITE + Lang.SEARCH_BY.get() + ChatColor.GRAY + art.getArtistName());
-        int textLen = art.getTitle().length() + art.getArtistName().length();
+        // The name comes from the heads cache and is null for an artist it never cached.
+        String artistName = art.getArtistName() != null ? art.getArtistName() : "?";
+        text.addExtra(ChatColor.WHITE + Lang.SEARCH_BY.get() + ChatColor.GRAY + artistName);
+        int textLen = art.getTitle().length() + artistName.length();
         StringBuilder sb = new StringBuilder();
         for(int i=textLen; i<(50-textLen); i++) {
             sb.append(".");
