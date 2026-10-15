@@ -77,6 +77,10 @@ public class ProtocolLibReceiver extends PacketReceiver {
                 //Then we must be on 1.17+
                 try {
                     Object enumEntityUseActionObject = packet.getModifier().read(1);
+                    // 26.3 moved attacks to their own packet: the interact packet holds the hand here, not an action
+                    if (enumEntityUseActionObject instanceof Enum) {
+                        return new PacketInteract(InteractType.INTERACT);
+                    }
                     Method method = enumEntityUseActionObject.getClass().getMethod("a");
                     method.setAccessible(true);
                     Object nmsAction = method.invoke(enumEntityUseActionObject);
