@@ -6,6 +6,7 @@ import static org.mockito.Mockito.when;
 
 import java.io.File;
 import java.lang.reflect.Field;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.UUID;
 
@@ -13,6 +14,8 @@ import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
+import org.bukkit.plugin.PluginLoader;
+import org.bukkit.plugin.java.JavaPlugin;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 
@@ -66,6 +69,18 @@ public abstract class MenuTestSupport {
     @AfterAll
     public static void unmock() {
         MockBukkit.unmock();
+    }
+
+    /** An enabled plugin to register listeners against. MockBukkit.createMockPlugin() cannot run on JDK 27: the
+     *  proxy class it injects needs ByteBuddy's Unsafe-based injector, which the JDK no longer allows. Its loader
+     *  registers nothing, so tests call listener methods directly. */
+    protected static JavaPlugin listenerPlugin() {
+        JavaPlugin p = mock(JavaPlugin.class);
+        when(p.isEnabled()).thenReturn(true);
+        PluginLoader loader = mock(PluginLoader.class);
+        when(loader.createRegisteredListeners(any(), any())).thenReturn(Collections.emptyMap());
+        when(p.getPluginLoader()).thenReturn(loader);
+        return p;
     }
 
     /** A player with an empty off hand who is handed whatever they are given. */

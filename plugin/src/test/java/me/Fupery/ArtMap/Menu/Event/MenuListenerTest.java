@@ -28,7 +28,6 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import be.seeseemelk.mockbukkit.MockBukkit;
 import me.Fupery.ArtMap.Menu.MenuTestSupport;
 import me.Fupery.ArtMap.Recipe.ArtItem;
 
@@ -44,7 +43,7 @@ public class MenuListenerTest extends MenuTestSupport {
     @BeforeEach
     public void fresh() {
         clearInvocations(menus);
-        listener = new MenuListener(menus, MockBukkit.createMockPlugin());
+        listener = new MenuListener(menus, listenerPlugin());
         tracked = player(false);
         untracked = player(false);
         when(menus.isTrackingPlayer(tracked)).thenReturn(true);

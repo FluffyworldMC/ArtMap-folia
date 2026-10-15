@@ -16,7 +16,6 @@ import org.bukkit.event.inventory.ClickType;
 import org.bukkit.inventory.Inventory;
 import org.junit.jupiter.api.Test;
 
-import be.seeseemelk.mockbukkit.MockBukkit;
 import me.Fupery.ArtMap.Menu.MenuTestSupport;
 import me.Fupery.ArtMap.Menu.API.BasicMenu;
 import me.Fupery.ArtMap.Menu.API.MenuType;
@@ -108,7 +107,7 @@ public class CacheableMenuTest extends MenuTestSupport {
         String original = (String) message.get(Lang.MenuTitle.MENU_HEADER);
         try {
             message.set(Lang.MenuTitle.MENU_HEADER, "§1[Art] §7");
-            MenuHandler handler = new MenuHandler(MockBukkit.createMockPlugin());
+            MenuHandler handler = new MenuHandler(listenerPlugin());
             Field key = MenuHandler.class.getDeclaredField("menuKey");
             key.setAccessible(true);
             assertEquals("$1[art]", key.get(handler), "a menu title may start with its own colour code");
