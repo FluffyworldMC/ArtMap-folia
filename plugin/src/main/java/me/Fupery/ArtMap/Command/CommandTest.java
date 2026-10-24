@@ -4,7 +4,6 @@ import java.util.Date;
 import java.util.UUID;
 import java.util.logging.Level;
 
-import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
 
 import me.Fupery.ArtMap.ArtMap;
@@ -35,7 +34,7 @@ class CommandTest extends AsyncCommand {
 
         switch (args[1]) {
         case "-create":
-            Bukkit.getScheduler().runTaskAsynchronously(ArtMap.instance(), ()->{
+            ArtMap.instance().getScheduler().ASYNC.run(()->{
                 int count = Integer.parseInt(args[2]);
                 String series = String.valueOf(System.currentTimeMillis());
                 for(int i=0;i<count;i++) {
@@ -57,7 +56,7 @@ class CommandTest extends AsyncCommand {
     }
 
     private void createArt(UUID artist, String name, String date, boolean print) throws Exception {
-        Bukkit.getScheduler().runTask(ArtMap.instance(), ()->{
+        ArtMap.instance().getScheduler().SYNC.run(()->{
             try {
                 Map map = ArtMap.instance().getArtDatabase().createMap();
                 if(print) {

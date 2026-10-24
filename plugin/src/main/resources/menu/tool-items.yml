@@ -1,0 +1,68 @@
+# Optional per item:
+#   item_model: "namespace:model"
+#   custom_model_data: 12345
+items:
+  EASEL:
+    material: OAK_FENCE
+    display_name: "Easel"
+    lore:
+      - "§b§oSit at me!"
+      - "§7Use to edit artworks"
+      - "§7Right click to place"
+      - "§7/art break to break"
+      - "§cBreaking the easel deletes"
+      - "§cany painting on it."
+      - "§cSave first!"
+  CANVAS:
+    material: PAPER
+    display_name: "Canvas"
+    lore:
+      - "§b§oPaint on me!"
+      - "§7Use on an §aEasel"
+      - "§7to start painting."
+  PAINT_BRUSH:
+    material: LEATHER_HORSE_ARMOR
+    custom_model_data: 10396
+    hide_attributes: true
+    display_name: "§e•§6§lSave§e•"
+    lore:
+      - "§b§oPaint Brush"
+      - "§7Sit at an §aEasel §7and"
+      - "§aCanvas §7to save a painting."
+  COMPASS:
+    material: COMPASS
+    display_name: "§e•§6§lRotate§e•"
+    lore:
+      - "§b§oCompass"
+      - "§7Left-Click to flip horizontally."
+      - "§7Right-Click to flip vertically."
+  COAL:
+    material: COAL
+    display_name: "§e•§6§lShade§e•"
+    lore:
+      - "§b§oCoal"
+      - "§7Left-Click to darken pixels."
+      - "§7Right-Click to darken lines."
+  FEATHER:
+    material: FEATHER
+    display_name: "§e•§6§lTint§e•"
+    lore:
+      - "§b§oFeather"
+      - "§7Left-Click to lighten pixels."
+      - "§7Right-Click to lighten lines."
+  PAINTBUCKET:
+    material: BUCKET
+    display_name: "§e•§6§lFill§e•"
+    lore:
+      - "§b§oBucket"
+      - "§7Left-Click to fill an area of"
+      - "§7the canvas with the dye in your"
+      - "§7offhand."
+      - "§7Right-Click to undo last fill."
+  SPONGE:
+    material: SPONGE
+    display_name: "§e•§6§lEyedropper§e•"
+    lore:
+      - "§b§oSponge"
+      - "§7Left-Click to grab a colour."
+      - "§7Right-Click to paint with the colour."

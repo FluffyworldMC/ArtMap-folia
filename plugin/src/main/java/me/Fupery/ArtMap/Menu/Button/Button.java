@@ -8,6 +8,8 @@ import org.bukkit.event.inventory.ClickType;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
+import me.Fupery.ArtMap.Menu.Config.MenuItems;
+
 public abstract class Button extends ItemStack {
     protected Button(Material material) {
         super(material);
@@ -43,8 +45,8 @@ public abstract class Button extends ItemStack {
     }
     
     protected Button(ItemStack item) {
-        super(item.getType());
-        setItemMeta(item.getItemMeta());
+        super(item);
+        MenuItems.copyDyedColor(item, this);
     }
     
     public abstract void onClick(Player player, ClickType clickType);

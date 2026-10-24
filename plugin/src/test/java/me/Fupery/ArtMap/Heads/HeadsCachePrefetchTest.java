@@ -5,7 +5,6 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -18,7 +17,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
-import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
@@ -66,10 +64,10 @@ public class HeadsCachePrefetchTest extends PluginTestSupport {
 
     /** Builds the cache with prefetch on and runs the async task it scheduled, inline. */
     private HeadsCache prefetchingCache() {
-        org.mockito.Mockito.clearInvocations(Bukkit.getScheduler()); // shared mock
+        org.mockito.Mockito.clearInvocations(ArtMap.instance().getScheduler().ASYNC); // shared mock
         HeadsCache cache = new HeadsCache(ArtMap.instance(), true);
         ArgumentCaptor<Runnable> task = ArgumentCaptor.forClass(Runnable.class);
-        verify(Bukkit.getScheduler()).runTaskLaterAsynchronously(eq(ArtMap.instance()), task.capture(), anyLong());
+        verify(ArtMap.instance().getScheduler().ASYNC).runLater(task.capture(), anyLong());
         task.getValue().run();
         return cache;
     }

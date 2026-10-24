@@ -1,0 +1,12 @@
+# Delete confirmation menu.
+title: "Confirm Delete"
+rows: 6
+
+items:
+  accept:
+    slot: 1
+    material: REDSTONE
+    display_name: "§aAccept"
+    lore:
+      - "§aClick to Accept"
+    condition: owner-or-admin

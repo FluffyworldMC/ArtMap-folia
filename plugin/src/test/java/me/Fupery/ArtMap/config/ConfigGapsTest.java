@@ -47,14 +47,15 @@ public class ConfigGapsTest extends PluginTestSupport {
     @Test
     @DisplayName("missing or silly values fall back: no world, a too-short autosave, ink uses off")
     public void configurationDefaults() throws Exception {
-        Configuration cfg = configFrom("language: english\nartworkAutoSave: 5\ninkUses: 3\n");
-        assertEquals("world", cfg.WORLD);
+        Configuration cfg = configFrom("world-blacklist:\n  - Spawn\nartworkAutoSave: 5\ninkUses: 3\n");
+        assertTrue(cfg.isWorldBlacklisted("Spawn"));
+        assertFalse(cfg.isWorldBlacklisted("world"));
         assertEquals(300, cfg.ARTWORK_AUTO_SAVE);
         assertTrue(cfg.LIMITED_INK_USES);
         assertEquals(3, cfg.INK_USES);
 
-        Configuration explicit = configFrom("world: art\nartworkAutoSave: 60\ninkUses: 0\n");
-        assertEquals("art", explicit.WORLD);
+        Configuration explicit = configFrom("world-blacklist: []\nartworkAutoSave: 60\ninkUses: 0\n");
+        assertFalse(explicit.isWorldBlacklisted("world"));
         assertEquals(60, explicit.ARTWORK_AUTO_SAVE);
         assertFalse(explicit.LIMITED_INK_USES);
     }
@@ -71,15 +72,13 @@ public class ConfigGapsTest extends PluginTestSupport {
     }
 
     @Test
-    @DisplayName("the swear filter only applies to English with the option on")
+    @DisplayName("the swear filter follows the configured switch")
     public void swearFilter() throws Exception {
         TitleFilter filter = new TitleFilter(Lang.Filter.ILLEGAL_EXPRESSIONS.get());
-        configOverriding(Map.of("SWEAR_FILTER", true, "LANGUAGE", "english"));
+        configOverriding(Map.of("SWEAR_FILTER", true));
         assertFalse(filter.check("shitpost"));
         assertTrue(filter.check("Sunset"));
-        configOverriding(Map.of("SWEAR_FILTER", true, "LANGUAGE", "german"));
-        assertTrue(filter.check("shitpost"));
-        configOverriding(Map.of("SWEAR_FILTER", false, "LANGUAGE", "english"));
+        configOverriding(Map.of("SWEAR_FILTER", false));
         assertTrue(filter.check("shitpost"));
     }
 }

@@ -22,8 +22,8 @@ public class EaselEffectTest extends PluginTestSupport {
     public static void setup() throws Exception {
         bootstrap();
         me.Fupery.ArtMap.Utils.Scheduler scheduler = ArtMap.instance().getScheduler();
-        doAnswer(i -> { ((Runnable) i.getArgument(0)).run(); return null; })
-                .when(scheduler).runSafely(any(Runnable.class));
+        doAnswer(i -> { ((Runnable) i.getArgument(1)).run(); return null; })
+                .when(scheduler).runSafely(any(Location.class), any(Runnable.class));
     }
 
     @Test

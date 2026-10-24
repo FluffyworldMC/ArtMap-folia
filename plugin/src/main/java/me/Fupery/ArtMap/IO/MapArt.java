@@ -5,7 +5,6 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.UUID;
 
-import org.apache.commons.lang.builder.HashCodeBuilder;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.inventory.ItemStack;
@@ -48,10 +47,8 @@ public class MapArt {
 
     @Override
     public int hashCode() {
-        HashCodeBuilder builder = new HashCodeBuilder(77, 123);
-        builder.append(title);
-        builder.append(id);
-        return builder.toHashCode();
+        int result = title != null ? title.hashCode() : 0;
+        return 31 * result + id;
     }
 
     @Override

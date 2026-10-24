@@ -4,6 +4,10 @@ import java.util.UUID;
 
 import org.bukkit.entity.Player;
 
+import me.Fupery.ArtMap.ArtMap;
+import me.Fupery.ArtMap.Menu.Config.MenuCommon;
+import me.Fupery.ArtMap.Menu.Config.MenuItemDefinition;
+import me.Fupery.ArtMap.Menu.Config.MenuItems;
 import me.Fupery.ArtMap.api.Config.Lang;
 import net.md_5.bungee.api.ChatColor;
 import net.md_5.bungee.api.chat.ClickEvent;
@@ -57,38 +61,44 @@ public class TextPagination {
     }
 
     public TextComponent buildHeader() {
+        MenuCommon common = ArtMap.instance().getMenuConfig().getCommon();
         TextComponent header = new TextComponent();
         //back arrows 
         if(currentPage>1) {
-            TextComponent backArrow = new TextComponent(" << ");
+            TextComponent backArrow = new TextComponent(name(common.getPrevious(), " << "));
             backArrow.setColor(ChatColor.RED);
             backArrow.setBold(true);
             backArrow.setClickEvent(new ClickEvent(Action.RUN_COMMAND, "/artmap page " + id.toString() + " " + (currentPage-1)));
             header.addExtra(backArrow);
         } else {
-            header.addExtra(ChatColor.GRAY + " **");
+            header.addExtra(ChatColor.GRAY + name(common.getPreviousDisabled(), " **"));
         }
         // current page text
         String middle = ChatColor.GOLD + headerText + " :: " + ChatColor.YELLOW + Lang.SEARCH_PAGE.get() + " " 
-            + ChatColor.RED +  currentPage + Lang.SEARCH_PAGE_SEPERATOR.get() + lastpage;
-            
+            + ChatColor.RED +  currentPage + MenuItems.translate(common.getSeparator()) + lastpage;
+             
         int edgeSize = ((MAX_COLUMNS - middle.length())/2)-4;
         StringBuilder sb = new StringBuilder(edgeSize);
         for(int i=0; i<edgeSize;i++) {
-            sb.append(ChatColor.GRAY + "*");
+            sb.append(ChatColor.GRAY + MenuItems.translate(common.getEdge()));
         }
         String edge = sb.toString();
         header.addExtra(edge + middle + edge);
         //forward arrow
         if(currentPage<lastpage) {
-            TextComponent forwardArrow = new TextComponent(" >> ");
+            TextComponent forwardArrow = new TextComponent(name(common.getNext(), " >> "));
             forwardArrow.setColor(ChatColor.GREEN);
             forwardArrow.setBold(true);
             forwardArrow.setClickEvent(new ClickEvent(Action.RUN_COMMAND, "/artmap page " + id.toString() + " " + (currentPage+1)));
             header.addExtra(forwardArrow);
         } else {
-            header.addExtra(ChatColor.GRAY + "**");
+            header.addExtra(ChatColor.GRAY + name(common.getNextDisabled(), "**"));
         }
         return header;
+    }
+
+    private static String name(MenuItemDefinition item, String fallback) {
+        if (item == null || item.getName() == null) return fallback;
+        return MenuItems.translate(item.getName());
     }
 }

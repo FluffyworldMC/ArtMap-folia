@@ -144,7 +144,7 @@ class CommandImport extends AsyncCommand {
         ArtMap.instance().getLogger().info("Delay="+delayConfig);
         //0 if not set so move to 100 default
         final long delay = delayConfig<=0 ? 100 : delayConfig;
-        Bukkit.getScheduler().runTaskAsynchronously(ArtMap.instance(), () -> {
+        ArtMap.instance().getScheduler().ASYNC.run(() -> {
             arts.forEach(art -> {
                 try {
                     art.importArtwork(sender);

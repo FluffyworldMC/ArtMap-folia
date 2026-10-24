@@ -75,6 +75,9 @@ public class Easel {
      * @return A reference to the part's easel, or null if none can be found.
      */
     public static Easel getEasel(Location partLocation, EaselPart part) {
+        if (part == EaselPart.STAND && partLocation.getBlock().getType() == Material.OAK_FENCE) {
+            return getEaselFromBase(partLocation);
+        }
         Location easelLocation = part.getEaselPos(partLocation, EaselPart.getFacing(partLocation.getYaw()));
 
         if (ArtMap.instance().getEasels().containsKey(easelLocation)) {
@@ -82,9 +85,30 @@ public class Easel {
         }
         Easel easel = new Easel(easelLocation, true);
         easel.spawned.set(true);
-        if (easel.hasSign() && easel.exists()) {
+        if ((easel.hasBaseBlocks() || easel.hasSign()) && easel.exists()) {
             ArtMap.instance().getEasels().put(easel.getLocation(), easel);
             easel.spawned.set(true);
+            return easel;
+        }
+        return null;
+    }
+
+    /** Finds the easel whose oak-fence base was clicked. */
+    public static Easel getEaselFromBase(Location baseLocation) {
+        if (baseLocation == null) return null;
+        Easel easel = findEaselAt(baseLocation.getBlock().getLocation());
+        if (easel != null) return easel;
+        return findEaselAt(baseLocation.clone().add(0, 1, 0).getBlock().getLocation());
+    }
+
+    private static Easel findEaselAt(Location easelLocation) {
+        Easel existing = ArtMap.instance().getEasels().get(easelLocation);
+        if (existing != null) return existing;
+
+        Easel easel = new Easel(easelLocation, true);
+        easel.spawned.set(true);
+        if (easel.hasBaseBlocks()) {
+            ArtMap.instance().getEasels().put(easel.getLocation(), easel);
             return easel;
         }
         return null;
@@ -109,8 +133,7 @@ public class Easel {
     private void place(Location location, BlockFace facing) {
         if (exists())
             breakEasel();
-        EaselPart.SIGN.spawn(location, facing);
-        stand.spawn(location, facing);
+        EaselPart.STAND.spawn(location, facing);
         frame.spawn(location, facing);
         spawned.set(true);
     }
@@ -119,11 +142,18 @@ public class Easel {
         if (!spawned.get())
             return false;
         Collection<Entity> entities = getNearbyEntities();
-        if (stand.exists(entities) && frame.exists(entities)) {
+        if ((hasBaseBlocks() || (hasSign() && stand.exists(entities))) && frame.exists(entities)) {
             return true;
         }
         spawned.set(false);
         return false;
+    }
+
+    private boolean hasBaseBlocks() {
+        Location base = EaselPart.getBaseLocation(location);
+        if (base == null || location.getBlock().getType() != Material.OAK_FENCE) return false;
+        Material baseType = base.getBlock().getType();
+        return baseType == Material.OAK_FENCE || baseType == EaselPart.BASE_MATERIAL;
     }
 
     private boolean hasSign() {
@@ -184,16 +214,27 @@ public class Easel {
         // forever with all entity interactions cancelled (#376).
         endUserSession();
 
-        ArtMap.instance().getScheduler().SYNC.run(() -> {
+        ArtMap.instance().getScheduler().SYNC.run(location, () -> {
             try {
                 final Collection<Entity> entities = getNearbyEntities();
+                Location seatSlab = EaselPart.getSeatSlabLocation(location, getFacing());
                 if (frame.exists(entities)) {
                     removeItem();
                     frame.remove(entities);
                 }
+                boolean hadBase = hasBaseBlocks();
                 location.getBlock().setType(Material.AIR);
+                if (hadBase) {
+                    EaselPart.getBaseLocation(location).getBlock().setType(Material.AIR);
+                }
+                if (seatSlab != null && seatSlab.getBlock().getType() == EaselPart.BASE_MATERIAL) {
+                    seatSlab.getBlock().setType(Material.AIR);
+                }
                 EaselEffect.BREAK.playEffect(getCentreLocation());
-                if (stand.remove(entities)) location.getWorld().dropItemNaturally(location, ArtMaterial.EASEL.getItem());
+                boolean removedLegacyStand = stand.remove(entities);
+                if (hadBase || removedLegacyStand) {
+                    location.getWorld().dropItemNaturally(location, ArtMaterial.EASEL.getItem());
+                }
                 ArtMap.instance().getEasels().remove(location);
             } catch (Exception e) {
                 ArtMap.instance().getLogger().log(Level.SEVERE,"Error removing easel!",e);

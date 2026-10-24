@@ -27,7 +27,7 @@ class CommandClear extends AsyncCommand {
             return;
         }
 
-        ArtMap.instance().getScheduler().SYNC.run(() -> {
+        ArtMap.instance().getScheduler().SYNC.run(player, () -> {
             Easel easel = null;
             easel = ArtMap.instance().getArtistHandler().getEasel(player);
 

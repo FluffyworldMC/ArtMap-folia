@@ -5,105 +5,113 @@ import org.bukkit.configuration.file.YamlConfiguration;
 
 import me.Fupery.ArtMap.api.IArtMap;
 
-import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.io.Reader;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.StandardOpenOption;
 import java.util.Collections;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.logging.Level;
 
 import javax.annotation.Nonnull;
 
+/**
+ * Loads the editable language file from the plugin data folder. The bundled English file is only
+ * used as the source for a new file and as a fallback for keys an older local file does not have
+ * yet.
+ */
 class LangLoader {
-    private IArtMap plugin;
-    private FileConfiguration defaults;
-    private FileConfiguration lang;
-    private boolean usingCustomLang = false;
-    private HashMap<String, String> missingStrings = new HashMap<>();
+    private final IArtMap plugin;
+    private final File langFile;
+    private final FileConfiguration defaults;
+    private final FileConfiguration lang;
+    private final LinkedHashMap<String, Object> missingStrings = new LinkedHashMap<>();
 
-    LangLoader(IArtMap plugin, Configuration configuration) {
+    LangLoader(IArtMap plugin) {
         this.plugin = plugin;
-        String language = configuration.LANGUAGE;
-        plugin.getLogger().info(String.format("Loading '%s' language file", language.toLowerCase()));
         defaults = YamlConfiguration.loadConfiguration(plugin.getTextResourceFile("lang.yml"));
-        lang = null;
-
-        if (language.equalsIgnoreCase("custom")) {
-            usingCustomLang = true;
-            File customLang = getCustomLangFile();
-            lang = YamlConfiguration.loadConfiguration(customLang);
-
-        } else if (!language.equalsIgnoreCase("english")) {
-            String languageFileName = String.format("lang%s.yml", File.separator + language);
-            Reader langReader = plugin.getTextResourceFile(languageFileName);
-            if (langReader != null) {
-                lang = YamlConfiguration.loadConfiguration(plugin.getTextResourceFile(languageFileName));
-            } else {
-                logLangError(String.format("Error loading lang.yml! '%s' is not a valid language.", language));
-            }
+        langFile = new File(plugin.getDataFolder(), "lang.yml");
+        if (!langFile.exists()) {
+            plugin.writeResource("lang.yml", langFile);
         }
-        if (lang == null) {
-            lang = defaults;
-            usingCustomLang = false;
-        }
+        lang = YamlConfiguration.loadConfiguration(langFile);
+        plugin.getLogger().info("Loading language file: " + langFile.getName());
     }
 
-    private File getCustomLangFile() {
-        File customLang = new File(plugin.getDataFolder(), "lang.yml");
-        if (!customLang.exists()) plugin.writeResource("lang.yml", customLang);
-        return customLang;
-    }
-
+    /** Appends keys added by a plugin update so admins can translate them without losing their file. */
     void save() {
-        if (!usingCustomLang) return;
-        File langFile = getCustomLangFile();
+        if (missingStrings.isEmpty()) return;
+        StringBuilder text = new StringBuilder();
+        text.append(System.lineSeparator())
+                .append("# New ArtMap keys added by an update.").append(System.lineSeparator());
+        YamlConfiguration addition = new YamlConfiguration();
+        for (Entry<String, Object> entry : missingStrings.entrySet()) {
+            addition.set(entry.getKey(), entry.getValue());
+        }
+        text.append(addition.saveToString());
         try {
-            BufferedWriter writer = new BufferedWriter(new FileWriter(langFile, true));
-            for (Entry<String,String> ent : missingStrings.entrySet()) {
-                writer.newLine();
-                writer.write(ent.getKey() + ": \"" + ent.getValue() + "\"");
-            }
-            writer.close();
+            Files.write(langFile.toPath(), text.toString().getBytes(StandardCharsets.UTF_8),
+                    StandardOpenOption.CREATE, StandardOpenOption.APPEND);
+            plugin.getLogger().info("Added " + missingStrings.size() + " new key(s) to lang.yml.");
         } catch (IOException e) {
-            plugin.getLogger().log(Level.SEVERE, "Cannot save default keys to lang,yml.",e);
+            plugin.getLogger().log(Level.SEVERE, "Cannot save new keys to lang.yml.", e);
         }
     }
 
     String loadString(String key) {
         if (!lang.contains(key)) {
-            logLangError(String.format("Error loading key from lang.yml: '%s'", key));
-            if (defaults == null || !defaults.contains(key)) return null;
-            String defaultString = defaults.getString(key);
-            missingStrings.put(key, defaultString);
-            return defaultString;
+            if (defaults == null || !defaults.contains(key)) {
+                return null;
+            }
+            Object value = defaults.get(key);
+            missingStrings.put(key, value);
+            logLangError(String.format("Missing key in lang.yml: '%s'", key));
+            return defaults.getString(key);
         }
         return lang.getString(key);
     }
 
     @Nonnull
     String[] loadArray(String key) {
-        List<String> messages = lang.getStringList(key);
-        if (messages.isEmpty()) {
-            // A scalar entry is accepted as a one-line list; a missing key falls back to the defaults.
+        if (lang.contains(key)) {
+            List<String> messages = lang.getStringList(key);
+            if (!messages.isEmpty()) {
+                return messages.toArray(new String[0]);
+            }
             String single = lang.getString(key);
             if (single != null) {
-                messages = Collections.singletonList(single);
-            } else {
-                logLangError(String.format("Error loading key from lang.yml: '%s'", key));
-                if (defaults == null || !defaults.contains(key)) return new String[]{"[" + key + "] NOT FOUND"};
-                messages = defaults.getStringList(key);
+                return new String[]{single};
             }
         }
-        return messages.toArray(new String[messages.size()]);
+        if (defaults == null || !defaults.contains(key)) {
+            return new String[0];
+        }
+        Object value = defaults.get(key);
+        missingStrings.put(key, value);
+        List<String> messages = defaults.getStringList(key);
+        if (!messages.isEmpty()) {
+            return messages.toArray(new String[0]);
+        }
+        String single = defaults.getString(key);
+        return single != null ? new String[]{single} : new String[0];
     }
 
     String[] loadRegex(String key) {
-        List<String> msg = lang.getStringList(key);
-        return msg.toArray(new String[msg.size()]);
+        if (lang.contains(key)) {
+            List<String> msg = lang.getStringList(key);
+            if (!msg.isEmpty()) return msg.toArray(new String[0]);
+        }
+        if (defaults != null && defaults.contains(key)) {
+            Object value = defaults.get(key);
+            missingStrings.put(key, value);
+            List<String> msg = defaults.getStringList(key);
+            return msg.toArray(new String[0]);
+        }
+        return Collections.emptyList().toArray(new String[0]);
     }
 
     private void logLangError(String reason) {

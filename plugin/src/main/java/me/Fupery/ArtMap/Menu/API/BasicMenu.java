@@ -13,9 +13,13 @@ public abstract class BasicMenu extends CacheableMenu {
         super(heading, type);
     }
 
-	protected BasicMenu(String heading, MenuType type) {
-		super(heading, type);
-	}
+    protected BasicMenu(String heading, MenuType type) {
+        super(heading, type);
+    }
+
+    protected BasicMenu(String heading, MenuType type, boolean fullHeading) {
+        super(heading, type, fullHeading);
+    }
 
     @Override
     public void onMenuOpenEvent(Player viewer) {

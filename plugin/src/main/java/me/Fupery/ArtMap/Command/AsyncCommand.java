@@ -38,11 +38,19 @@ abstract class AsyncCommand {
             }
 
             if (returnMsg.message != null) {
-                ArtMap.instance().getScheduler().SYNC.run(returnMsg);
+                if (sender instanceof Player) {
+                    ArtMap.instance().getScheduler().SYNC.run((Player) sender, returnMsg);
+                } else {
+                    ArtMap.instance().getScheduler().SYNC.run(returnMsg);
+                }
             }
         });
     }
 
     public abstract void runCommand(CommandSender sender, String[] args, ReturnMessage msg);
+
+    boolean canUse(CommandSender sender) {
+        return permission == null || sender.hasPermission(permission);
+    }
 }
 

@@ -48,16 +48,15 @@ public class PreviewManager {
     }
 
     void endPreview(UUID uuid) {
-        ArtMap.instance().getScheduler().SYNC.run(() -> {
-            Player player = Bukkit.getPlayer(uuid);
-            if (player == null) {
-                // Scheduled 300 ticks out; if the player logged off, Bukkit.getPlayer is null. Drop the stale
-                // entry rather than dereferencing it, or their next clicks stay swallowed as "previewing".
-                activePreviews.remove(uuid);
-                return;
-            }
-            endPreview(player);
-        });
+        Player player = Bukkit.getPlayer(uuid);
+        if (player == null) {
+            // Scheduled 300 ticks out; if the player logged off, Bukkit.getPlayer is null. Drop the stale
+            // entry rather than dereferencing it, or their next clicks stay swallowed as "previewing".
+            activePreviews.remove(uuid);
+            return;
+        }
+        // The preview touches the player's inventory/UI, so it must run on that player's thread on Folia.
+        ArtMap.instance().getScheduler().SYNC.run(player, () -> endPreview(player));
     }
 
     public boolean endPreview(Player player) {

@@ -22,6 +22,7 @@ import me.Fupery.ArtMap.api.Config.Lang;
 import me.Fupery.ArtMap.api.Exception.ArtMapException;
 import me.Fupery.ArtMap.Easel.Easel;
 import me.Fupery.ArtMap.Easel.EaselEffect;
+import me.Fupery.ArtMap.Easel.EaselPart;
 import me.Fupery.ArtMap.IO.MapArt;
 import me.Fupery.ArtMap.Recipe.ArtMaterial;
 import me.Fupery.ArtMap.Utils.ItemUtils;
@@ -76,7 +77,9 @@ class PlayerInteractListener implements RegisteredListener {
         Location baseLocation = event.getClickedBlock().getLocation().clone().add(.5, 1.25, .5);
         Location easelLocation = event.getClickedBlock().getLocation().clone().add(0, 2, 0);
         CompatibilityManager compat = ArtMap.instance().getCompatManager();
-        if (!player.hasPermission("artmap.artist") || !compat.checkBuildAllowed(player, baseLocation)
+        if (!ArtMap.instance().isWorldAllowed(player.getWorld())
+                || !player.hasPermission("artmap.artist")
+                || !compat.checkBuildAllowed(player, baseLocation)
                 || !compat.checkBuildAllowed(player, easelLocation)) {
             Lang.ActionBar.NO_PERM_ACTION.send(player);
             EaselEffect.USE_DENIED.playEffect(baseLocation);
@@ -84,9 +87,17 @@ class PlayerInteractListener implements RegisteredListener {
         }
         BlockFace facing = getFacing(player);
         Location frameBlock = new LocationHelper(easelLocation).shiftTowards(facing);
+        Location seatSlab = EaselPart.getSeatSlabLocation(easelLocation, facing);
+        if (seatSlab != null && !compat.checkBuildAllowed(player, seatSlab)) {
+            Lang.ActionBar.NO_PERM_ACTION.send(player);
+            EaselEffect.USE_DENIED.playEffect(baseLocation);
+            return;
+        }
 
-        if (!easelLocation.getBlock().isEmpty() || !baseLocation.getBlock().isEmpty()
-                || !frameBlock.getBlock().isEmpty() || Easel.checkForEasel(easelLocation)) {
+        if (!baseLocation.getBlock().isEmpty() || !easelLocation.getBlock().isEmpty()
+                || !frameBlock.getBlock().isEmpty()
+                || (seatSlab != null && !seatSlab.getBlock().isEmpty())
+                || Easel.checkForEasel(easelLocation)) {
             Lang.ActionBar.INVALID_POS.send(player);
             EaselEffect.USE_DENIED.playEffect(baseLocation);
             return;
@@ -135,6 +146,7 @@ class PlayerInteractListener implements RegisteredListener {
             return;
         }
 
+        final Player player = (Player) event.getWhoClicked();
         ArtMap.instance().getScheduler().ASYNC.run(() -> {
 
             ItemMeta meta = item.getItemMeta();
@@ -148,7 +160,7 @@ class PlayerInteractListener implements RegisteredListener {
                         .orElseThrow(()-> new ArtMapException("Art not found!"));
                 } catch (SQLException e) {
                     ArtMap.instance().getLogger().log(Level.SEVERE, "Database error!", e);
-					event.getWhoClicked().sendMessage("Error Retrieving Artwork check logs.");
+					ArtMap.instance().getScheduler().SYNC.run(player, () -> player.sendMessage("Error Retrieving Artwork check logs."));
             		return; 
                 } catch (ArtMapException e) {
                     return; //some maps do not have mapviews and we don't want to spam about it here.
@@ -157,7 +169,8 @@ class PlayerInteractListener implements RegisteredListener {
                 if (art != null) {
 
                     ItemStack correctLore = art.getMapItem();
-                    event.getClickedInventory().setItem(event.getSlot(), correctLore);
+                    ArtMap.instance().getScheduler().SYNC.run(player,
+                            () -> event.getClickedInventory().setItem(event.getSlot(), correctLore));
                 }
             }
         });

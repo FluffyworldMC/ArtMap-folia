@@ -57,7 +57,9 @@ public class EaselTest extends PluginTestSupport {
 
     private World world;
     private Block block;
+    private Block baseBlock;
     private Material blockType;
+    private Material baseType;
     private String[] signLines;
     private boolean blocksEmpty;
     private final List<Entity> entities = new ArrayList<>();
@@ -75,6 +77,7 @@ public class EaselTest extends PluginTestSupport {
         entities.clear();
         blocksEmpty = true;
         blockType = Material.AIR;
+        baseType = Material.AIR;
         signLines = new String[4];
         world = mock(World.class);
         when(world.getName()).thenReturn("world");
@@ -91,8 +94,15 @@ public class EaselTest extends PluginTestSupport {
         doAnswer(i -> { signLines[(int) i.getArgument(0)] = i.getArgument(1); return null; }).when(sign).setLine(anyInt(), any());
         when(block.getState()).thenReturn(sign);
         when(block.getLocation()).thenAnswer(i -> new Location(world, 10, 65, 10));
-        when(world.getBlockAt(anyInt(), anyInt(), anyInt())).thenReturn(block);
-        when(world.getBlockAt(any(Location.class))).thenReturn(block);
+        baseBlock = mock(Block.class);
+        when(baseBlock.isEmpty()).thenAnswer(i -> blocksEmpty);
+        when(baseBlock.getType()).thenAnswer(i -> baseType);
+        doAnswer(i -> { baseType = i.getArgument(0); return null; }).when(baseBlock).setType(any(Material.class));
+        when(baseBlock.getLocation()).thenAnswer(i -> new Location(world, 10, 64, 10));
+        when(world.getBlockAt(anyInt(), anyInt(), anyInt())).thenAnswer(i ->
+                ((int) i.getArgument(1)) == 64 ? baseBlock : block);
+        when(world.getBlockAt(any(Location.class))).thenAnswer(i ->
+                ((Location) i.getArgument(0)).getBlockY() == 64 ? baseBlock : block);
         when(world.getNearbyEntities(any(Location.class), anyDouble(), anyDouble(), anyDouble())).thenAnswer(i -> new ArrayList<>(entities));
         when(world.spawnEntity(any(Location.class), eq(EntityType.ARMOR_STAND))).thenAnswer(i -> stand(i.getArgument(0)));
         when(world.spawnEntity(any(Location.class), eq(EntityType.ITEM_FRAME))).thenAnswer(i -> frame(i.getArgument(0)));
@@ -173,8 +183,8 @@ public class EaselTest extends PluginTestSupport {
 
         assertNotNull(easel);
         assertEquals(wallSign, blockType, "the sign block was placed");
+        assertEquals(Material.OAK_FENCE, baseType, "the oak-fence base was placed");
         assertEquals(EaselPart.ARBITRARY_SIGN_ID, signLines[3]);
-        assertNotNull(theStand());
         assertNotNull(theFrame());
         assertEquals(BlockFace.NORTH, easel.getFacing());
         assertSame(easel, ArtMap.instance().getEasels().get(origin));
@@ -196,7 +206,7 @@ public class EaselTest extends PluginTestSupport {
     @DisplayName("an easel is found again from any of its parts, from the registry or from the world")
     public void foundFromParts() {
         Easel easel = Easel.spawnEasel(origin, BlockFace.SOUTH);
-        Location standLoc = theStand().getLocation();
+        Location standLoc = new Location(world, 10, 64, 10);
         Location frameLoc = theFrame().getLocation();
 
         assertSame(easel, Easel.getEasel(standLoc, EaselPart.STAND));
@@ -251,12 +261,12 @@ public class EaselTest extends PluginTestSupport {
 
         assertTrue(easel.seatUser(painter));
         long stands = entities.stream().filter(e -> e instanceof ArmorStand).count();
-        assertEquals(3, stands, "stand, seat and marker");
+        assertEquals(2, stands, "seat and marker");
         assertTrue(easel.isBeingUsed());
 
         easel.removeUser();
         assertFalse(easel.isBeingUsed());
-        assertEquals(1, entities.stream().filter(e -> e instanceof ArmorStand).count(), "seat and marker removed");
+        assertEquals(0, entities.stream().filter(e -> e instanceof ArmorStand).count(), "seat and marker removed");
 
         // A painter the handler no longer tracks is not really seated.
         assertTrue(easel.seatUser(painter));

@@ -1,0 +1,3 @@
+# Recipe preview menu. The grid itself is generated from recipe.yml.
+title: "Recipe for §a[{recipe}]"
+rows: 1

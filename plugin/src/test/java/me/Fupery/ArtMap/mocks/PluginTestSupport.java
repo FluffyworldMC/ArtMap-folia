@@ -83,6 +83,9 @@ public abstract class PluginTestSupport {
         org.bukkit.entity.Player p = mock(org.bukkit.entity.Player.class);
         when(p.getUniqueId()).thenReturn(java.util.UUID.randomUUID());
         when(p.getName()).thenReturn(name);
+        org.bukkit.World testWorld = mock(org.bukkit.World.class);
+        when(testWorld.getName()).thenReturn("world");
+        when(p.getWorld()).thenReturn(testWorld);
         when(p.spigot()).thenReturn(mock(org.bukkit.entity.Player.Spigot.class));
         when(p.getLocation()).thenAnswer(i -> new org.bukkit.Location(null, 0, 64, 0));
         when(p.getOpenInventory()).thenReturn(mock(org.bukkit.inventory.InventoryView.class));

@@ -1,13 +1,15 @@
 package me.Fupery.ArtMap.api.Config;
 
+import java.util.Collections;
+import java.util.List;
+
 import org.bukkit.configuration.file.FileConfiguration;
 
 import me.Fupery.ArtMap.api.IArtMap;
 
 
 public class Configuration {
-    public final String  LANGUAGE;
-    public final String  WORLD;
+    public final List<String> WORLD_BLACKLIST;
     public final int     ARTWORK_AUTO_SAVE;
     public final boolean SWEAR_FILTER;
     public final boolean DISABLE_ACTION_BAR;
@@ -25,9 +27,8 @@ public class Configuration {
 
     public Configuration(IArtMap plugin) {
         FileConfiguration configuration = plugin.getConfig();
-        this.LANGUAGE = configuration.getString("language");
-        String world = configuration.getString("world");
-        this.WORLD = world != null ? world : "world";
+        List<String> blacklist = configuration.getStringList("world-blacklist");
+        this.WORLD_BLACKLIST = Collections.unmodifiableList(blacklist);
         int autoSave = configuration.getInt("artworkAutoSave");
         this.ARTWORK_AUTO_SAVE = autoSave >= 30 ? autoSave : 300;
         this.SWEAR_FILTER = configuration.getBoolean("swearFilter");
@@ -43,5 +44,13 @@ public class Configuration {
         this.INK_USES = configuration.getInt("inkUses");
         this.LIMITED_INK_USES = INK_USES > 0;
 		this.BLACKLIST = configuration.getString("blacklist");
+    }
+
+    public boolean isWorldBlacklisted(String worldName) {
+        if (worldName == null) return true;
+        for (String blocked : WORLD_BLACKLIST) {
+            if (blocked != null && blocked.equalsIgnoreCase(worldName)) return true;
+        }
+        return false;
     }
 }

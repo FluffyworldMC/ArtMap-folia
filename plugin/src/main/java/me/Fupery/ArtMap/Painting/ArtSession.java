@@ -30,6 +30,13 @@ import me.Fupery.ArtMap.Painting.Brushes.Dropper;
 import me.Fupery.ArtMap.Painting.Brushes.Dye;
 import me.Fupery.ArtMap.Painting.Brushes.Fill;
 import me.Fupery.ArtMap.Painting.Brushes.Flip;
+import me.Fupery.ArtMap.Painting.Artkit.ArtkitColor;
+import me.Fupery.ArtMap.Painting.Artkit.ArtkitItems;
+import me.Fupery.ArtMap.Painting.Artkit.ArtkitPalette;
+import me.Fupery.ArtMap.Painting.Artkit.ArtkitShapeBrush;
+import me.Fupery.ArtMap.Painting.Artkit.ArtkitState;
+import me.Fupery.ArtMap.Painting.Artkit.ArtkitTool;
+import me.Fupery.ArtMap.Painting.Artkit.SelectedDye;
 import me.Fupery.ArtMap.Recipe.ArtItem;
 import me.Fupery.ArtMap.Recipe.ArtMaterial;
 import me.Fupery.ArtMap.Utils.ItemUtils;
@@ -41,10 +48,21 @@ public class ArtSession implements IArtSession {
     private final Brush FILL;
     private final Brush FLIP;
     private final Brush DROPPER;
+    private final SelectedDye SELECTED_DYE;
+    private final ArtkitShapeBrush SHAPES;
     private final Easel easel;
     private final Map map;
+    private final Player player;
+    private final ArtkitState artkit;
     private Brush currentBrush;
+    private ArtkitTool activeTool;
+    private boolean freehandActive;
+    private int strokeX;
+    private int strokeY;
+    private int shapeX = -1;
+    private int shapeY = -1;
     private long lastStroke;
+    private long lastFreehandUpdate;
     private ItemStack[] inventory;
     private static final HashMap<UUID, ItemStack[]> artkitHotbars = new HashMap<>();
 
@@ -54,6 +72,8 @@ public class ArtSession implements IArtSession {
 
     ArtSession(Player player, Easel easel, Map map, int yawOffset) {
         this.easel = easel;
+        this.player = player;
+        this.artkit = new ArtkitState();
         canvas = new CanvasRenderer(map, yawOffset);
         currentBrush = null;
         lastStroke = System.currentTimeMillis();
@@ -61,6 +81,8 @@ public class ArtSession implements IArtSession {
         DROPPER = new Dropper(canvas, player);
         FILL = new Fill(canvas, player, (Dropper) DROPPER);
         FLIP = new Flip(canvas, player);
+        SELECTED_DYE = new SelectedDye(canvas, player);
+        SHAPES = new ArtkitShapeBrush(canvas);
         this.map = map;
     }
 
@@ -79,13 +101,10 @@ public class ArtSession implements IArtSession {
         // Run tasks
         try {
             ArtMap.instance().getArtDatabase().restoreMap(map, true, false);
-            ArtMap.instance().getScheduler().SYNC.runLater(() -> {
+            ArtMap.instance().getScheduler().SYNC.runLater(player, () -> {
                 if (player.getVehicle() != null)
                     Lang.ActionBar.PAINTING.send(player);
             }, 30);
-            if (ArtMap.instance().getConfiguration().FORCE_ART_KIT && player.hasPermission("artmap.artkit")) {
-                addKit(player);
-            }
             map.setRenderer(canvas);
             persistMap(false);
         } catch (NoSuchFieldException | IllegalAccessException e) {
@@ -98,6 +117,10 @@ public class ArtSession implements IArtSession {
     }
 
     void paint(ItemStack brush, Brush.BrushAction action) {
+        if (ArtkitItems.isBrush(brush)) {
+            paintArtkit(brush, action);
+            return;
+        }
         dirty = true;
         if (currentBrush == null || !currentBrush.checkMaterial(brush)) {
             if (currentBrush != null)
@@ -115,6 +138,150 @@ public class ArtSession implements IArtSession {
         }
     }
 
+    private void paintArtkit(ItemStack brush, Brush.BrushAction action) {
+        if (canvas.isOffCanvas()) return;
+        dirty = true;
+        long currentTime = System.currentTimeMillis();
+        long strokeTime = currentTime - lastStroke;
+        if (strokeTime <= 100) return;
+        lastStroke = currentTime;
+
+        byte colour = artkit.getColor().getByte();
+        if (artkit.getTool() != activeTool) {
+            activeTool = artkit.getTool();
+            freehandActive = false;
+            shapeX = -1;
+        }
+        switch (artkit.getTool()) {
+            case FREEHAND:
+                paintFreehandClick(colour);
+                break;
+            case LINE:
+            case RECTANGLE:
+            case RECTANGLE_FILLED:
+            case CIRCLE:
+            case CIRCLE_FILLED:
+                paintShapeClick(colour);
+                break;
+            case FILL:
+                if (action == Brush.BrushAction.LEFT_CLICK) {
+                    ((Fill) FILL).paintColor(colour);
+                }
+                break;
+            case FLIP:
+                FLIP.paint(action, brush, strokeTime);
+                break;
+            case SHADE_DARK:
+                shade(false);
+                break;
+            case SHADE_LIGHT:
+                shade(true);
+                break;
+            case DROPPER:
+                if (action == Brush.BrushAction.LEFT_CLICK) {
+                    pickColour();
+                }
+                break;
+            case DYE:
+            default:
+                SELECTED_DYE.setColour(colour);
+                SELECTED_DYE.paint(action, brush, strokeTime);
+                break;
+        }
+    }
+
+    private void paintFreehandClick(byte colour) {
+        byte[] pixel = canvas.getCurrentPixel();
+        if (pixel == null) return;
+        if (!freehandActive) {
+            freehandActive = true;
+            strokeX = pixel[0];
+            strokeY = pixel[1];
+            SHAPES.point(pixel[0], pixel[1], colour);
+            return;
+        }
+        SHAPES.line(strokeX, strokeY, pixel[0], pixel[1], colour);
+        freehandActive = false;
+    }
+
+    private void paintFreehandLook(byte colour) {
+        if (!freehandActive) return;
+        byte[] pixel = canvas.getCurrentPixel();
+        if (pixel == null) return;
+        if (pixel[0] == strokeX && pixel[1] == strokeY) return;
+        SHAPES.line(strokeX, strokeY, pixel[0], pixel[1], colour);
+        strokeX = pixel[0];
+        strokeY = pixel[1];
+        dirty = true;
+        long now = System.currentTimeMillis();
+        if (now - lastFreehandUpdate < 50) return;
+        lastFreehandUpdate = now;
+        ArtMap.instance().getScheduler().SYNC.run(player, () -> sendMap(player));
+    }
+
+    private void paintShapeClick(byte colour) {
+        byte[] pixel = canvas.getCurrentPixel();
+        if (pixel == null) return;
+        if (shapeX < 0) {
+            shapeX = pixel[0];
+            shapeY = pixel[1];
+            SHAPES.point(pixel[0], pixel[1], colour);
+            return;
+        }
+        switch (artkit.getTool()) {
+            case LINE:
+                SHAPES.line(shapeX, shapeY, pixel[0], pixel[1], colour);
+                break;
+            case RECTANGLE:
+                SHAPES.rectangle(shapeX, shapeY, pixel[0], pixel[1], colour, false);
+                break;
+            case RECTANGLE_FILLED:
+                SHAPES.rectangle(shapeX, shapeY, pixel[0], pixel[1], colour, true);
+                break;
+            case CIRCLE:
+                SHAPES.circle(shapeX, shapeY, pixel[0], pixel[1], colour, false);
+                break;
+            case CIRCLE_FILLED:
+                SHAPES.circle(shapeX, shapeY, pixel[0], pixel[1], colour, true);
+                break;
+            default:
+                break;
+        }
+        shapeX = -1;
+    }
+
+    /** Cancels a half-finished freehand stroke or shape when the ArtKit is opened. */
+    public void cancelStroke() {
+        freehandActive = false;
+        shapeX = -1;
+    }
+
+    private void shade(boolean lighten) {
+        byte[] pixel = canvas.getCurrentPixel();
+        if (pixel == null) return;
+        int colour = canvas.getPixel(pixel[0], pixel[1]) & 0xFF;
+        int shade = colour % 4;
+        if (lighten && shade < 3) {
+            canvas.addPixel(pixel[0], pixel[1], (byte) (colour + 1));
+        } else if (!lighten && shade > 0) {
+            canvas.addPixel(pixel[0], pixel[1], (byte) (colour - 1));
+        }
+    }
+
+    private void pickColour() {
+        byte[] pixel = canvas.getCurrentPixel();
+        if (pixel == null) return;
+        ArtkitColor picked = ArtkitPalette.get(canvas.getPixel(pixel[0], pixel[1]) & 0xFF);
+        artkit.setColor(picked);
+        artkit.setTool(ArtkitTool.DYE);
+        ArtkitItems.updateBrush(player, artkit);
+        Lang.ITEM_SPONGE_MESSAGE.send(player);
+    }
+
+    public ArtkitState getArtkit() {
+        return artkit;
+    }
+
     private Brush getBrushType(ItemStack item) {
         for (Brush brush : new Brush[] { DYE, FILL, FLIP, DROPPER }) {
             if (brush.checkMaterial(item)) {
@@ -127,6 +294,9 @@ public class ArtSession implements IArtSession {
     public void updatePosition(float yaw, float pitch) {
         canvas.setYaw(yaw);
         canvas.setPitch(pitch);
+        if (artkit.getTool() == ArtkitTool.FREEHAND) {
+            paintFreehandLook(artkit.getColor().getByte());
+        }
     }
 
     private void addKit(Player player) {
@@ -211,7 +381,7 @@ public class ArtSession implements IArtSession {
         // isolate dismount housekeeping from the save so it can't block persisting
         try {
             //player.leaveVehicle();
-			player.teleport(player.getLocation().add(0, 0.25, 0 ));
+            teleportAsync(player, player.getLocation().add(0, 0.25, 0));
             removeKit(player);
             easel.removeUser();
         } catch (Exception e) {
@@ -239,6 +409,15 @@ public class ArtSession implements IArtSession {
 
     public boolean isActive() {
         return active;
+    }
+
+    private static void teleportAsync(Player player, org.bukkit.Location location) {
+        try {
+            java.lang.reflect.Method method = player.getClass().getMethod("teleportAsync", org.bukkit.Location.class);
+            method.invoke(player, location);
+        } catch (ReflectiveOperationException | RuntimeException e) {
+            player.teleport(location);
+        }
     }
 
     void setActive(boolean active) {

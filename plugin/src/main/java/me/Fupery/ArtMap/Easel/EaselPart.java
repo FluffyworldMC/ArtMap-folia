@@ -5,7 +5,9 @@ import static org.bukkit.entity.EntityType.ARMOR_STAND;
 import static org.bukkit.entity.EntityType.ITEM_FRAME;
 
 import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.World;
+import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.block.Sign;
 import org.bukkit.block.data.type.WallSign;
@@ -18,29 +20,37 @@ import me.Fupery.ArtMap.api.Config.Lang;
 
 /** Represents a part of an easel object */
 public enum EaselPart {
-	STAND(ARMOR_STAND, 0.4, -1, true), FRAME(ITEM_FRAME, 1, 0, false), SIGN(ARMOR_STAND, 0, 0, false), SEAT(ARMOR_STAND,
+	STAND(ARMOR_STAND, 0.4, -1, true, Material.OAK_FENCE), FRAME(ITEM_FRAME, 1, 0, false, null), SIGN(ARMOR_STAND, 0, 0, false, null), SEAT(ARMOR_STAND,
 			ArtMap.instance().getBukkitVersion().getVersion().getSeatXOffset(), ArtMap.instance().getBukkitVersion().getVersion().getSeatYOffset(),
-			true), MARKER(ARMOR_STAND, SEAT.modifier, 0, true);
+			true, null), MARKER(ARMOR_STAND, SEAT.modifier, 0, true, null);
 
 	public static final String ARBITRARY_SIGN_ID = "*{=}*";
-	public static final String EASEL_ID = Lang.RECIPE_EASEL_NAME.get();
+	public static final String EASEL_ID = "Easel";
+	public static final Material BASE_MATERIAL = Material.OAK_SLAB;
 
 	final EntityType entityType;
 	final double modifier;
 	final double heightOffset;
 	final boolean centred;
+	final Material blockType;
 
 	EaselPart(EntityType entityType, double modifier, double heightOffset, boolean centred) {
+		this(entityType, modifier, heightOffset, centred, null);
+	}
+
+	EaselPart(EntityType entityType, double modifier, double heightOffset, boolean centred, Material blockType) {
 		this.entityType = entityType;
 		this.modifier = modifier;
 		this.heightOffset = heightOffset;
 		this.centred = centred;
+		this.blockType = blockType;
 	}
 
 	public static EaselPart getPartType(Entity entity) {
 		switch (entity.getType()) {
 		case ARMOR_STAND:
 			ArmorStand stand = (ArmorStand) entity;
+			if (EASEL_ID.equals(stand.getCustomName())) return STAND;
 			return stand.isVisible() ? STAND : (stand.isSmall() ? MARKER : SEAT);
 		case ITEM_FRAME:
 			return FRAME;
@@ -48,6 +58,32 @@ public enum EaselPart {
 			break;
 		}
 		return null;
+	}
+
+	public static EaselPart getPartType(Block block) {
+		return block != null && block.getType() == Material.OAK_FENCE ? STAND : null;
+	}
+
+	public Material getBlockType() {
+		return blockType;
+	}
+
+	/** The oak-fence base block, directly below the easel sign. */
+	public static Location getBaseLocation(Location easelLocation) {
+		return easelLocation == null ? null : easelLocation.clone().subtract(0, 1, 0);
+	}
+
+	/** The easel sign location for a clicked base block. */
+	public static Location getEaselLocationFromBase(Location baseLocation) {
+		return baseLocation == null ? null : baseLocation.clone().add(0, 1, 0).getBlock().getLocation();
+	}
+
+	/** The block under the seated painter, where the easel's Oak Slab foot belongs. */
+	public static Location getSeatSlabLocation(Location easelLocation, BlockFace facing) {
+		if (easelLocation == null || facing == null) return null;
+		Location seat = SEAT.getPartPos(easelLocation, facing);
+		return new Location(easelLocation.getWorld(), seat.getBlockX(),
+				easelLocation.getBlockY() - 1, seat.getBlockZ());
 	}
 
 	public static BlockFace getFacing(double yaw) {
@@ -101,6 +137,14 @@ public enum EaselPart {
 			Sign sign = ((Sign) easelLocation.getBlock().getState());
 			sign.setLine(3, ARBITRARY_SIGN_ID);
 			sign.update(true, false);
+
+		} else if (blockType != null) {
+			Location base = getBaseLocation(easelLocation);
+			base.getBlock().setType(blockType);
+			easelLocation.getBlock().setType(blockType);
+			Location seatSlab = getSeatSlabLocation(easelLocation, facing);
+			if (seatSlab != null) seatSlab.getBlock().setType(BASE_MATERIAL);
+			return null;
 
 		} else {
 			Location partPos = getPartPos(easelLocation, facing);

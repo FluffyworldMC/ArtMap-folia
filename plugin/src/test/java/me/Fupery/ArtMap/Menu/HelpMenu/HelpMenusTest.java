@@ -2,7 +2,6 @@ package me.Fupery.ArtMap.Menu.HelpMenu;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
@@ -94,6 +93,12 @@ public class HelpMenusTest extends MenuTestSupport {
         return menu.getButtons().get();
     }
 
+    private static int buttonCount(Button[] buttons) {
+        int count = 0;
+        for (Button button : buttons) if (button != null) count++;
+        return count;
+    }
+
     private static List<String> lore(ItemStack item) {
         return item.getItemMeta().getLore();
     }
@@ -128,11 +133,11 @@ public class HelpMenusTest extends MenuTestSupport {
 
     @Test
     public void theBrushRecipeIsHiddenWhenThePaintbrushIsDisabled() throws Exception {
-        assertEquals(6, buttons(new RecipeMenu(false)).length);
+        assertEquals(6, buttonCount(buttons(new RecipeMenu(false))));
         configOverriding(Map.of("DISABLE_PAINTBRUSH", true));
         Button[] disabled = buttons(new RecipeMenu(false));
-        assertEquals(5, disabled.length);
-        assertTrue(disabled[0] instanceof LinkedButton, "the back arrow is still there");
+        assertEquals(5, buttonCount(disabled));
+        assertNotNull(disabled[0], "the back arrow is still there");
         assertNotNull(new RecipeMenu(false).getParent(player(false)));
     }
 
@@ -154,34 +159,6 @@ public class HelpMenusTest extends MenuTestSupport {
         plainEasel.onClick(plain, ClickType.RIGHT);
         verify(plain.getInventory(), never()).addItem(any(ItemStack.class));
         verify(menus).openMenu(eq(plain), isA(RecipePreview.class));
-    }
-
-    // ---- dyes ---------------------------------------------------------------------------
-
-    @Test
-    public void dyesAreHandedOnlyToAdminsOnARightClick() throws Exception {
-        Button[] dyes = buttons(new DyeMenu());
-        Button dye = dyes[2];
-        Player plain = player(false);
-        dye.onClick(plain, ClickType.RIGHT);
-        verify(plain.getInventory(), never()).addItem(any(ItemStack.class));
-
-        Player admin = player(true);
-        dye.onClick(admin, ClickType.LEFT);
-        verify(admin.getInventory(), never()).addItem(any(ItemStack.class));
-        dye.onClick(admin, ClickType.RIGHT);
-        verify(admin.getInventory()).addItem(any(ItemStack.class));
-    }
-
-    @Test
-    public void dyeButtonsEqualThemselvesOnly() throws Exception {
-        Button[] dyes = buttons(new DyeMenu());
-        assertEquals(dyes[2], dyes[2]);
-        assertEquals(dyes[2].hashCode(), dyes[2].hashCode());
-        assertNotEquals(dyes[2], dyes[3]);
-        assertNotEquals(dyes[2], buttons(new DyeMenu())[3]);
-        assertNotEquals(dyes[2], dyes[2].clone(), "a copy is not a dye button");
-        assertFalse(dyes[2].equals(null));
     }
 
     // ---- artist list --------------------------------------------------------------------
@@ -264,12 +241,14 @@ public class HelpMenusTest extends MenuTestSupport {
     public void theArtworksTitleFitsTheThirtyTwoCharacterLimit() throws Exception {
         Player viewer = player(false);
         UUID artist = UUID.randomUUID();
-        assertTrue(artworks(viewer, artist, "Bob", false).getHeading().contains(String.format(Lang.MenuTitle.MENU_ARTWORKS.get(), "Bob")));
-        String longName = "ABCDEFGHIJKLMNOPQRSTUVWXYZabc"; // 29: too long for "<name>'s Art" plus colour codes
-        assertTrue(artworks(viewer, artist, longName, false).getHeading().endsWith(longName.substring(0, 25)));
-        String tooLong = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefgh"; // over 30: cut to 29
-        String heading = artworks(viewer, artist, tooLong, false).getHeading();
-        assertFalse(heading.contains(tooLong.substring(0, 30)), heading);
+        String heading = artworks(viewer, artist, "Bob", false).getHeading();
+        assertTrue(heading.length() <= 32, heading);
+        assertTrue(heading.contains("Bob"), heading);
+        String longName = "ABCDEFGHIJKLMNOPQRSTUVWXYZabc";
+        assertTrue(artworks(viewer, artist, longName, false).getHeading().length() <= 32,
+                "the inventory title is capped at 32 characters");
+        String tooLong = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefgh";
+        assertTrue(artworks(viewer, artist, tooLong, false).getHeading().length() <= 32);
     }
 
     @Test

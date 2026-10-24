@@ -115,9 +115,9 @@ public class ArtistHandlerTest extends PluginTestSupport {
     public void seatedBrushClickSchedulesTheSaveDialog() {
         when(painter.isInsideVehicle()).thenReturn(true);
         // The dialog is an AnvilGUI that needs a real server; capture the scheduled task instead of running it.
-        when(ArtMap.instance().getScheduler().SYNC.run(any(Runnable.class))).thenReturn(null);
+        when(ArtMap.instance().getScheduler().SYNC.run(any(Player.class), any(Runnable.class))).thenReturn(null);
         assertTrue(handler.handlePacket(painter, click()));
-        verify(ArtMap.instance().getScheduler().SYNC).run(any(Runnable.class));
+        verify(ArtMap.instance().getScheduler().SYNC).run(any(Player.class), any(Runnable.class));
     }
 
     @Test

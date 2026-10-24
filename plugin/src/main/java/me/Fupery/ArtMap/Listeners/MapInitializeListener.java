@@ -4,23 +4,24 @@ import java.util.LinkedList;
 import java.util.Queue;
 import java.util.logging.Level;
 
+import com.github.Anon8281.universalScheduler.scheduling.tasks.MyScheduledTask;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.server.MapInitializeEvent;
-import org.bukkit.scheduler.BukkitRunnable;
 
 import me.Fupery.ArtMap.ArtMap;
 import me.Fupery.ArtMap.IO.Database.Map;
 
-public class MapInitializeListener extends BukkitRunnable implements RegisteredListener {
+public class MapInitializeListener implements Runnable, RegisteredListener {
 
     private static final Queue<Integer> mapQueue = new LinkedList<>();
-    private static BukkitRunnable runnable = null;
+    private MyScheduledTask runnable = null;
+    private boolean scheduled = false;
 
     private synchronized void createRunner() {
-        if(runnable == null) {
+        if (!scheduled) {
+            scheduled = true;
             ArtMap.instance().getLogger().info("Created Artmap map initialize queue task.");
-            this.runTaskTimerAsynchronously(ArtMap.instance(), 0, 20);
-            runnable = this;
+            runnable = ArtMap.instance().getScheduler().ASYNC.runTimer(this, 0, 20);
         }
     }
 
@@ -36,6 +37,11 @@ public class MapInitializeListener extends BukkitRunnable implements RegisteredL
     @Override
     public void unregister() {
         MapInitializeEvent.getHandlerList().unregister(this);
+        scheduled = false;
+        if (runnable != null) {
+            runnable.cancel();
+            runnable = null;
+        }
     }
 
     @Override

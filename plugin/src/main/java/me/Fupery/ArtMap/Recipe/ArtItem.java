@@ -171,4 +171,18 @@ public class ArtItem {
             super(material, KIT_KEY, name);
         }
     }
+
+    public static class ConfiguredItem extends CustomItem {
+        private final ItemStack display;
+
+        public ConfiguredItem(ItemStack display, String key) {
+            super(display, key);
+            this.display = display;
+        }
+
+        @Override
+        public ItemStack toItemStack() {
+            return display.clone();
+        }
+    }
 }

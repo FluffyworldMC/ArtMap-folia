@@ -1,0 +1,52 @@
+# Recipe overview menu.
+title: "Choose a Recipe"
+size: 9
+parent: help
+items:
+  back:
+    slot: 0
+    material: MAGENTA_GLAZED_TERRACOTTA
+    name: "&c&l<"
+    action: back
+  spacer:
+    slot: 1
+    material: AIR
+    action: none
+  info:
+    slot: 2
+    material: OAK_SIGN
+    display_name: "§6§l⊱§e§lRecipe Help§6§l⊰"
+    lore:
+      - "§7Craft any artwork with a §6blank map"
+      - "§7to create a copy. Only the original"
+      - "§7author of an artwork will be able to"
+      - "§7make copies."
+      - "§b§oHover items to view info."
+    action: none
+  easel:
+    slot: 3
+    art_item: EASEL
+    lore:
+      - ""
+      - "§aLeft-Click to view Recipe"
+      - "§6Right-Click to get Item"
+    action: recipe
+    recipe: EASEL
+  canvas:
+    slot: 4
+    art_item: CANVAS
+    lore:
+      - ""
+      - "§aLeft-Click to view Recipe"
+      - "§6Right-Click to get Item"
+    action: recipe
+    recipe: CANVAS
+  paint-brush:
+    slot: 5
+    art_item: PAINT_BRUSH
+    lore:
+      - ""
+      - "§aLeft-Click to view Recipe"
+      - "§6Right-Click to get Item"
+    action: recipe
+    recipe: PAINT_BRUSH

@@ -1,0 +1,16 @@
+# Artist list menu.
+title: "Click an Artist"
+rows: 6
+parent: help
+
+list:
+  start-slot: 1
+  page-size: 25
+  previous-slot: 0
+  next-slot: 26
+  item:
+    material: PLAYER_HEAD
+    name: "{artist}"
+    lore:
+      - "&aClick to View"
+  overrides: {}

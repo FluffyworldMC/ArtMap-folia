@@ -1,0 +1,38 @@
+# Common settings shared by every ArtMap menu.
+# Menu titles are defined in each menu file; no automatic prefix is added.
+menu-header: ""
+
+pagination:
+  # The page text is built from these symbols and the separator.
+  separator: " &7:: "
+  edge: "&7*"
+
+  previous:
+    material: MAGENTA_GLAZED_TERRACOTTA
+    name: "&c&l<<"
+    lore:
+      - "&7Page {target_page}"
+    item_model: ""
+    custom_model_data: 0
+
+  next:
+    material: MAGENTA_GLAZED_TERRACOTTA
+    name: "&a&l>>"
+    lore:
+      - "&7Page {target_page}"
+    item_model: ""
+    custom_model_data: 0
+
+  previous-disabled:
+    material: GRAY_STAINED_GLASS_PANE
+    name: " "
+    lore: []
+    item_model: ""
+    custom_model_data: 0
+
+  next-disabled:
+    material: GRAY_STAINED_GLASS_PANE
+    name: " "
+    lore: []
+    item_model: ""
+    custom_model_data: 0

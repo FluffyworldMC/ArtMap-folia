@@ -66,7 +66,7 @@ public class HeadsCache {
 
 		//init the cache
 		if (prefetch) {
-			plugin.getServer().getScheduler().runTaskLaterAsynchronously(plugin, this::initHeadCache
+			plugin.getScheduler().ASYNC.runLater(this::initHeadCache
 			, plugin.getConfiguration().HEAD_PREFETCH_DELAY);
 		}
 		//int the nameToUUID

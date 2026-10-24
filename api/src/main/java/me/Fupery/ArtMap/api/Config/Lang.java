@@ -19,6 +19,7 @@ public enum Lang implements LangSet<String> {
     INVALID_DATA_TABLES, CANNOT_BUILD_DATABASE, MAP_ID_MISSING, RESTORED_SUCCESSFULY, BUTTON_CLICK, BUTTON_CLOSE, BUTTON_BACK, RECIPE_BUTTON, RECIPE_PLAYER_MAP_COPY, RECIPE_PLAYER_MAP_COPY_MISSING,
     ADMIN_RECIPE, RECIPE_HELP, RECIPE_EASEL_NAME, RECIPE_CANVAS_NAME, RECIPE_PAINT_BRUSH_NAME, RECIPE_ARTWORK_ARTIST, BUTTON_RENAME_NAME, BUTTON_DELETE_NAME, 
     BUTTON_ACCEPT_NAME, BUTTON_RENAME_TEXT, BUTTON_DELETE_TEXT, BUTTON_ACCEPT_TEXT, RENAMED, TITLE_QUESTION, PAINTBRUSH_GROUND, PAINTBRUSH_FORCED, PAINTBRUSH_DISABLED,
+    SAVE_DIALOG_TITLE, SAVE_DIALOG_LABEL, SAVE_DIALOG_BODY, SAVE_DIALOG_SAVE, SAVE_DIALOG_SAVE_HOVER, SAVE_DIALOG_CANCEL, SAVE_DIALOG_CANCEL_HOVER,
     ITEM_NAME_PAINTBUCKET, ITEM_NAME_COMPASS, ITEM_NAME_FEATHER, ITEM_NAME_COAL, ITEM_NAKE_FEATHER, ITEM_NAME_SPONGE,
     DYE_BLACK, DYE_RED, DYE_GREEN, DYE_BROWN, DYE_BLUE, DYE_PURPLE, DYE_CYAN, DYE_SILVER, DYE_GRAY, DYE_PINK, DYE_LIME,
     DYE_YELLOW, DYE_LIGHT_BLUE, DYE_MAGENTA, DYE_ORANGE, DYE_WHITE, DYE_CREAM, DYE_COFFEE, DYE_GRAPHITE, DYE_GUNPOWDER,
@@ -31,13 +32,13 @@ public enum Lang implements LangSet<String> {
     SEARCH_USAGE, SEARCH_PREVIEW_BUTTON, SEARCH_PREVIEW_HOVER, SEARCH_GIVE_BUTTON, SEARCH_GIVE_HOVER, SEARCH_ARTIST_HOVER, SEARCH_ARTISTS, SEARCH_ARTWORKS, SEARCH_TITLE, SEARCH_PAGE,
     SEARCH_PAGE_SEPERATOR, SEARCH_BY, ITEM_SPONGE_MESSAGE, ARTKIT_NEXT, ARTKIT_PREV, MENU_PAGE_JUMP;
 
-    public static final String PREFIX = ChatColor.AQUA + "[ArtMap] ";
+    public static String PREFIX = ChatColor.AQUA + "[ArtMap] ";
     //private static final char EIGHT_POINTED_STAR = '\u2737';
     //private static final char SIX_PETALLED_FLORETTE = '\u273E';
     private String message = String.format("'%s' NOT FOUND", name());
 
-    public static void load(IArtMap plugin, Configuration configuration) {
-        LangLoader loader = new LangLoader(plugin, configuration);
+    public static void load(IArtMap plugin) {
+        LangLoader loader = new LangLoader(plugin);
         //Load basic messages
         for (Lang key : Lang.values()) {
             key.message = loader.loadString(key.name());
@@ -58,8 +59,20 @@ public enum Lang implements LangSet<String> {
             key.messages = loader.loadArray(key.name());
         }
 
+        //The chat prefix lives in lang.yml too, so servers can brand it.
+        String loadedPrefix = loader.loadString("PREFIX");
+        if (loadedPrefix != null) {
+            PREFIX = loadedPrefix;
+        }
+
         loader.save();
         Filter.ILLEGAL_EXPRESSIONS.expressions = loader.loadRegex("ILLEGAL_EXPRESSIONS");
+    }
+
+    /** @deprecated language selection was removed; the local lang.yml is always used. */
+    @Deprecated
+    public static void load(IArtMap plugin, Configuration configuration) {
+        load(plugin);
     }
 
     @Override

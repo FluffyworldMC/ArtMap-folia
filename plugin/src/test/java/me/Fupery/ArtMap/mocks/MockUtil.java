@@ -3,6 +3,7 @@ package me.Fupery.ArtMap.mocks;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -45,10 +46,10 @@ import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.PluginDescriptionFile;
 import org.bukkit.plugin.PluginManager;
 import org.bukkit.scheduler.BukkitScheduler;
-import org.bukkit.scheduler.BukkitTask;
 import org.mockito.Mockito;
-import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
+
+import com.github.Anon8281.universalScheduler.scheduling.tasks.MyScheduledTask;
 
 import me.Fupery.ArtMap.ArtMap;
 import me.Fupery.ArtMap.api.Colour.ArtDye;
@@ -64,6 +65,7 @@ import me.Fupery.ArtMap.IO.PixelTableManager;
 import me.Fupery.ArtMap.IO.Database.Map.Size;
 import me.Fupery.ArtMap.Utils.Reflection;
 import me.Fupery.ArtMap.Utils.Scheduler;
+import me.Fupery.ArtMap.Utils.Scheduler.AsyncTaskScheduler;
 import me.Fupery.ArtMap.Utils.Scheduler.TaskScheduler;
 
 /** Keeping the reused mocks in one place. */
@@ -72,6 +74,7 @@ public class MockUtil {
     private ArtMap pluginMock; // Mocked plugin
     private ArtMap mockArtmap;
     private Server mockServer;
+    private org.bukkit.World mockWorld;
     private PluginManager mockPluginManager;
 
     private static final Map<UUID,Player> mockPlayers = new HashMap<>();
@@ -207,6 +210,16 @@ public class MockUtil {
         when(mockServer.getLogger()).thenReturn(testLogger);
         when(mockServer.getScheduler()).thenReturn(mockBukkitScheduler);
         when(mockServer.getPluginManager()).thenReturn(this.mockPluginManager);
+
+        // A default world so map cloning and world-blacklist checks work in unit tests.
+        org.bukkit.World mockWorld = mock(org.bukkit.World.class);
+        when(mockWorld.getName()).thenReturn("world");
+        this.mockWorld = mockWorld;
+        when(mockServer.getWorlds()).thenReturn(java.util.Collections.singletonList(mockWorld));
+        when(mockServer.getWorld("world")).thenReturn(mockWorld);
+        org.bukkit.map.MapView createdMap = mock(org.bukkit.map.MapView.class);
+        when(createdMap.getId()).thenReturn(1);
+        when(mockServer.createMap(any(org.bukkit.World.class))).thenReturn(createdMap);
         when(mockServer.getPlayer(any(UUID.class))).thenAnswer( invocation -> {
             return mockPlayers.get(invocation.getArguments()[0]);
         });
@@ -288,10 +301,14 @@ public class MockUtil {
          Mockito.when(mockArtmap.getDescription()).thenReturn(desc);
          // Mock the server return
          when(mockArtmap.getServer()).thenReturn(this.mockServer);
+         when(mockArtmap.getMapWorld()).thenReturn(this.mockWorld);
+         when(mockArtmap.getMapWorldName()).thenReturn("world");
+         when(mockArtmap.isWorldAllowed(any(org.bukkit.World.class))).thenReturn(true);
  
          // Mock the scheduler
          Scheduler mockScheduler = mock(Scheduler.class);
-         TaskScheduler mockTaskScheduler = mock(TaskScheduler.class);
+         TaskScheduler mockSync = mock(TaskScheduler.class);
+         AsyncTaskScheduler mockAsync = mock(AsyncTaskScheduler.class);
          when(mockArtmap.getGson(anyBoolean())).then(invocation -> {
             GsonBuilder builder = new GsonBuilder();
             if ((boolean) invocation.getArguments()[0]) {
@@ -326,27 +343,36 @@ public class MockUtil {
              }
          });
 
-         when(mockTaskScheduler.run(any(Runnable.class))).thenAnswer(new Answer<BukkitTask>() {
- 
-             @Override
-             public BukkitTask answer(InvocationOnMock invocation) throws Throwable {
-                 Runnable run = invocation.getArgument(0);
-                 run.run();
-                 return null;
-             }
-             
-         });
-         mockScheduler.ASYNC = mockTaskScheduler;
-         mockScheduler.SYNC = mockTaskScheduler;
+         // The plugin's scheduler wrapper is mocked: run submitted work inline so tests exercise the
+         // deferred code without a real server. Entity/location overloads need the same treatment
+         // because the plugin binds player- and block-touching work to those regions on Folia.
+         when(mockSync.run(any(Runnable.class))).thenAnswer(runInline(0));
+         when(mockSync.run(any(org.bukkit.entity.Entity.class), any(Runnable.class))).thenAnswer(runInline(1));
+         when(mockSync.run(any(org.bukkit.Location.class), any(Runnable.class))).thenAnswer(runInline(1));
+         when(mockSync.runLater(any(org.bukkit.entity.Entity.class), any(Runnable.class), anyLong())).thenAnswer(runInline(1));
+         when(mockSync.runLater(any(org.bukkit.Location.class), any(Runnable.class), anyLong())).thenAnswer(runInline(1));
+         when(mockAsync.run(any(Runnable.class))).thenAnswer(runInline(0));
+         mockScheduler.ASYNC = mockAsync;
+         mockScheduler.SYNC = mockSync;
          when(mockArtmap.getScheduler()).thenReturn(mockScheduler);
 
          //Mock getting resource
          when(mockArtmap.getTextResourceFile(anyString())).thenAnswer( invocation -> {
-             if("lang.yml".equals(invocation.getArguments()[0])) {
+             String path = (String) invocation.getArguments()[0];
+             if("lang.yml".equals(path)) {
                 return new InputStreamReader(MockUtil.class.getResourceAsStream("../../../../lang.yml"));
              }
-            return new InputStreamReader(MockUtil.class.getResourceAsStream((String) invocation.getArguments()[0]));
+             if (path.startsWith("menu/")) {
+                 return new InputStreamReader(MockUtil.class.getResourceAsStream("/" + path));
+             }
+            return new InputStreamReader(MockUtil.class.getResourceAsStream(path));
          });
+
+         // Load the bundled menu defaults for tests that construct real menus.
+         me.Fupery.ArtMap.Menu.Config.MenuConfigManager menuConfig =
+                 new me.Fupery.ArtMap.Menu.Config.MenuConfigManager(mockArtmap);
+         menuConfig.reload();
+         when(mockArtmap.getMenuConfig()).thenReturn(menuConfig);
 
          //stateful per-map store so painted pixels survive setMap -> getMap
          Reflection mockReflection = mock(Reflection.class);
@@ -410,5 +436,14 @@ public class MockUtil {
         CanvasCopy mockCanvasCopy = mock(CanvasCopy.class);
         when(mockCanvasCopy.getOriginalId()).thenReturn(id);
         return mockCanvasCopy;
+    }
+
+    /** Runs the runnable passed at {@code runnableIndex} inline and returns no scheduled task. */
+    private static Answer<MyScheduledTask> runInline(int runnableIndex) {
+        return invocation -> {
+            Runnable run = invocation.getArgument(runnableIndex);
+            run.run();
+            return null;
+        };
     }
 }

@@ -14,13 +14,11 @@ import static org.mockito.Mockito.when;
 
 import java.util.UUID;
 
-import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Event;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.scheduler.BukkitTask;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -39,14 +37,11 @@ public class PreviewsTest extends PluginTestSupport {
     private Player viewer;
     private ItemStack previewItem;
     private ArtPreview preview;
-    private BukkitTask task;
+    private Scheduler.TaskHandler timeoutHandler;
 
     @BeforeAll
     public static void setup() throws Exception {
         bootstrap();
-        // Use the real task handler so the timeout is a genuine BukkitRunnable that can be cancelled.
-        Scheduler real = new Scheduler(ArtMap.instance());
-        when(ArtMap.instance().getScheduler().getTaskHandler(any())).thenAnswer(i -> real.getTaskHandler(i.getArgument(0)));
     }
 
     @BeforeEach
@@ -56,10 +51,9 @@ public class PreviewsTest extends PluginTestSupport {
         viewer.getInventory().setItemInOffHand(item(Material.AIR));
         ItemStack cursor = item(Material.AIR);
         when(viewer.getItemOnCursor()).thenReturn(cursor);
-        task = mock(BukkitTask.class);
-        when(task.getTaskId()).thenReturn(42);
-        org.mockito.Mockito.clearInvocations(Bukkit.getScheduler()); // shared across tests
-        when(Bukkit.getScheduler().runTaskLater(any(), any(Runnable.class), anyLong())).thenReturn(task);
+        timeoutHandler = mock(Scheduler.TaskHandler.class);
+        when(ArtMap.instance().getScheduler().getTaskHandler(any(Player.class), any(Runnable.class)))
+                .thenReturn(timeoutHandler);
         previewItem = item(Material.FILLED_MAP);
         MapArt art = spy(new MapArt(1, "Sunset", UUID.randomUUID(), "Artist", "01-01-2026"));
         doReturn(previewItem).when(art).getMapItem();
@@ -72,7 +66,7 @@ public class PreviewsTest extends PluginTestSupport {
     public void artPreviewStarts() {
         assertTrue(preview.start(viewer));
         assertTrue(viewer.getInventory().getItemInOffHand() == previewItem);
-        verify(Bukkit.getScheduler()).runTaskLater(any(), any(Runnable.class), org.mockito.ArgumentMatchers.eq(300L));
+        verify(timeoutHandler).runLater(false, 300);
         assertFalse(preview.isEventAllowed(viewer.getUniqueId(), mock(Event.class)));
     }
 
@@ -89,7 +83,7 @@ public class PreviewsTest extends PluginTestSupport {
     public void artPreviewEnds() {
         preview.start(viewer);
         assertTrue(preview.end(viewer));
-        verify(Bukkit.getScheduler()).cancelTask(42);
+        verify(timeoutHandler).cancel();
         assertNull(viewer.getInventory().getItemInOffHand());
 
         viewer.getInventory().setItemInOffHand(item(Material.AIR));
@@ -115,14 +109,13 @@ public class PreviewsTest extends PluginTestSupport {
         when(known.getItemOnCursor()).thenReturn(cursor);
         assertTrue(previews().startPreview(known, preview));
         ArgumentCaptor<Runnable> timeout = ArgumentCaptor.forClass(Runnable.class);
-        verify(Bukkit.getScheduler()).runTaskLater(any(), timeout.capture(), anyLong());
+        verify(ArtMap.instance().getScheduler()).getTaskHandler(org.mockito.ArgumentMatchers.eq(known), timeout.capture());
 
         timeout.getValue().run();
         assertFalse(previews().isPreviewing(known));
-        verify(Bukkit.getScheduler()).cancelTask(42);
 
         timeout.getValue().run();
-        verify(Bukkit.getScheduler()).cancelTask(42);
+        assertFalse(previews().isPreviewing(known));
     }
 
     @Test

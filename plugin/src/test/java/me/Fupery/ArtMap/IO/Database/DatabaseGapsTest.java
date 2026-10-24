@@ -6,7 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.doAnswer;
@@ -27,7 +27,6 @@ import java.util.logging.LogRecord;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
 import org.bukkit.map.MapView;
-import org.bukkit.scheduler.BukkitTask;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -81,6 +80,10 @@ public class DatabaseGapsTest extends PluginTestSupport {
     public void restore() {
         ArtMap.instance().getLogger().removeHandler(capture);
         when(mocks.getMockServer().getWorld(anyString())).thenReturn(null);
+        World world = mock(World.class);
+        when(world.getName()).thenReturn("world");
+        when(ArtMap.instance().getMapWorld()).thenReturn(world);
+        when(ArtMap.instance().getMapWorldName()).thenReturn("world");
     }
 
     private static byte[] filled(byte value) {
@@ -190,15 +193,16 @@ public class DatabaseGapsTest extends PluginTestSupport {
     // ---- map creation and closing --------------------------------------------------
 
     @Test
-    @DisplayName("createMap needs the configured world; without it nothing is created and the log says why")
+    @DisplayName("createMap needs an available world; without it nothing is created and the log says why")
     public void createMap() throws Exception {
+        when(ArtMap.instance().getMapWorld()).thenReturn(null);
         assertNull(db.createMap());
-        assertTrue(logged.stream().anyMatch(r -> r.getMessage().contains("World is null")));
+        assertTrue(logged.stream().anyMatch(r -> r.getMessage().contains("No world is available")));
 
         World world = mock(World.class);
         MapView view = mock(MapView.class);
         when(view.getId()).thenReturn(777);
-        when(mocks.getMockServer().getWorld(anyString())).thenReturn(world);
+        when(ArtMap.instance().getMapWorld()).thenReturn(world);
         when(mocks.getMockServer().createMap(world)).thenReturn(view);
 
         Map map = db.createMap();
@@ -211,8 +215,9 @@ public class DatabaseGapsTest extends PluginTestSupport {
     @Test
     @DisplayName("closing the database cancels its autosave task")
     public void closeCancelsAutosave() throws Exception {
-        BukkitTask task = mock(BukkitTask.class);
-        when(ArtMap.instance().getScheduler().ASYNC.runTimer(any(Runnable.class), anyInt(), anyInt())).thenReturn(task);
+        com.github.Anon8281.universalScheduler.scheduling.tasks.MyScheduledTask task =
+                mock(com.github.Anon8281.universalScheduler.scheduling.tasks.MyScheduledTask.class);
+        when(ArtMap.instance().getScheduler().ASYNC.runTimer(any(Runnable.class), anyLong(), anyLong())).thenReturn(task);
         Database other = new Database(ArtMap.instance());
         other.close();
         verify(task).cancel();
@@ -291,12 +296,14 @@ public class DatabaseGapsTest extends PluginTestSupport {
     public void mapWrapper() throws Exception {
         Map map = new Map(530);
         map.setMap(filled((byte) 9));
+        when(ArtMap.instance().getMapWorld()).thenReturn(null);
         assertNull(map.cloneMap(), "no world, no clone");
 
         World world = mock(World.class);
         MapView view = mock(MapView.class);
         when(view.getId()).thenReturn(531);
-        when(mocks.getMockServer().getWorld(anyString())).thenReturn(world);
+        when(ArtMap.instance().getMapWorld()).thenReturn(world);
+        when(ArtMap.instance().getMapWorldName()).thenReturn("world");
         when(mocks.getMockServer().createMap(world)).thenReturn(view);
         Map clone = map.cloneMap();
         assertEquals(531, clone.getMapId());

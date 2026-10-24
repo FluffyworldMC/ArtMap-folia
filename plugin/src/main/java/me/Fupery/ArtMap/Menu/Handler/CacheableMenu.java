@@ -13,6 +13,8 @@ import me.Fupery.ArtMap.ArtMap;
 import me.Fupery.ArtMap.Menu.API.MenuTemplate;
 import me.Fupery.ArtMap.Menu.API.MenuType;
 import me.Fupery.ArtMap.Menu.Button.Button;
+import me.Fupery.ArtMap.Menu.Config.MenuItems;
+import me.Fupery.ArtMap.Menu.Config.MenuPlaceholders;
 import me.Fupery.ArtMap.Menu.Event.MenuCloseReason;
 import me.Fupery.ArtMap.api.Config.Lang;
 
@@ -20,27 +22,42 @@ public abstract class CacheableMenu implements MenuTemplate {
 
     protected String heading;
     protected MenuType type;
+    protected Player viewer;
     private Button[] buttons;
     private boolean open = false;
 
     protected CacheableMenu(String heading, InventoryType type) {
-        this.heading = Lang.MenuTitle.MENU_HEADER.get() + heading;
-        this.heading = (this.heading.length() > 32) ? this.heading.substring(0, 32) : this.heading;
-        this.type = new MenuType(type);
+        this(heading, new MenuType(type), false);
     }
 
     protected CacheableMenu(String heading, MenuType type) {
-        this.heading = Lang.MenuTitle.MENU_HEADER.get() + heading;
-        this.heading = (this.heading.length() > 32) ? this.heading.substring(0, 32) : this.heading;
+        this(heading, type, false);
+    }
+
+    /**
+     * @param fullHeading true when the caller already supplied the complete title, including the
+     *                    configured menu header (used by menu/*.yml driven menus).
+     */
+    protected CacheableMenu(String heading, MenuType type, boolean fullHeading) {
+        this.heading = heading == null ? "" : heading;
         this.type = type;
     }
 
-    private void loadButtons(Inventory inventory) {
+    protected CacheableMenu(String heading, InventoryType type, boolean fullHeading) {
+        this(heading, new MenuType(type), fullHeading);
+    }
+
+    private Button[] buildButtons() {
         try {
-            buttons = getButtons().get();
+            return getButtons().get();
         } catch (InterruptedException | ExecutionException e) {
             ArtMap.instance().getLogger().warning("Failure loading menu butttons.  Please submit a gitlab issue!");
+            return new Button[0];
         }
+    }
+
+    private void loadButtons(Inventory inventory, Button[] loaded) {
+        buttons = loaded;
         for (int slot = 0; slot < buttons.length && slot < inventory.getSize(); slot++) {
             if (buttons[slot] != null) inventory.setItem(slot, buttons[slot]);
             else inventory.setItem(slot, new ItemStack(Material.AIR));
@@ -49,10 +66,16 @@ public abstract class CacheableMenu implements MenuTemplate {
 
     Inventory open(Player player) {
         ArtMap.instance();
-        Inventory inventory = this.type.createInventory(player, heading);
+        this.viewer = player;
+        String inventoryTitle = MenuItems.translate(MenuPlaceholders.apply(player, heading));
+        if (inventoryTitle != null && inventoryTitle.length() > 32) {
+            inventoryTitle = inventoryTitle.substring(0, 32);
+        }
+        Inventory inventory = this.type.createInventory(player, inventoryTitle);
 		ArtMap.instance().getScheduler().ASYNC.run(() -> {
-			loadButtons(inventory);
-			ArtMap.instance().getScheduler().SYNC.run(() -> {
+			Button[] loaded = buildButtons();
+			ArtMap.instance().getScheduler().SYNC.run(player, () -> {
+				loadButtons(inventory, loaded);
 				player.openInventory(inventory);
 				onMenuOpenEvent(player);
 				this.open = true;
@@ -64,8 +87,9 @@ public abstract class CacheableMenu implements MenuTemplate {
     protected void refresh(Player player) {
         Inventory inventory = player.getOpenInventory().getTopInventory();
         ArtMap.instance().getScheduler().ASYNC.run(() -> {
-			loadButtons(inventory);
-			ArtMap.instance().getScheduler().SYNC.run(() -> {
+			Button[] loaded = buildButtons();
+			ArtMap.instance().getScheduler().SYNC.run(player, () -> {
+                loadButtons(inventory, loaded);
                 player.updateInventory();
                 onMenuRefreshEvent(player);
             });

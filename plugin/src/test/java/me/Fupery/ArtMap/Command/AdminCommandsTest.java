@@ -162,7 +162,7 @@ public class AdminCommandsTest extends PluginTestSupport {
     @DisplayName("give hands out the craftable items, with an optional amount")
     public void giveCraftables() {
         dispatch(admin, "give", admin.getName(), "easel");
-        assertEquals(Material.ARMOR_STAND, given().getType());
+        assertEquals(Material.OAK_FENCE, given().getType());
         clearInvocations(admin.getInventory());
 
         dispatch(admin, "give", admin.getName(), "canvas", "5");

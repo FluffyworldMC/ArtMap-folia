@@ -4,6 +4,7 @@ import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.Recipe;
 
+import me.Fupery.ArtMap.ArtMap;
 import me.Fupery.ArtMap.api.Config.Lang;
 
 public enum ArtMaterial {
@@ -13,39 +14,30 @@ public enum ArtMaterial {
     private CustomItem artItem;
 
     public static void setupRecipes() {
-        EASEL.artItem = new ArtItem.CraftableItem("EASEL", Material.ARMOR_STAND, ArtItem.EASEL_KEY)
-				.name(Lang.RECIPE_EASEL_NAME).tooltip(Lang.Array.RECIPE_EASEL);
-
-        CANVAS.artItem = new ArtItem.CraftableItem("CANVAS", Material.PAPER, ArtItem.CANVAS_KEY)
-				.name(Lang.RECIPE_CANVAS_NAME)
-				.tooltip(Lang.Array.RECIPE_CANVAS);
-
+        setupConfigured(EASEL, Material.OAK_FENCE, "EASEL");
+        setupConfigured(CANVAS, Material.PAPER, "CANVAS");
         MAP_ART.artItem = new ArtItem.ArtworkItem(-1, "Artwork", null, null);
-
-		PAINT_BRUSH.artItem = new ArtItem.CraftableItem("PAINT_BRUSH", Material.REDSTONE_TORCH, ArtItem.PAINT_BRUSH)
-                .name(Lang.RECIPE_PAINT_BRUSH_NAME).tooltip(Lang.Array.RECIPE_PAINT_BRUSH);
-                
-        COMPASS.artItem = new ArtItem.KitItem(Material.COMPASS, "COMPASS")
-                .name(Lang.ITEM_NAME_COMPASS)
-                .tooltip(Lang.Array.TOOL_COMPASS);
-
-        COAL.artItem = new ArtItem.KitItem(Material.COAL, "COAL")
-                .name(Lang.ITEM_NAME_COAL)
-                .tooltip(Lang.Array.TOOL_COAL);
-
-        FEATHER.artItem = new ArtItem.KitItem(Material.FEATHER, "FEATHER")
-                .name(Lang.ITEM_NAME_FEATHER)
-                .tooltip(Lang.Array.TOOL_FEATHER);
-
-        PAINTBUCKET.artItem = new ArtItem.KitItem(Material.BUCKET, "PAINTBUCKET")
-                .name(Lang.ITEM_NAME_PAINTBUCKET)
-                .tooltip(Lang.Array.TOOL_PAINTBUCKET);
-
-        SPONGE.artItem = new ArtItem.KitItem(Material.SPONGE, "SPONGE")
-                .name(Lang.ITEM_NAME_SPONGE)
-                .tooltip(Lang.Array.TOOL_SPONGE);
+        setupConfigured(PAINT_BRUSH, Material.LEATHER_HORSE_ARMOR, "PAINT_BRUSH");
+        setupConfigured(COMPASS, Material.COMPASS, null);
+        setupConfigured(COAL, Material.COAL, null);
+        setupConfigured(FEATHER, Material.FEATHER, null);
+        setupConfigured(PAINTBUCKET, Material.BUCKET, null);
+        setupConfigured(SPONGE, Material.SPONGE, null);
 
         for (ArtMaterial material : values()) material.artItem.addRecipe();
+    }
+
+    private static void setupConfigured(ArtMaterial material, Material fallback, String recipe) {
+        ItemStack stack = ToolItems.build(material, fallback);
+        ArtItem.ConfiguredItem item = new ArtItem.ConfiguredItem(stack, ArtItem.KIT_KEY);
+        if (recipe != null) {
+            try {
+                item.recipe(ArtMap.instance().getRecipeLoader().getRecipe(recipe));
+            } catch (RecipeLoader.InvalidRecipeException e) {
+                ArtMap.instance().getLogger().log(java.util.logging.Level.SEVERE, "Failure!", e);
+            }
+        }
+        material.artItem = item;
     }
 
     public static ArtMaterial getCraftItemType(ItemStack item) {

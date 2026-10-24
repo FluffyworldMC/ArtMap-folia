@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.clearInvocations;
@@ -134,16 +135,9 @@ public class ThinListenersTest extends PluginTestSupport {
         return (Queue<Integer>) f.get(null);
     }
 
-    private static void resetRunner() throws Exception {
-        java.lang.reflect.Field f = MapInitializeListener.class.getDeclaredField("runnable");
-        f.setAccessible(true);
-        f.set(null, null);
-    }
-
     @Test
     @DisplayName("initialised maps queue once each, and the tick restores those that are artworks")
     public void mapInitialiseQueuesAndRestores() throws Exception {
-        resetRunner();
         mapQueue().clear();
         MapInitializeListener listener = new MapInitializeListener();
         listener.onMapInitialize(mapInit(1));
@@ -151,7 +145,7 @@ public class ThinListenersTest extends PluginTestSupport {
         listener.onMapInitialize(mapInit(2));
         listener.onMapInitialize(mapInit(3));
         assertEquals(3, mapQueue().size(), "duplicates are dropped");
-        verify(mocks.getMockServer().getScheduler()).runTaskTimerAsynchronously(any(), any(Runnable.class), org.mockito.ArgumentMatchers.anyLong(), org.mockito.ArgumentMatchers.anyLong());
+        verify(ArtMap.instance().getScheduler().ASYNC).runTimer(org.mockito.ArgumentMatchers.eq(listener), anyLong(), anyLong());
 
         when(database.containsArtwork(1)).thenReturn(true);
         when(database.containsArtwork(2)).thenReturn(false);

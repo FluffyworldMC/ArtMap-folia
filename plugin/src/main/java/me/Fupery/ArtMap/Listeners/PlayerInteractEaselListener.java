@@ -27,6 +27,7 @@ import me.Fupery.ArtMap.Easel.EaselEvent;
 import me.Fupery.ArtMap.Easel.EaselPart;
 import me.Fupery.ArtMap.Event.PlayerOpenMenuEvent;
 import me.Fupery.ArtMap.Menu.Handler.MenuHandler;
+import me.Fupery.ArtMap.Painting.Artkit.ArtKitMenu;
 import me.Fupery.ArtMap.Recipe.ArtMaterial;
 import me.Fupery.ArtMap.api.Easel.ClickType;
 
@@ -71,19 +72,26 @@ class PlayerInteractEaselListener implements RegisteredListener {
 		Player p = e.getPlayer();
 		Action a = e.getAction();
 
-        //prevent touching the easel sign
+        //prevent touching the easel sign or its oak-fence base
         if(e.getClickedBlock() != null) {
-            this.checkEaselSignEvent(e.getClickedBlock(), e);
+            if (this.checkEaselSignEvent(e.getClickedBlock(), e)) {
+                return;
+            }
+            if (this.checkEaselBaseInteraction(e)) {
+                return;
+            }
         }
 
         //check for paintbrush click
 		if ( a == Action.RIGHT_CLICK_AIR && e.getItem() != null
-				&& (ArtMaterial.getCraftItemType(e.getItem()) == ArtMaterial.PAINT_BRUSH)) {
-			ArtMap.instance().getScheduler().SYNC.run(() -> {
+				&& (ArtMaterial.getCraftItemType(e.getItem()) == ArtMaterial.PAINT_BRUSH)
+				&& p.isInsideVehicle()
+				&& ArtMap.instance().getArtistHandler().containsPlayer(p)) {
+			ArtMap.instance().getScheduler().SYNC.run(p, () -> {
 				PlayerOpenMenuEvent event = new PlayerOpenMenuEvent(p);
 				Bukkit.getServer().getPluginManager().callEvent(event);
 				MenuHandler menuHandler = ArtMap.instance().getMenuHandler();
-				menuHandler.openMenu((p), menuHandler.MENU.HELP.get((p)));
+				menuHandler.openMenu((p), new ArtKitMenu(p, 0));
 			});
 		}
 	}
@@ -95,13 +103,21 @@ class PlayerInteractEaselListener implements RegisteredListener {
             if (!checkIsPainting(event.getPlayer(), event)) {
                 Lang.ActionBar.EASEL_HELP.send(event.getPlayer());
             }
+            return;
+        }
+        if (checkEaselBaseBlock(event.getBlock(), event)) {
+            if (!checkIsPainting(event.getPlayer(), event)) {
+                Lang.ActionBar.EASEL_HELP.send(event.getPlayer());
+            }
+            return;
         }
         checkIsPainting(event.getPlayer(), event);
     }
 
     @EventHandler
     public void onBlockPhysics(BlockPhysicsEvent event) {
-        checkEaselSignEvent(event.getBlock(), event);
+        if (checkEaselSignEvent(event.getBlock(), event)) return;
+        checkEaselBaseBlock(event.getBlock(), event);
     }
 
     private void callEaselEvent(Entity clicker, Entity clicked, Cancellable event, ClickType click) {
@@ -158,6 +174,41 @@ class PlayerInteractEaselListener implements RegisteredListener {
             }
         }
         return false;
+    }
+
+    /** Cancel block breaking/physics on an easel's oak-fence base. */
+    private boolean checkEaselBaseBlock(Block block, Cancellable event) {
+        if (Easel.getEaselFromBase(block.getLocation()) == null) return false;
+        event.setCancelled(true);
+        return true;
+    }
+
+    /** Handle left/right clicking the oak-fence base as if the easel itself was clicked. */
+    private boolean checkEaselBaseInteraction(PlayerInteractEvent event) {
+        Block block = event.getClickedBlock();
+        if (block == null) return false;
+        Easel easel = Easel.getEaselFromBase(block.getLocation());
+        if (easel == null) return false;
+
+        event.setCancelled(true);
+        Player player = event.getPlayer();
+        if (checkIsPainting(player, event)) return true;
+
+        Action action = event.getAction();
+        if (action == Action.LEFT_CLICK_BLOCK) {
+            new EaselEvent(easel, ClickType.LEFT_CLICK, player).callEvent();
+            return true;
+        }
+        if (action != Action.RIGHT_CLICK_BLOCK) return true;
+
+        if (!ArtMap.instance().getCompatManager().checkBuildAllowed(player,
+                block.getLocation().clone().add(0.5, 0.5, 0.5))) {
+            Lang.ActionBar.NO_PERM_ACTION.send(player);
+            easel.playEffect(EaselEffect.USE_DENIED);
+            return true;
+        }
+        new EaselEvent(easel, isSneaking(player), player).callEvent();
+        return true;
     }
 
 	@Override

@@ -7,7 +7,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Map.Entry;
 
-import org.apache.commons.lang.builder.HashCodeBuilder;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.enchantments.Enchantment;
@@ -159,9 +158,7 @@ public class CustomItem {
 
     @Override
     public int hashCode() {
-        HashCodeBuilder builder = new HashCodeBuilder(13, 293); // both seeds must be odd or the builder throws
-        builder.append(key);
-        return builder.toHashCode();
+        return key != null ? key.hashCode() : 0;
     }
 
     @Override

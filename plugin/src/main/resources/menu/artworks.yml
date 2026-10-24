@@ -1,0 +1,17 @@
+# Artwork list for one artist.
+title: "{artist}'s Art"
+rows: 6
+parent: artists
+
+list:
+  start-slot: 1
+  page-size: 25
+  previous-slot: 0
+  next-slot: 26
+  item:
+    material: FILLED_MAP
+    name: "{title}"
+    lore:
+      - "&7by {artist}"
+      - "&aClick to View"
+  overrides: {}

@@ -21,7 +21,7 @@ EASEL:
     t: STRING
     f: ITEM_FRAME
     l: LEATHER
-    a: ARMOR_STAND
+    a: OAK_FENCE
   SHAPE:
     - "*s*"
     - "tft"

@@ -3,9 +3,10 @@ main: me.Fupery.ArtMap.ArtMap
 version: ${project.version}
 description: ${project.description}
 depend: [ProtocolLib]
-softdepend: [WorldGuard, Factions, Denizen, GriefPrevention, RedProtect, Landlord, iDisguise, ASkyBlock, Residence, MarriageMaster, PlotSquared, Essentials, BentoBox, CMI, GriefDefender]
+softdepend: [WorldGuard, CMI, PlaceholderAPI]
 author: [Wispoffates,(Original) Fupery]
 api-version: 1.13
+folia-supported: true
 
 commands:
   art:
@@ -17,6 +18,7 @@ commands:
         <command> preview <title> : Preview an artwork
         <command> help : Display help
         <command> reload : Reloads the config
+        <command> reload : Reloads config.yml, lang.yml and menu/*.yml
         <command> give <player> <easel|canvas|artwork:<title>> <amount> : Give a player ArtMap item(s)
 
 permissions:

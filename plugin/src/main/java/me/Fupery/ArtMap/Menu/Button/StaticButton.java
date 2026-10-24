@@ -20,9 +20,7 @@ public class StaticButton extends Button {
     }
 
     public StaticButton(ItemStack itemStack) {
-		super(itemStack.getType());
-        setAmount(itemStack.getAmount());
-        setItemMeta(itemStack.getItemMeta().clone());
+		super(itemStack);
     }
 
     @Override

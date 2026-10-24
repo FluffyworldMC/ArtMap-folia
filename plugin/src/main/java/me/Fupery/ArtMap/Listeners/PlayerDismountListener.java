@@ -11,7 +11,7 @@ import java.util.logging.Level;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
-import org.spigotmc.event.entity.EntityDismountEvent;
+import org.bukkit.event.entity.EntityDismountEvent;
 
 public class PlayerDismountListener implements RegisteredListener {
 

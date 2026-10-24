@@ -17,12 +17,12 @@ public enum EaselEffect {
 		playEffect(location, Particle.CRIT);
     }),
     SAVE_ARTWORK(location -> {
-		playEffect(location, Particle.VILLAGER_HAPPY);
+		playEffect(location, Particle.HAPPY_VILLAGER);
         SoundCompat.ENTITY_EXPERIENCE_ORB_PICKUP.play(location, 1, 0);
     }),
     MOUNT_CANVAS(location -> {
         SoundCompat.BLOCK_CLOTH_STEP.play(location, 1, 0);
-		playEffect(location, Particle.SPELL);
+		playEffect(location, Particle.EFFECT);
     }),
     START_RIDING(location -> {
         SoundCompat.ENTITY_ITEM_PICKUP.play(location, 1, -3);
@@ -40,7 +40,7 @@ public enum EaselEffect {
     }
 
     public void playEffect(Location location) {
-        ArtMap.instance().getScheduler().runSafely(() -> effect.play(location));
+        ArtMap.instance().getScheduler().runSafely(location, () -> effect.play(location));
     }
 
     private interface EffectPlayer {

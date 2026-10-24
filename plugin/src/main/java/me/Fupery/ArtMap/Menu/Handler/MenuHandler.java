@@ -1,11 +1,13 @@
 package me.Fupery.ArtMap.Menu.Handler;
 
+import me.Fupery.ArtMap.ArtMap;
 import me.Fupery.ArtMap.Menu.API.ChildMenu;
+import me.Fupery.ArtMap.Menu.Config.ConfiguredMenu;
 import me.Fupery.ArtMap.Menu.Event.MenuCloseReason;
 import me.Fupery.ArtMap.Menu.Event.MenuFactory;
 import me.Fupery.ArtMap.Menu.Event.MenuListener;
 import me.Fupery.ArtMap.Menu.HelpMenu.*;
-import me.Fupery.ArtMap.api.Config.Lang;
+import me.Fupery.ArtMap.Painting.Artkit.ArtKitMenu;
 
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
@@ -18,27 +20,42 @@ import java.util.concurrent.ConcurrentHashMap;
 public final class MenuHandler {
     public final MenuList MENU = new MenuList();
     private final ConcurrentHashMap<UUID, CacheableMenu> openMenus = new ConcurrentHashMap<>();
-    private String menuKey;
-    
+
     public MenuHandler(JavaPlugin plugin) {
         new MenuListener(this, plugin);
+    }
 
-        //condense the color codes to a single replaceable character
-        menuKey = showColorCodes(Lang.MenuTitle.MENU_HEADER.get().trim().toLowerCase());
-        //strip any color code of the end of the menukey since it can be overriden by a starting color code on menu title.
-        if(menuKey.lastIndexOf("$") == menuKey.length()-2) {
-            menuKey = menuKey.substring(0, menuKey.length()-2).trim(); //extra trim in case there was a space between the last word and the color code
+    public void reload() {
+        MENU.reset();
+    }
+
+    public void openMenuById(Player viewer, String id) {
+        CacheableMenu menu = createMenu(id, viewer);
+        if (menu != null) {
+            openMenu(viewer, menu);
         }
     }
 
-    private String showColorCodes(String input) {
-        return input.replace('§', '$').replace('&', '$');
+    public CacheableMenu createMenu(String id, Player viewer) {
+        if (id == null) return null;
+        switch (id.toLowerCase()) {
+            case "help":
+            case "tools":
+                return new ConfiguredMenu(id.toLowerCase());
+            case "recipes":
+            case "recipe":
+                return new RecipeMenu(viewer.hasPermission("artmap.admin"));
+            case "artists":
+                return new ArtistMenu(viewer);
+            case "artkit":
+                return new ArtKitMenu(viewer, 0);
+            default:
+                return null;
+        }
     }
 
     public boolean isTrackingPlayer(Player player) {
-        //condense the color codes to a single replaceable character, Lowercase to avoid colorcodes changing case
-        String invTitle = showColorCodes(player.getOpenInventory().getTitle()).toLowerCase();
-        return invTitle.startsWith(menuKey);
+        return player != null && openMenus.containsKey(player.getUniqueId());
     }
 
     public void openMenu(Player viewer, CacheableMenu menu) {
@@ -68,10 +85,13 @@ public final class MenuHandler {
             menu.close(viewer, reason);
         }
         if (menu instanceof ChildMenu && reason == MenuCloseReason.BACK) {
-            openMenu(viewer, ((ChildMenu) menu).getParent(viewer));
-        } else {
-            openMenus.remove(viewer.getUniqueId());
+            CacheableMenu parent = ((ChildMenu) menu).getParent(viewer);
+            if (parent != null) {
+                openMenu(viewer, parent);
+                return;
+            }
         }
+        openMenus.remove(viewer.getUniqueId());
     }
 
     public void closeAll() {
@@ -80,9 +100,8 @@ public final class MenuHandler {
     }
 
     public static class MenuList {
-        public MenuFactory HELP = new StaticMenuFactory(HelpMenu::new);
-        public MenuFactory DYES = new StaticMenuFactory(DyeMenu::new);
-        public MenuFactory TOOLS = new StaticMenuFactory(ToolMenu::new);
+        public MenuFactory HELP = viewer -> new ConfiguredMenu("help");
+        public MenuFactory TOOLS = viewer -> new ConfiguredMenu("tools");
         public MenuFactory ARTIST = new DynamicMenuFactory(ArtistMenu::new);
         public MenuFactory RECIPE = new ConditionalMenuFactory(new ConditionalMenuFactory.ConditionalGenerator() {
             @Override
@@ -100,5 +119,28 @@ public final class MenuHandler {
                 return viewer.hasPermission("artmap.admin");
             }
         });
+
+        /** Re-creates the factory fields after a configuration reload. */
+        public void reset() {
+            HELP = viewer -> new ConfiguredMenu("help");
+            TOOLS = viewer -> new ConfiguredMenu("tools");
+            ARTIST = new DynamicMenuFactory(ArtistMenu::new);
+            RECIPE = new ConditionalMenuFactory(new ConditionalMenuFactory.ConditionalGenerator() {
+                @Override
+                public CacheableMenu getConditionTrue() {
+                    return new RecipeMenu(true);
+                }
+
+                @Override
+                public CacheableMenu getConditionFalse() {
+                    return new RecipeMenu(false);
+                }
+
+                @Override
+                public boolean evaluateCondition(Player viewer) {
+                    return viewer.hasPermission("artmap.admin");
+                }
+            });
+        }
     }
 }

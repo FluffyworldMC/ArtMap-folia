@@ -2,7 +2,9 @@ package me.Fupery.ArtMap.Menu.HelpMenu;
 
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.Future;
 import java.util.concurrent.FutureTask;
@@ -12,6 +14,7 @@ import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.ClickType;
+import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.MapMeta;
 
@@ -20,30 +23,53 @@ import me.Fupery.ArtMap.api.Config.Lang;
 import me.Fupery.ArtMap.IO.MapArt;
 import me.Fupery.ArtMap.Menu.API.ChildMenu;
 import me.Fupery.ArtMap.Menu.API.ListMenu;
+import me.Fupery.ArtMap.Menu.API.MenuType;
 import me.Fupery.ArtMap.Menu.API.SoundCompat;
 import me.Fupery.ArtMap.Menu.Button.Button;
+import me.Fupery.ArtMap.Menu.Config.MenuDefinition;
+import me.Fupery.ArtMap.Menu.Config.MenuItemDefinition;
+import me.Fupery.ArtMap.Menu.Config.MenuItems;
+import me.Fupery.ArtMap.Menu.Config.MenuListDefinition;
 import me.Fupery.ArtMap.Menu.Event.MenuCloseReason;
 import me.Fupery.ArtMap.Menu.Handler.CacheableMenu;
 import me.Fupery.ArtMap.Recipe.ArtItem;
 import me.Fupery.ArtMap.Utils.ItemUtils;
 
 public class ArtistArtworksMenu extends ListMenu implements ChildMenu {
+    private static final String MENU_ID = "artworks";
     private final UUID artist;
     private final String artistName;
     private ArtistMenu parent;
     private boolean adminViewing;
 
     public ArtistArtworksMenu(ArtistMenu parent, UUID artist, String artistName, boolean adminViewing, int page) {
-        super(processTitle(artistName), page);
+        super(title(artistName), definition().resolveType(new MenuType(InventoryType.CHEST)),
+                viewer -> parent, page, true);
         this.parent = parent;
         this.adminViewing = adminViewing;
         this.artist = artist;
         this.artistName = artistName;
     }
 
+    private static MenuDefinition definition() {
+        return ArtMap.instance().getMenuConfig().get(MENU_ID);
+    }
+
+    private static String title(String artistName) {
+        Map<String, String> placeholders = new HashMap<>();
+        placeholders.put("artist", artistName != null ? artistName : "");
+        return definition().getTitle(processTitle(artistName), placeholders,
+                ArtMap.instance().getMenuConfig().getHeader());
+    }
+
+    @Override
+    protected String getMenuId() {
+        return MENU_ID;
+    }
+
     private static String processTitle(String artistName) {
         String name = artistName;
-        String title = ChatColor.DARK_BLUE + Lang.MenuTitle.MENU_ARTWORKS.get();
+        String title = ChatColor.DARK_BLUE + "%s's Art";
         String processedName = String.format(title, name);
         if (processedName.length() <= 32)
             return processedName;
@@ -113,6 +139,15 @@ public class ArtistArtworksMenu extends ListMenu implements ChildMenu {
             if (adminButton) lore.add(lore.size(), ChatColor.GOLD + Lang.ADMIN_RECIPE.get());
             meta.setLore(lore);
             setItemMeta(meta);
+
+            MenuListDefinition list = definition().getList();
+            MenuItemDefinition item = list != null ? list.getItem() : null;
+            Map<String, String> placeholders = new HashMap<>();
+            placeholders.put("title", artwork.getTitle());
+            placeholders.put("artist", artwork.getArtistName() != null ? artwork.getArtistName() : "");
+            placeholders.put("date", artwork.getDate());
+            MenuItems.apply(this, item, placeholders);
+
             this.artwork = artwork;
             this.artworkMenu = menu;
         }
@@ -126,7 +161,7 @@ public class ArtistArtworksMenu extends ListMenu implements ChildMenu {
             } else if (clickType == ClickType.RIGHT) {
                 if (player.hasPermission("artmap.admin")) {
                     SoundCompat.BLOCK_CLOTH_FALL.play(player);
-                    ArtMap.instance().getScheduler().SYNC.run(() -> ItemUtils.giveItem(player, artwork.getMapItem()));
+                    ArtMap.instance().getScheduler().SYNC.run(player, () -> ItemUtils.giveItem(player, artwork.getMapItem()));
                 } else if (adminViewing) {
                     Lang.NO_PERM.send(player);
                 }

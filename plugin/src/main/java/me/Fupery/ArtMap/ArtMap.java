@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.io.Reader;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
+import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.logging.Level;
@@ -14,6 +15,7 @@ import com.google.gson.GsonBuilder;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
+import org.bukkit.World;
 import org.bukkit.command.PluginCommand;
 import org.bukkit.map.MapView;
 import org.bukkit.plugin.PluginDescriptionFile;
@@ -32,6 +34,7 @@ import me.Fupery.ArtMap.IO.Legacy.FlatDatabaseConverter;
 import me.Fupery.ArtMap.IO.Legacy.V2DatabaseConverter;
 import me.Fupery.ArtMap.IO.Protocol.ProtocolHandler;
 import me.Fupery.ArtMap.Listeners.EventManager;
+import me.Fupery.ArtMap.Menu.Config.MenuConfigManager;
 import me.Fupery.ArtMap.Menu.Handler.MenuHandler;
 import me.Fupery.ArtMap.Painting.ArtistHandler;
 import me.Fupery.ArtMap.Preview.PreviewManager;
@@ -57,6 +60,7 @@ public class ArtMap extends JavaPlugin implements IArtMap {
 	private ProtocolHandler protocolHandler;
 	private PixelTableManager pixelTable;
 	private Configuration config;
+	private MenuConfigManager menuConfig;
 	private EventManager eventManager;
 	private PreviewManager previewManager;
 	private Reflection reflection;
@@ -110,6 +114,28 @@ public class ArtMap extends JavaPlugin implements IArtMap {
 		return this.config;
 	}
 
+	public MenuConfigManager getMenuConfig() {
+		return this.menuConfig;
+	}
+
+	/** The world used for server-wide map data; the first world not on the blacklist. */
+	public World getMapWorld() {
+		List<World> worlds = Bukkit.getWorlds();
+		for (World world : worlds) {
+			if (!config.isWorldBlacklisted(world.getName())) return world;
+		}
+		return worlds.isEmpty() ? null : worlds.get(0);
+	}
+
+	public String getMapWorldName() {
+		World world = getMapWorld();
+		return world != null ? world.getName() : "world";
+	}
+
+	public boolean isWorldAllowed(World world) {
+		return world != null && !config.isWorldBlacklisted(world.getName());
+	}
+
 	public ProtocolHandler getProtocolManager() {
 		return this.protocolHandler;
 	}
@@ -161,11 +187,14 @@ public class ArtMap extends JavaPlugin implements IArtMap {
 	public void onEnable() {
 		try {
 			pluginInstance = this;
+			// UniversalScheduler must exist before any other component starts scheduling.
+			scheduler = new Scheduler(this);
 			saveDefaultConfig();
 			config = new Configuration(this);
-			Lang.load(this, config);
+			Lang.load(this);
+			menuConfig = new MenuConfigManager(this);
+			menuConfig.reload();
 			reflection = new Reflection();
-			scheduler = new Scheduler(this);
 			this.getLogger().info(() -> "Running on: " + Bukkit.getServer().getBukkitVersion());
 			bukkitVersion = new VersionHandler(this);
 			compatManager = new CompatibilityManager(this);
@@ -190,7 +219,9 @@ public class ArtMap extends JavaPlugin implements IArtMap {
 			menuHandler = new MenuHandler(this);
 			PluginCommand artCommand = getCommand("art");
 			if(artCommand!=null) {
-				artCommand.setExecutor(new CommandHandler());
+				CommandHandler commandHandler = new CommandHandler();
+				artCommand.setExecutor(commandHandler);
+				artCommand.setTabCompleter(commandHandler);
 			} else {
 				getLogger().severe("Failed to bind /art or /artmap! Disabling...");
 				getPluginLoader().disablePlugin(this);
@@ -210,10 +241,35 @@ public class ArtMap extends JavaPlugin implements IArtMap {
 		artistHandler.stop();
 		menuHandler.closeAll();
 		eventManager.unregisterAll();
+		// Cancel anything still queued before the database goes away, so no async callback
+		// touches closed resources during shutdown.
+		if (scheduler != null) {
+			scheduler.cancelTasks();
+		}
 		database.close();
 //        recipeLoader.unloadRecipes();
 		reloadConfig();
+		scheduler = null;
+		menuConfig = null;
 		pluginInstance = null;
+	}
+
+	/** Reloads config.yml, lang.yml and menu/*.yml without restarting the server. */
+	public void reloadRuntimeConfig() {
+		reloadConfig();
+		config = new Configuration(this);
+		Lang.load(this);
+		if (menuConfig == null) {
+			menuConfig = new MenuConfigManager(this);
+		}
+		menuConfig.reload();
+		if (menuHandler != null) {
+			menuHandler.reload();
+		}
+		if (recipeLoader != null) {
+			recipeLoader.unloadRecipes();
+			recipeLoader.loadRecipes();
+		}
 	}
 
 	private boolean checkIfDatabaseUpgradeNeeded() {

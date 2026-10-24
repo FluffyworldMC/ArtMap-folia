@@ -13,12 +13,12 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.logging.Level;
 
+import com.github.Anon8281.universalScheduler.scheduling.tasks.MyScheduledTask;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
 import org.bukkit.map.MapView;
 import org.bukkit.plugin.Plugin;
-import org.bukkit.scheduler.BukkitTask;
 
 import me.Fupery.ArtMap.ArtMap;
 import me.Fupery.ArtMap.api.Config.Lang;
@@ -33,7 +33,7 @@ import me.Fupery.ArtMap.IO.MapArt;
 public final class Database implements IDatabase {
     private final ArtTable artworks;
     private final MapTable maps;
-    private BukkitTask autosaveTask;
+    private MyScheduledTask autosaveTask;
 
     public Database(Plugin plugin) throws SQLException {
         SQLiteDatabase database;
@@ -293,7 +293,10 @@ public final class Database implements IDatabase {
     /** Prepare to close the database. */
     @Override
     public void close() {
-        this.autosaveTask.cancel();
+        if (this.autosaveTask != null) {
+            this.autosaveTask.cancel();
+            this.autosaveTask = null;
+        }
     }
 
     //Not assuming that createMap is threadsafe
@@ -308,12 +311,12 @@ public final class Database implements IDatabase {
     public synchronized Map createMap() throws NoSuchFieldException, IllegalAccessException {
         //This is where you would lookup unused map ids
         MapView mapView = null;
-        World world = Bukkit.getServer().getWorld(ArtMap.instance().getConfiguration().WORLD);
+        World world = ArtMap.instance().getMapWorld();
         if (world != null) {
             mapView = Bukkit.getServer().createMap(world);
         } else {
             ArtMap.instance().getLogger()
-                    .severe("MapView creation Failed! World is null! Please check that the world: option is set correctly in config.yml");
+                    .severe("MapView creation Failed! No world is available for ArtMap maps.");
         }
         
 		if (mapView == null) {

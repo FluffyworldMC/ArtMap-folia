@@ -302,6 +302,7 @@ public class EaselEventTest extends PluginTestSupport {
     @DisplayName("a map on the easel with no map view is reported as broken")
     public void viewlessMapOnEasel() {
         listen();
+        org.mockito.Mockito.clearInvocations(player);
         ItemStack viewless = mapWithView(null);
         when(easel.getItem()).thenReturn(viewless);
         new EaselEvent(easel, ClickType.RIGHT_CLICK, player).callEvent();

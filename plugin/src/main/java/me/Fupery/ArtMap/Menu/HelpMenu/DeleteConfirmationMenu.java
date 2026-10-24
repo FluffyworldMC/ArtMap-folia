@@ -10,6 +10,7 @@ import java.util.logging.Level;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.ClickType;
+import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
@@ -18,21 +19,36 @@ import me.Fupery.ArtMap.api.Config.Lang;
 import me.Fupery.ArtMap.IO.MapArt;
 import me.Fupery.ArtMap.Menu.API.ChildMenu;
 import me.Fupery.ArtMap.Menu.API.ListMenu;
+import me.Fupery.ArtMap.Menu.API.MenuType;
 import me.Fupery.ArtMap.Menu.Button.Button;
+import me.Fupery.ArtMap.Menu.Config.MenuDefinition;
+import me.Fupery.ArtMap.Menu.Config.MenuItemDefinition;
+import me.Fupery.ArtMap.Menu.Config.MenuItems;
 import me.Fupery.ArtMap.Menu.Event.MenuCloseReason;
 import me.Fupery.ArtMap.Menu.Handler.CacheableMenu;
 import me.Fupery.ArtMap.Recipe.ArtItem;
 
 public class DeleteConfirmationMenu extends ListMenu implements ChildMenu {
+	private static final String MENU_ID = "delete";
 	private ArtistArtworksMenu parent;
 	private boolean adminViewing;
 	private MapArt artwork;
 
 	public DeleteConfirmationMenu(ArtistArtworksMenu parent, MapArt artwork, boolean adminViewing) {
-		super(Lang.MenuTitle.MENU_DELETE.get(), 0);
+		super(definition().getTitle(Lang.MenuTitle.MENU_DELETE.get(), null, ArtMap.instance().getMenuConfig().getHeader()),
+				definition().resolveType(new MenuType(InventoryType.CHEST)), 0, true);
 		this.parent = parent;
 		this.adminViewing = adminViewing;
 		this.artwork = artwork;
+	}
+
+	private static MenuDefinition definition() {
+		return ArtMap.instance().getMenuConfig().get(MENU_ID);
+	}
+
+	@Override
+	protected String getMenuId() {
+		return MENU_ID;
 	}
 
 	public static boolean isPreviewItem(ItemStack item) {
@@ -46,10 +62,21 @@ public class DeleteConfirmationMenu extends ListMenu implements ChildMenu {
 	}
 
 	@Override
-	protected Future<List<Button>> getListItems() {
-		List<Button> buttons = new ArrayList<>();
-		buttons.add(new AcceptButton(this.parent, this.artwork, adminViewing));
+	public Future<Button[]> getButtons() {
+		MenuDefinition definition = definition();
+		int size = Math.max(9, definition.resolveType(new MenuType(InventoryType.CHEST)).getDefaultSize());
+		Button[] buttons = new Button[size];
+		MenuItemDefinition item = definition.getItem("accept");
+		int slot = item != null && item.getSlot() >= 0 ? item.getSlot() : 1;
+		if (slot < size) {
+			buttons[slot] = new AcceptButton(this.parent, this.artwork, adminViewing, item);
+		}
 		return CompletableFuture.completedFuture(buttons);
+	}
+
+	@Override
+	protected Future<List<Button>> getListItems() {
+		return CompletableFuture.completedFuture(new ArrayList<>());
 	}
 
 	private static class AcceptButton extends Button {
@@ -57,7 +84,7 @@ public class DeleteConfirmationMenu extends ListMenu implements ChildMenu {
 		private final MapArt artwork;
 		private final ArtistArtworksMenu artworkMenu;
 
-		private AcceptButton(ArtistArtworksMenu menu, MapArt artwork, boolean adminButton) {
+		private AcceptButton(ArtistArtworksMenu menu, MapArt artwork, boolean adminButton, MenuItemDefinition item) {
 			super(Material.REDSTONE);
 			ItemMeta meta = new ItemStack(Material.REDSTONE).getItemMeta();
 			meta.setDisplayName(HelpMenu.ACCEPT_NAME);
@@ -65,6 +92,7 @@ public class DeleteConfirmationMenu extends ListMenu implements ChildMenu {
 			lore.add(HelpMenu.ACCEPT_TEXT);
 			meta.setLore(lore);
 			setItemMeta(meta);
+			MenuItems.apply(this, item, null);
 			this.artwork = artwork;
 			this.artworkMenu = menu;
 		}
@@ -75,7 +103,7 @@ public class DeleteConfirmationMenu extends ListMenu implements ChildMenu {
 			if (clickType == ClickType.LEFT) {
 				ArtMap.instance().getMenuHandler().closeMenu(player, MenuCloseReason.DONE);
 
-				ArtMap.instance().getScheduler().SYNC.run(() -> {
+				ArtMap.instance().getScheduler().SYNC.run(player, () -> {
 					if (this.artwork.getArtist().equals(player.getUniqueId()) || player.hasPermission("artmap.admin")) {
 						try {
 							ArtMap.instance().getArtDatabase().deleteArtwork(this.artwork);

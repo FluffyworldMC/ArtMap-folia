@@ -30,7 +30,6 @@ public class TitleFilter {
 
     public boolean check(String title) {
         return !(title.length() < 3 || title.length() > 16) && !containsIllegalCharacters(title)
-                && (!ArtMap.instance().getConfiguration().LANGUAGE.equalsIgnoreCase("english")
-                || !(ArtMap.instance().getConfiguration().SWEAR_FILTER && containsIllegalWords(title)));
+                && !(ArtMap.instance().getConfiguration().SWEAR_FILTER && containsIllegalWords(title));
     }
 }

@@ -255,7 +255,7 @@ public class PlayerCommandsTest extends PluginTestSupport {
         viewer.getInventory().setItemInMainHand(item(Material.AIR));
         viewer.getInventory().setItemInOffHand(item(Material.AIR));
         Scheduler.TaskHandler task = mock(Scheduler.TaskHandler.class);
-        when(ArtMap.instance().getScheduler().getTaskHandler(any())).thenReturn(task);
+        when(ArtMap.instance().getScheduler().getTaskHandler(any(org.bukkit.entity.Player.class), any())).thenReturn(task);
         MapArt art = new MapArt(nextMapId++, "Sunset", UUID.randomUUID(), "Artist", "01-01-2026");
         when(database.getArtwork("Sunset")).thenReturn(Optional.of(art));
 

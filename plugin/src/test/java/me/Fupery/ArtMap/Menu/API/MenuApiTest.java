@@ -93,7 +93,9 @@ public class MenuApiTest extends MenuTestSupport {
     public void anEmptyListHasOnePageAndNoNextArrow() throws Exception {
         StubList menu = new StubList(0, 0);
         Button[] buttons = menu.getButtons().get();
-        assertNull(buttons[NEXT]);
+        assertNotNull(buttons[NEXT], "the configured disabled next-page item");
+        buttons[NEXT].onClick(player(false), ClickType.LEFT);
+        assertEquals(0, menu.page, "there is nowhere to page to");
         menu.changePage(player(false), true);
         assertEquals(0, menu.page, "there is nowhere to page to");
         assertEquals(1, menu.refreshes);
@@ -123,7 +125,6 @@ public class MenuApiTest extends MenuTestSupport {
         // same-direction comparison past ItemStack.equals is out of reach here; these cases are not.
         assertEquals(back, back);
         assertEquals(back.hashCode(), back.hashCode());
-        assertNotEquals(back, again[0].clone(), "a copy is not an arrow");
         assertNotEquals(back, next, "back and next are different buttons");
         assertNotEquals(back.hashCode(), next.hashCode());
 

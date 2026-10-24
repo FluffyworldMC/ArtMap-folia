@@ -1,0 +1,147 @@
+title: "ArtKit"
+rows: 6
+
+brush:
+  material: LEATHER_HORSE_ARMOR
+  custom_model_data: 10396
+  hide_attributes: true
+  display_name: "&#{hex}{color_name} Paint Brush"
+  lore:
+    - "&#{hex}#{hex}"
+    - "Tool: {tool}"
+
+tool_names:
+  DYE: "Point"
+  FREEHAND: "Freehand"
+  LINE: "Line"
+  RECTANGLE: "Rectangle"
+  RECTANGLE_FILLED: "Filled Rectangle"
+  CIRCLE: "Circle"
+  CIRCLE_FILLED: "Filled Circle"
+  FILL: "Fill"
+  FLIP: "Flip"
+  SHADE_DARK: "Shade Darker"
+  SHADE_LIGHT: "Shade Lighter"
+  DROPPER: "Eyedropper"
+
+items:
+  fill:
+    slot: 0
+    material: BUCKET
+    display_name: "&6Fill"
+    lore:
+      - "&7Fill the selected area"
+    action: tool
+    tool: FILL
+  flip:
+    slot: 1
+    material: COMPASS
+    display_name: "&6Flip"
+    lore:
+      - "&7Mirror the canvas"
+    action: tool
+    tool: FLIP
+  shade-dark:
+    slot: 2
+    material: COAL
+    display_name: "&8Shade Darker"
+    action: tool
+    tool: SHADE_DARK
+  shade-light:
+    slot: 3
+    material: FEATHER
+    display_name: "&fShade Lighter"
+    action: tool
+    tool: SHADE_LIGHT
+  dropper:
+    slot: 4
+    material: SPONGE
+    display_name: "&eEyedropper"
+    lore:
+      - "&7Pick a colour from the canvas"
+    action: tool
+    tool: DROPPER
+  save:
+    slot: 5
+    material: WRITABLE_BOOK
+    display_name: "&aSave Artwork"
+    lore:
+      - "&7Save the current painting"
+    action: save
+  close:
+    slot: 8
+    material: BARRIER
+    display_name: "&cClose"
+    action: close
+  point:
+    slot: 46
+    material: PAPER
+    display_name: "&ePoint"
+    lore:
+      - "&7Left-click to place one pixel."
+    action: tool
+    tool: DYE
+  freehand:
+    slot: 47
+    material: STICK
+    display_name: "&eFreehand"
+    lore:
+      - "&7Click to start, move the cursor,"
+      - "&7then click again to finish."
+    action: tool
+    tool: FREEHAND
+  line:
+    slot: 48
+    material: STRING
+    display_name: "&eLine"
+    lore:
+      - "&7Click one end, then the other."
+    action: tool
+    tool: LINE
+  rectangle:
+    slot: 49
+    material: STONE
+    display_name: "&eRectangle"
+    lore:
+      - "&7Click two opposite corners."
+    action: tool
+    tool: RECTANGLE
+  rectangle-filled:
+    slot: 50
+    material: COBBLESTONE
+    display_name: "&eFilled Rectangle"
+    lore:
+      - "&7Click two opposite corners."
+    action: tool
+    tool: RECTANGLE_FILLED
+  circle:
+    slot: 51
+    material: SNOWBALL
+    display_name: "&eCircle"
+    lore:
+      - "&7Click the centre, then the edge."
+    action: tool
+    tool: CIRCLE
+  circle-filled:
+    slot: 52
+    material: SLIME_BALL
+    display_name: "&eFilled Circle"
+    lore:
+      - "&7Click the centre, then the edge."
+    action: tool
+    tool: CIRCLE_FILLED
+
+list:
+  start-slot: 9
+  page-size: 36
+  previous-slot: 45
+  next-slot: 53
+  item:
+    material: LEATHER_HORSE_ARMOR
+    custom_model_data: 10396
+    hide_attributes: true
+    display_name: "&#{hex}{color_name} {shade_name}"
+    lore:
+      - "&#{hex}#{hex}"
+      - "&7Shade: {shade}"
+    action: color

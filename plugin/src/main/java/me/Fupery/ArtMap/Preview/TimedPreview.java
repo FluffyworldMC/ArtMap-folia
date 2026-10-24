@@ -1,27 +1,31 @@
 package me.Fupery.ArtMap.Preview;
 
 import me.Fupery.ArtMap.ArtMap;
+import me.Fupery.ArtMap.Utils.Scheduler;
 import org.bukkit.entity.Player;
-import org.bukkit.scheduler.BukkitRunnable;
 
 import java.util.UUID;
 
 abstract class TimedPreview implements Preview {
-    private Timeout timeout;
+    private Scheduler.TaskHandler timeout;
 
     @Override
     public boolean start(Player player) {
-        ArtMap.instance().getScheduler().getTaskHandler(timeout = new Timeout(player.getUniqueId())).runLater(false, 300);
+        timeout = ArtMap.instance().getScheduler().getTaskHandler(player, new Timeout(player.getUniqueId()));
+        timeout.runLater(false, 300);
         return true;
     }
 
     @Override
     public boolean end(Player player) {
-        timeout.cancel();
+        if (timeout != null) {
+            timeout.cancel();
+            timeout = null;
+        }
         return true;
     }
 
-    private static class Timeout extends BukkitRunnable {
+    private static class Timeout implements Runnable {
 
         private final UUID player;
 

@@ -230,7 +230,7 @@ public class PlayerInteractListenerTest extends PluginTestSupport {
         listener.onPlayerInteractEvent(event);
 
         verify(event).setCancelled(true);
-        verify(world, org.mockito.Mockito.atLeastOnce()).spawnEntity(org.mockito.ArgumentMatchers.any(Location.class), org.mockito.ArgumentMatchers.eq(org.bukkit.entity.EntityType.ARMOR_STAND));
+        verify(block, org.mockito.Mockito.atLeastOnce()).setType(Material.OAK_FENCE);
     }
 
     private static void removeEaselFromHand(Player p) throws Exception {
@@ -241,7 +241,7 @@ public class PlayerInteractListenerTest extends PluginTestSupport {
 
     private static org.bukkit.inventory.ItemStack easelStack(int amount) {
         org.bukkit.inventory.ItemStack real = ArtMaterial.EASEL.getItem();
-        org.bukkit.inventory.ItemStack stack = item(Material.ARMOR_STAND);
+        org.bukkit.inventory.ItemStack stack = item(Material.OAK_FENCE);
         when(stack.hasItemMeta()).thenReturn(true);
         when(stack.getItemMeta()).thenReturn(real.getItemMeta());
         when(stack.getAmount()).thenReturn(amount);

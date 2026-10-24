@@ -66,11 +66,12 @@ public class ArtSessionTest extends PluginTestSupport {
         bootstrap();
         reflection = ArtMap.instance().getReflection();
         // start() defers the action bar; run deferred tasks inline so the branch is exercised.
-        when(ArtMap.instance().getScheduler().SYNC.runLater(any(Runnable.class), anyInt()))
-                .thenAnswer(i -> { ((Runnable) i.getArgument(0)).run(); return null; });
+        when(ArtMap.instance().getScheduler().SYNC.runLater(any(Player.class), any(Runnable.class), anyInt()))
+                .thenAnswer(i -> { ((Runnable) i.getArgument(1)).run(); return null; });
         // The scheduler is a mock, so runSafely (used by Map.update) must be told to run inline too.
         Scheduler scheduler = ArtMap.instance().getScheduler();
-        doAnswer(i -> { ((Runnable) i.getArgument(0)).run(); return null; }).when(scheduler).runSafely(any(Runnable.class));
+        doAnswer(i -> { ((Runnable) i.getArgument(1)).run(); return null; })
+                .when(scheduler).runSafely(any(Player.class), any(Runnable.class));
         pluginManager = Bukkit.getServer().getPluginManager();
     }
 

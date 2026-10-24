@@ -4,18 +4,19 @@ import java.sql.SQLException;
 import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.Future;
 import java.util.concurrent.FutureTask;
 import java.util.logging.Level;
 
 import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
-import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.ClickType;
+import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.inventory.meta.SkullMeta;
 
 import me.Fupery.ArtMap.ArtMap;
@@ -23,18 +24,39 @@ import me.Fupery.ArtMap.api.Config.Lang;
 import me.Fupery.ArtMap.api.Exception.HeadFetchException;
 import me.Fupery.ArtMap.Menu.API.ChildMenu;
 import me.Fupery.ArtMap.Menu.API.ListMenu;
+import me.Fupery.ArtMap.Menu.API.MenuType;
 import me.Fupery.ArtMap.Menu.API.SoundCompat;
 import me.Fupery.ArtMap.Menu.Button.Button;
+import me.Fupery.ArtMap.Menu.Config.MenuDefinition;
+import me.Fupery.ArtMap.Menu.Config.MenuItemDefinition;
+import me.Fupery.ArtMap.Menu.Config.MenuItems;
+import me.Fupery.ArtMap.Menu.Config.MenuListDefinition;
 import me.Fupery.ArtMap.Menu.Handler.CacheableMenu;
 
 public class ArtistMenu extends ListMenu implements ChildMenu {
 
+	private static final String MENU_ID = "artists";
 	private final Player viewer;
 	private static boolean haveWarnedUser = false;
 
 	public ArtistMenu(Player viewer) {
-		super(ChatColor.BLUE + Lang.MenuTitle.MENU_ARTIST.get(), ArtMap.instance().getMenuHandler().MENU.HELP, 0);
+		super(definition().getTitle(Lang.MenuTitle.MENU_ARTIST.get(), null, header()),
+				definition().resolveType(new MenuType(InventoryType.CHEST)),
+				ArtMap.instance().getMenuHandler().MENU.HELP, 0, true);
 		this.viewer = viewer;
+	}
+
+	private static MenuDefinition definition() {
+		return ArtMap.instance().getMenuConfig().get(MENU_ID);
+	}
+
+	private static String header() {
+		return ArtMap.instance().getMenuConfig().getHeader();
+	}
+
+	@Override
+	protected String getMenuId() {
+		return MENU_ID;
 	}
 
 	@Override
@@ -111,7 +133,7 @@ public class ArtistMenu extends ListMenu implements ChildMenu {
 		String artistName;
 		//TODO: Fix this when we rearrange the database.  Get the artist name from the database and not try and pull it off the meta
 		public ArtworkListButton(UUID artist, boolean loadHeads) throws HeadFetchException {
-			super(Material.PLAYER_HEAD);
+			super(org.bukkit.Material.PLAYER_HEAD);
 			this.artist = artist;
 
 			SkullMeta meta = (SkullMeta) getItemMeta();
@@ -123,6 +145,13 @@ public class ArtistMenu extends ListMenu implements ChildMenu {
 			}
 			meta.setLore(Collections.singletonList(HelpMenu.CLICK));
 			setItemMeta(meta.clone());
+
+			MenuListDefinition list = definition().getList();
+			MenuItemDefinition item = list != null ? list.getOverride(artist.toString()) : null;
+			if (item == null && list != null) item = list.getItem();
+			Map<String, String> placeholders = new HashMap<>();
+			placeholders.put("artist", this.artistName);
+			MenuItems.apply(this, item, placeholders);
 		}
 
 		@Override

@@ -1,13 +1,12 @@
 #ArtMap Config
 
 #Use "/artmap reload" or restart your server to reload your configurations
+#All player-facing text is editable in plugins/ArtMap/lang.yml.
+#Menu titles, items and buttons are editable in plugins/ArtMap/menu/.
 
-#Currently supported languages: [english, mandarin, dutch, russian, german, italian, custom]
-#Set language to "custom" and reload to generate a customizable lang.yml in your /plugins/ArtMap folder
-language: english
-
-#The name of the world where your players are using ArtMap
-world: world
+#Worlds where players cannot place or use ArtMap easels. Every other world is allowed.
+world-blacklist:
+  - Spawn
 
 #The number of seconds between each time in-progress artworks are auto-saved to memory
 artworkAutoSave: 300
@@ -22,7 +21,7 @@ disableActionBar: false
 customRecipes: false
 
 #If true, players with 'artmap.artkit' permission will automatically get a kit of art supplies when they mount an easel. Their normal inventory will be returned to them on dismount.
-forceArtKit: false
+forceArtKit: true
 
 #If true: Disables the use of the painbrush to save forcing users to use /art save
 disablePaintbrush: false

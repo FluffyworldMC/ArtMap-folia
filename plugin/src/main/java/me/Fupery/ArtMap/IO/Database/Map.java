@@ -42,7 +42,7 @@ public class Map {
         String pluginDir = ArtMap.instance().getDataFolder().getParentFile().getAbsolutePath();
         String rootDir = pluginDir.substring(0, pluginDir.lastIndexOf(File.separator));
         // Navigate to this world's data folder);
-        return new File(rootDir + File.separator + ArtMap.instance().getConfiguration().WORLD + File.separator + "data");
+        return new File(rootDir + File.separator + ArtMap.instance().getMapWorldName() + File.separator + "data");
     }
 
     public CompressedMap compress() throws IOException {
@@ -66,9 +66,9 @@ public class Map {
     }
 
     public Map cloneMap() throws SQLException, IOException, NoSuchFieldException, IllegalAccessException {
-        World world = Bukkit.getServer().getWorld(ArtMap.instance().getConfiguration().WORLD);
+        World world = ArtMap.instance().getMapWorld();
         if (world == null) {
-            ArtMap.instance().getLogger().severe("Tried to create MapView instance for Non-existent world, " + ArtMap.instance().getConfiguration().WORLD);
+            ArtMap.instance().getLogger().severe("Tried to create MapView instance for a non-existent world.");
             return null;
         }
 
@@ -115,7 +115,7 @@ public class Map {
     }
 
     public void update(Player player) {
-        ArtMap.instance().getScheduler().runSafely(() -> player.sendMap(getMap()));
+        ArtMap.instance().getScheduler().runSafely(player, () -> player.sendMap(getMap()));
     }
 
     public int getMapId() {

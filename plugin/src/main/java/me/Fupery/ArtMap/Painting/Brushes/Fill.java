@@ -60,6 +60,12 @@ public class Fill extends Brush {
         return bucket.getType() == Material.BUCKET;
     }
 
+    public List<CachedPixel> paintColor(byte colour) {
+        clean();
+        fillPixel(colour);
+        return lastFill;
+    }
+
     @Override
     public void clean() {
         lastFill.clear();

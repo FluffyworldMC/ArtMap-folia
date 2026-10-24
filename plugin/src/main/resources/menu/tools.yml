@@ -1,0 +1,43 @@
+# Tools help menu.
+title: "Hover for usage"
+size: 9
+parent: help
+items:
+  back:
+    slot: 0
+    material: MAGENTA_GLAZED_TERRACOTTA
+    name: "&c&l<"
+    action: back
+  spacer:
+    slot: 1
+    material: AIR
+    action: none
+  info:
+    slot: 2
+    material: OAK_SIGN
+    display_name: "§6§l⊱§bTool Help§6§l⊰"
+    lore:
+      - "§7You can use these items along with"
+      - "§aDyes §7to help you paint."
+      - "§b§oHover items to view info."
+    action: none
+  paintbucket:
+    slot: 3
+    art_item: PAINTBUCKET
+    action: none
+  coal:
+    slot: 4
+    art_item: COAL
+    action: none
+  feather:
+    slot: 5
+    art_item: FEATHER
+    action: none
+  compass:
+    slot: 6
+    art_item: COMPASS
+    action: none
+  sponge:
+    slot: 7
+    art_item: SPONGE
+    action: none

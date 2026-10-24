@@ -81,7 +81,7 @@ public class ArtItemGapsTest extends PluginTestSupport {
     @Test
     @DisplayName("art materials expose their type and build artwork items")
     public void artMaterialAccessors() {
-        assertEquals(Material.ARMOR_STAND, ArtMaterial.EASEL.getType());
+        assertEquals(Material.OAK_FENCE, ArtMaterial.EASEL.getType());
         assertEquals(Material.PAPER, ArtMaterial.CANVAS.getType());
         assertEquals(Material.FILLED_MAP, ArtMaterial.getMapArt(1, "T", "P", "D").toItemStack().getType());
         // The mocked loader gives the materials no recipe, exactly the state a bad recipe.yml leaves behind.

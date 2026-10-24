@@ -104,11 +104,11 @@ public final class EaselEvent {
 						art = ArtMap.instance().getArtDatabase().getArtwork(id);
 						unsaved = ArtMap.instance().getArtDatabase().containsUnsavedArtwork(id);
 					} catch(Exception e) {
-						player.sendMessage("Error placing art on the Easel!");
+						ArtMap.instance().getScheduler().SYNC.run(player, () -> player.sendMessage("Error placing art on the Easel!"));
 						ArtMap.instance().getLogger().log(Level.SEVERE, "Error placing art on easel for edit!",e );
 						return;
 					}
-					ArtMap.instance().getScheduler().SYNC.run(() -> {
+					ArtMap.instance().getScheduler().SYNC.run(player, () -> {
 						if (art.isPresent()) {
 							if (!player.getUniqueId().equals(art.get().getArtistPlayer().getUniqueId()) && !player.hasPermission("artmap.admin")) {
 								Lang.ActionBar.NO_EDIT_PERM.send(player);

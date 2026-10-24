@@ -344,7 +344,7 @@ public class PlayerInteractEaselListenerTest extends PluginTestSupport {
     @DisplayName("right-clicking the air with a paint brush schedules the help menu")
     public void paintBrushOpensTheMenu() {
         // The menu needs a real inventory GUI; capture the scheduled task instead of running it.
-        when(ArtMap.instance().getScheduler().SYNC.run(org.mockito.ArgumentMatchers.any(Runnable.class))).thenReturn(null);
+        when(ArtMap.instance().getScheduler().SYNC.run(org.mockito.ArgumentMatchers.any(org.bukkit.entity.Player.class), org.mockito.ArgumentMatchers.any(Runnable.class))).thenReturn(null);
         org.mockito.Mockito.clearInvocations(ArtMap.instance().getScheduler().SYNC);
         org.bukkit.event.player.PlayerInteractEvent event = mock(org.bukkit.event.player.PlayerInteractEvent.class);
         when(event.getPlayer()).thenReturn(player);
@@ -353,12 +353,15 @@ public class PlayerInteractEaselListenerTest extends PluginTestSupport {
 
         listener.onRightClick(event);
 
-        verify(ArtMap.instance().getScheduler().SYNC).run(org.mockito.ArgumentMatchers.any(Runnable.class));
+        verify(ArtMap.instance().getScheduler().SYNC).run(org.mockito.ArgumentMatchers.any(org.bukkit.entity.Player.class), org.mockito.ArgumentMatchers.any(Runnable.class));
     }
 
     @Test
     @DisplayName("the paint brush menu opens through the menu handler once the task runs")
     public void paintBrushMenuOpens() throws Exception {
+        // Run the menu task inline; the previous test left a "capture only" stub on the shared mock.
+        when(ArtMap.instance().getScheduler().SYNC.run(org.mockito.ArgumentMatchers.any(org.bukkit.entity.Player.class), org.mockito.ArgumentMatchers.any(Runnable.class)))
+                .thenAnswer(i -> { ((Runnable) i.getArgument(1)).run(); return null; });
         me.Fupery.ArtMap.Menu.Handler.MenuHandler menus = mock(me.Fupery.ArtMap.Menu.Handler.MenuHandler.class);
         me.Fupery.ArtMap.Menu.Handler.MenuHandler.MenuList list = mock(me.Fupery.ArtMap.Menu.Handler.MenuHandler.MenuList.class);
         java.lang.reflect.Field menuField = me.Fupery.ArtMap.Menu.Handler.MenuHandler.class.getDeclaredField("MENU");
