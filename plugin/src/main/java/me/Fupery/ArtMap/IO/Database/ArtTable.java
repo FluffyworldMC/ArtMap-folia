@@ -3,7 +3,11 @@ package me.Fupery.ArtMap.IO.Database;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -14,6 +18,8 @@ import me.Fupery.ArtMap.ArtMap;
 import me.Fupery.ArtMap.IO.MapArt;
 
 final class ArtTable extends SQLiteTable {
+
+    private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("dd-MM-yyyy");
 
     ArtTable(SQLiteDatabase database) {
         super(database, "artworks", "CREATE TABLE IF NOT EXISTS artworks (" +
@@ -214,8 +220,41 @@ final class ArtTable extends SQLiteTable {
         }.execute("SELECT * FROM " + table + " ORDER BY id;");
     }
 
-    List<UUID> listArtists(UUID player) throws SQLException {
-        return new QueuedQuery<List<UUID>>() {
+    java.util.Map<UUID, ArtistStat> listArtistStats() throws SQLException {
+        return new QueuedQuery<java.util.Map<UUID, ArtistStat>>() {
+
+            @Override
+            protected void prepare(PreparedStatement statement) {
+                //nothing to set
+            }
+
+            @Override
+            protected java.util.Map<UUID, ArtistStat> read(ResultSet results) throws SQLException {
+                java.util.Map<UUID, ArtistStat> stats = new HashMap<>();
+                while (results.next()) {
+                    UUID artist = UUID.fromString(results.getString("artist"));
+                    ArtistStat stat = stats.get(artist);
+                    if (stat == null) {
+                        stat = new ArtistStat(artist);
+                        stats.put(artist, stat);
+                    }
+                    stat.add(parseDay(results.getString("date")));
+                }
+                return stats;
+            }
+        }.execute("SELECT artist, date FROM " + table + ";");
+    }
+
+    private static long parseDay(String date) {
+        if (date == null || date.isEmpty()) return 0L;
+        try {
+            return LocalDate.parse(date, DATE_FORMAT).toEpochDay();
+        } catch (DateTimeParseException ignored) {
+            return 0L;
+        }
+    }
+
+    List<UUID> listArtists(UUID player) throws SQLException {        return new QueuedQuery<List<UUID>>() {
 
             @Override
 			protected void prepare(PreparedStatement statement) throws SQLException {

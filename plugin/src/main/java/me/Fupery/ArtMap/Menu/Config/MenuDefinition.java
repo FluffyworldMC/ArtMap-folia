@@ -118,4 +118,12 @@ public class MenuDefinition {
     public List<MenuItemDefinition> getItems() {
         return new ArrayList<>(itemsByKey.values());
     }
+
+    /** True when any configured item uses the given action. */
+    public boolean hasAction(MenuAction action) {
+        for (MenuItemDefinition item : itemsByKey.values()) {
+            if (item.getAction() == action) return true;
+        }
+        return false;
+    }
 }

@@ -10,7 +10,8 @@ public enum MenuAction {
     RECIPE,
     COLOR,
     TOOL,
-    SAVE;
+    SAVE,
+    SORT;
 
     public static MenuAction parse(String raw) {
         if (raw == null) return NONE;
@@ -37,6 +38,10 @@ public enum MenuAction {
                 return TOOL;
             case "save":
                 return SAVE;
+            case "sort":
+            case "filter":
+            case "filter-switch":
+                return SORT;
             default:
                 return NONE;
         }

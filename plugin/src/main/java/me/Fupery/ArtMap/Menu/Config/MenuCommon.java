@@ -11,6 +11,7 @@ public class MenuCommon {
     private final MenuItemDefinition next;
     private final MenuItemDefinition previousDisabled;
     private final MenuItemDefinition nextDisabled;
+    private final MenuItemDefinition back;
 
     MenuCommon(FileConfiguration config) {
         this.header = config.getString("menu-header", "");
@@ -21,6 +22,7 @@ public class MenuCommon {
         this.next = item(pagination, "next");
         this.previousDisabled = item(pagination, "previous-disabled");
         this.nextDisabled = item(pagination, "next-disabled");
+        this.back = item(pagination, "back");
     }
 
     public static MenuCommon defaults() {
@@ -59,5 +61,9 @@ public class MenuCommon {
 
     public MenuItemDefinition getNextDisabled() {
         return nextDisabled;
+    }
+
+    public MenuItemDefinition getBack() {
+        return back;
     }
 }

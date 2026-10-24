@@ -7,6 +7,15 @@ pagination:
   separator: " &7:: "
   edge: "&7*"
 
+  back:
+    material: MAGENTA_GLAZED_TERRACOTTA
+    name: "&c&l<"
+    lore:
+      - "&7Back"
+    item_model: ""
+    custom_model_data: 0
+
+  # These are the shared defaults. Any menu can override them under list: in its own file.
   previous:
     material: MAGENTA_GLAZED_TERRACOTTA
     name: "&c&l<<"

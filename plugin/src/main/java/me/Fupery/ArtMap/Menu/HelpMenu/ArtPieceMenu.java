@@ -27,6 +27,7 @@ import me.Fupery.ArtMap.Menu.Button.Button;
 import me.Fupery.ArtMap.Menu.Config.MenuDefinition;
 import me.Fupery.ArtMap.Menu.Config.MenuItemDefinition;
 import me.Fupery.ArtMap.Menu.Config.MenuItems;
+import me.Fupery.ArtMap.Menu.Config.MenuButtons;
 import me.Fupery.ArtMap.Menu.Event.MenuCloseReason;
 import me.Fupery.ArtMap.Menu.Handler.CacheableMenu;
 import me.Fupery.ArtMap.Preview.ArtPreview;
@@ -105,6 +106,7 @@ public class ArtPieceMenu extends ListMenu implements ChildMenu {
 			int renameSlot = rename != null && rename.getSlot() >= 0 ? rename.getSlot() : 2;
 			if (renameSlot < size) buttons[renameSlot] = new RenameButton(this.parent, this.artwork, rename);
 		}
+		MenuButtons.placeNavigation(definition, viewer, placeholders, buttons);
 		return CompletableFuture.completedFuture(buttons);
 	}
 

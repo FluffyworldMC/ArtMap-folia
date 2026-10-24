@@ -105,9 +105,9 @@ public class ArtKitMenu extends BasicMenu {
         }
 
         MenuCommon common = ArtMap.instance().getMenuConfig().getCommon();
-        buttons[previousSlot] = pageButton(common.getPrevious(), common.getPreviousDisabled(),
+        buttons[previousSlot] = pageButton(MenuListDefinition.resolvePageItem(list, common, false, current > 0),
                 current > 0, current - 1, current, lastPage);
-        buttons[nextSlot] = pageButton(common.getNext(), common.getNextDisabled(),
+        buttons[nextSlot] = pageButton(MenuListDefinition.resolvePageItem(list, common, true, current < lastPage),
                 current < lastPage, current + 1, current, lastPage);
         return CompletableFuture.completedFuture(buttons);
     }
@@ -141,9 +141,7 @@ public class ArtKitMenu extends BasicMenu {
         return new ActionButton(stack, (player, click) -> { });
     }
 
-    private Button pageButton(MenuItemDefinition enabled, MenuItemDefinition disabled,
-                              boolean hasPage, int target, int current, int lastPage) {
-        MenuItemDefinition item = hasPage ? enabled : disabled;
+    private Button pageButton(MenuItemDefinition item, boolean hasPage, int target, int current, int lastPage) {
         Map<String, String> placeholders = ArtkitItems.placeholders(
                 ArtMap.instance().getArtistHandler().getCurrentSession(viewer).getArtkit());
         placeholders.put("page", String.valueOf(current + 1));

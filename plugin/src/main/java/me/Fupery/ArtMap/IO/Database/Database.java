@@ -275,6 +275,11 @@ public final class Database implements IDatabase {
     public List<UUID> listArtists() throws SQLException {
 		return artworks.listArtists();
     }
+
+    @Override
+    public java.util.Map<UUID, ArtistStat> listArtistStats() throws SQLException {
+        return artworks.listArtistStats();
+    }
     
     @Override
     public List<String> searchArtists(String search) {

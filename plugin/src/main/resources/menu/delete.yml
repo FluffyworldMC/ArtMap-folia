@@ -3,6 +3,15 @@ title: "Confirm Delete"
 rows: 6
 
 items:
+  back:
+    slot: 0
+    material: MAGENTA_GLAZED_TERRACOTTA
+    display_name: "&c&l<"
+    lore:
+      - "&7Back"
+    item_model: ""
+    custom_model_data: 0
+    action: back
   accept:
     slot: 1
     material: REDSTONE

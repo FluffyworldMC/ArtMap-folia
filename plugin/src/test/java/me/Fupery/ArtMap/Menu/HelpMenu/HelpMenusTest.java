@@ -23,6 +23,7 @@ import static org.mockito.Mockito.when;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.sql.SQLException;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -46,7 +47,6 @@ import me.Fupery.ArtMap.ArtMap;
 import me.Fupery.ArtMap.IO.MapArt;
 import me.Fupery.ArtMap.Menu.MenuTestSupport;
 import me.Fupery.ArtMap.Menu.Button.Button;
-import me.Fupery.ArtMap.Menu.Button.LinkedButton;
 import me.Fupery.ArtMap.Menu.Event.MenuCloseReason;
 import me.Fupery.ArtMap.Preview.ArtPreview;
 import me.Fupery.ArtMap.Recipe.ArtItem;
@@ -181,7 +181,8 @@ public class HelpMenusTest extends MenuTestSupport {
     public void theArtistListPutsTheViewerFirstThenArtistsByName() throws Exception {
         Player viewer = player(false);
         UUID zed = UUID.randomUUID(), amy = UUID.randomUUID();
-        when(database.listArtists(viewer.getUniqueId())).thenReturn(List.of(zed, amy));
+        when(database.listArtists(viewer.getUniqueId())).thenReturn(List.of(viewer.getUniqueId(), zed, amy));
+        when(database.listArtistStats()).thenReturn(Collections.emptyMap());
         when(ArtMap.instance().getHeadsCache().getHead(viewer.getUniqueId())).thenReturn(head("Viewer"));
         when(ArtMap.instance().getHeadsCache().getHead(zed)).thenReturn(head("zed"));
         when(ArtMap.instance().getHeadsCache().getHead(amy)).thenReturn(head("Amy"));
@@ -225,7 +226,7 @@ public class HelpMenusTest extends MenuTestSupport {
         Player viewer = player(false);
         when(database.listArtists(any())).thenThrow(new SQLException("down"));
         Button[] list = buttons(new ArtistMenu(viewer));
-        assertTrue(list[0] instanceof LinkedButton, "the back arrow leads to the help menu");
+        assertNotNull(list[45], "the configured back button is still shown");
         assertNull(list[1]);
     }
 

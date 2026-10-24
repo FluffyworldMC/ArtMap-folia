@@ -44,8 +44,22 @@ public final class MenuButtons {
             case PREVIOUS_PAGE:
             case NEXT_PAGE:
             case RECIPE:
+            case SORT:
             default:
                 return new ActionButton(stack, (viewer, click) -> { });
+        }
+    }
+
+    /** Places config-defined BACK/CLOSE items so custom menus keep their navigation configurable. */
+    public static void placeNavigation(MenuDefinition definition, Player player,
+                                       Map<String, String> placeholders, Button[] buttons) {
+        if (definition == null || buttons == null) return;
+        for (MenuItemDefinition item : definition.getItems()) {
+            if (item.getAction() != MenuAction.BACK && item.getAction() != MenuAction.CLOSE) continue;
+            int slot = item.getSlot();
+            if (slot < 0 || slot >= buttons.length) continue;
+            Button button = build(item, player, placeholders);
+            if (button != null) buttons[slot] = button;
         }
     }
 }

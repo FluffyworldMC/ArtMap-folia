@@ -2,6 +2,7 @@ package me.Fupery.ArtMap.Menu.HelpMenu;
 
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
@@ -24,6 +25,7 @@ import me.Fupery.ArtMap.Menu.Button.Button;
 import me.Fupery.ArtMap.Menu.Config.MenuDefinition;
 import me.Fupery.ArtMap.Menu.Config.MenuItemDefinition;
 import me.Fupery.ArtMap.Menu.Config.MenuItems;
+import me.Fupery.ArtMap.Menu.Config.MenuButtons;
 import me.Fupery.ArtMap.Menu.Event.MenuCloseReason;
 import me.Fupery.ArtMap.Menu.Handler.CacheableMenu;
 import me.Fupery.ArtMap.Recipe.ArtItem;
@@ -71,6 +73,7 @@ public class DeleteConfirmationMenu extends ListMenu implements ChildMenu {
 		if (slot < size) {
 			buttons[slot] = new AcceptButton(this.parent, this.artwork, adminViewing, item);
 		}
+		MenuButtons.placeNavigation(definition, viewer, new HashMap<>(), buttons);
 		return CompletableFuture.completedFuture(buttons);
 	}
 

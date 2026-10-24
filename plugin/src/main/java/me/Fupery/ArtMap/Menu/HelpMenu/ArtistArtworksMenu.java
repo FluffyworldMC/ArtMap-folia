@@ -1,7 +1,11 @@
 package me.Fupery.ArtMap.Menu.HelpMenu;
 
 import java.sql.SQLException;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -37,6 +41,7 @@ import me.Fupery.ArtMap.Utils.ItemUtils;
 
 public class ArtistArtworksMenu extends ListMenu implements ChildMenu {
     private static final String MENU_ID = "artworks";
+    private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("dd-MM-yyyy");
     private final UUID artist;
     private final String artistName;
     private ArtistMenu parent;
@@ -98,30 +103,56 @@ public class ArtistArtworksMenu extends ListMenu implements ChildMenu {
     @Override
     protected Future<List<Button>> getListItems() {
         FutureTask<List<Button>> task = new FutureTask<> (()-> {
-            List<MapArt> artworks = new ArrayList<>();
+            List<MapArt> artworks;
             try {
-                artworks = ArtMap.instance().getArtDatabase().listMapArt(this.artist);
+                List<MapArt> loaded = ArtMap.instance().getArtDatabase().listMapArt(this.artist);
+                artworks = loaded != null ? new ArrayList<>(loaded) : new ArrayList<>();
             } catch (SQLException e) {
                 ArtMap.instance().getLogger().log(Level.SEVERE, "Database error!", e);
                 return new ArrayList<>();
             }
+            artworks.sort(comparator(getSortMode()));
+
             List<Button> buttons = new ArrayList<>();
-
-            if (!artworks.isEmpty()) {
-                buttons = new ArrayList<>();
-
-                for (MapArt art : artworks) {
-                    if(art.getArtistName() == null) {
-                       art = art.setAristName(this.artistName);
-                    }
-                    buttons.add(new PreviewButton(this, art, adminViewing));
+            for (MapArt art : artworks) {
+                if (art == null) continue;
+                if(art.getArtistName() == null) {
+                   art = art.setAristName(this.artistName);
                 }
-
+                buttons.add(new PreviewButton(this, art, adminViewing));
             }
             return buttons;
         });
         ArtMap.instance().getScheduler().SYNC.run(task);
         return task;
+    }
+
+    private static Comparator<MapArt> comparator(String mode) {
+        Comparator<MapArt> byTitle = Comparator.comparing(
+                (MapArt art) -> art.getTitle() != null ? art.getTitle() : "", String.CASE_INSENSITIVE_ORDER);
+        if (mode == null) return byTitle;
+        switch (mode) {
+            case "title-desc":
+                return byTitle.reversed();
+            case "newest":
+                return Comparator.comparingLong((MapArt art) -> day(art.getDate()))
+                        .reversed().thenComparing(byTitle);
+            case "oldest":
+                return Comparator.comparingLong((MapArt art) -> day(art.getDate()))
+                        .thenComparing(byTitle);
+            case "title":
+            default:
+                return byTitle;
+        }
+    }
+
+    private static long day(String date) {
+        if (date == null || date.isEmpty()) return 0L;
+        try {
+            return LocalDate.parse(date, DATE_FORMAT).toEpochDay();
+        } catch (DateTimeParseException ignored) {
+            return 0L;
+        }
     }
 
     private class PreviewButton extends Button {

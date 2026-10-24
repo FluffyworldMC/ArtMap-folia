@@ -3,11 +3,43 @@ title: "Click an Artist"
 rows: 6
 parent: help
 
+items:
+  back:
+    slot: 45
+    material: MAGENTA_GLAZED_TERRACOTTA
+    display_name: "&c&l<"
+    lore:
+      - "&7Back to help"
+    item_model: ""
+    custom_model_data: 0
+    action: back
+  sort:
+    slot: 49
+    material: HOPPER
+    display_name: "&eSort: {sort_name}"
+    lore:
+      - "&7Click to cycle sort mode"
+      - "&8Mode {sort_index}/{sort_count}"
+      - "&8Next: {sort_next}"
+    item_model: ""
+    custom_model_data: 0
+    action: sort
+
 list:
   start-slot: 1
   page-size: 25
   previous-slot: 0
   next-slot: 26
+  sort:
+    default: name
+    pin-viewer: true
+    modes:
+      name: "Name A-Z"
+      name-desc: "Name Z-A"
+      artworks: "Most Artworks"
+      artworks-desc: "Fewest Artworks"
+      newest: "Recently Active"
+      oldest: "Longest Ago"
   item:
     material: PLAYER_HEAD
     name: "{artist}"

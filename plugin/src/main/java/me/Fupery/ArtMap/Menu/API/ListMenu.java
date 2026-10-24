@@ -1,5 +1,6 @@
 package me.Fupery.ArtMap.Menu.API;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -23,6 +24,7 @@ import me.Fupery.ArtMap.Menu.Button.ActionButton;
 import me.Fupery.ArtMap.Menu.Button.Button;
 import me.Fupery.ArtMap.Menu.Button.CloseButton;
 import me.Fupery.ArtMap.Menu.Button.LinkedButton;
+import me.Fupery.ArtMap.Menu.Config.MenuAction;
 import me.Fupery.ArtMap.Menu.Config.MenuCommon;
 import me.Fupery.ArtMap.Menu.Config.MenuConfigManager;
 import me.Fupery.ArtMap.Menu.Config.MenuDefinition;
@@ -30,6 +32,7 @@ import me.Fupery.ArtMap.Menu.Config.MenuItemDefinition;
 import me.Fupery.ArtMap.Menu.Config.MenuItems;
 import me.Fupery.ArtMap.Menu.Config.MenuButtons;
 import me.Fupery.ArtMap.Menu.Config.MenuListDefinition;
+import me.Fupery.ArtMap.Menu.API.SoundCompat;
 import me.Fupery.ArtMap.Menu.Event.MenuCloseReason;
 import me.Fupery.ArtMap.Menu.Event.MenuFactory;
 import me.Fupery.ArtMap.Menu.Handler.CacheableMenu;
@@ -37,12 +40,13 @@ import me.Fupery.ArtMap.Menu.Handler.CacheableMenu;
 public abstract class ListMenu extends CacheableMenu {
 
     private static final char LEFT_ARROW = '\u2B05';
-    private static final char RIGHT_ARROW = '\u27A1';
     private static final int DEFAULT_PAGE_SIZE = 25;
 
     protected int page;
     protected List<Button> cachedButtons;
     protected Optional<MenuFactory> parent = Optional.empty();
+    private String sortMode;
+    private boolean sortInitialized;
 
     protected ListMenu(String heading, int page) {
         super(heading, InventoryType.CHEST);
@@ -102,6 +106,7 @@ public abstract class ListMenu extends CacheableMenu {
         MenuDefinition definition = manager != null && getMenuId() != null
                 ? manager.get(getMenuId()) : MenuDefinition.empty(getMenuId());
         MenuListDefinition list = definition.getList();
+        ensureSortState(list);
         int start = list != null ? list.getStartSlot() : 1;
         int pageSize = list != null && list.getPageSize() > 0 ? list.getPageSize() : DEFAULT_PAGE_SIZE;
         int previousSlot = list != null ? list.getPreviousSlot() : 0;
@@ -116,7 +121,9 @@ public abstract class ListMenu extends CacheableMenu {
         for (MenuItemDefinition item : definition.getItems()) {
             int slot = item.getSlot();
             if (slot < 0 || slot >= size) continue;
-            Button button = MenuButtons.build(item, viewer, placeholders);
+            Button button = item.getAction() == MenuAction.SORT
+                    ? buildSortButton(item, viewer, placeholders, list)
+                    : MenuButtons.build(item, viewer, placeholders);
             if (button != null) buttons[slot] = button;
         }
 
@@ -146,18 +153,16 @@ public abstract class ListMenu extends CacheableMenu {
             placed++;
         }
 
-        placePageButton(buttons, previousSlot, size, page > 0, false, page - 1,
-                lastPage, placeholders);
-        if (page == 0) {
-            if (parent.isPresent()) {
-                buttons[previousSlot] = new LinkedButton(parent.get(), Material.MAGENTA_GLAZED_TERRACOTTA,
-                        new String[]{ChatColor.RED.toString() + ChatColor.BOLD + LEFT_ARROW});
-            } else {
-                buttons[previousSlot] = new CloseButton();
-            }
+        boolean hasConfiguredBack = definition.hasAction(MenuAction.BACK)
+                || definition.hasAction(MenuAction.CLOSE);
+        if (page > 0) {
+            placePageButton(buttons, previousSlot, size, true, false, page - 1,
+                    lastPage, placeholders, list);
+        } else if (!hasConfiguredBack) {
+            placeBackButton(buttons, previousSlot, size, placeholders);
         }
         placePageButton(buttons, nextSlot, size, page < lastPage, true, page + 1,
-                lastPage, placeholders);
+                lastPage, placeholders, list);
 
         return CompletableFuture.completedFuture(buttons);
     }
@@ -171,16 +176,86 @@ public abstract class ListMenu extends CacheableMenu {
         return new HashMap<>();
     }
 
-    private void placePageButton(Button[] buttons, int slot, int size, boolean enabled,
-                                 boolean forward, int targetPage, int lastPage,
-                                 Map<String, String> placeholders) {
+    /** The sort mode currently selected by this menu instance, or null when sorting is not configured. */
+    protected String getSortMode() {
+        return sortMode;
+    }
+
+    private void ensureSortState(MenuListDefinition list) {
+        if (list == null || list.getSortModes().isEmpty()) {
+            sortInitialized = true;
+            return;
+        }
+        if (sortInitialized && sortMode != null && list.getSortModes().containsKey(sortMode)) return;
+        List<String> modes = new ArrayList<>(list.getSortModes().keySet());
+        String configured = list.getDefaultSort();
+        int index = configured != null ? modes.indexOf(configured) : 0;
+        if (index < 0) index = 0;
+        sortMode = modes.get(index);
+        sortInitialized = true;
+    }
+
+    private Button buildSortButton(MenuItemDefinition item, Player player,
+                                   Map<String, String> placeholders, MenuListDefinition list) {
+        if (item == null || list == null || list.getSortModes().isEmpty()) return null;
+        ensureSortState(list);
+        List<String> modes = new ArrayList<>(list.getSortModes().keySet());
+        int index = sortMode != null ? modes.indexOf(sortMode) : 0;
+        if (index < 0) index = 0;
+        String current = modes.get(index);
+        String next = modes.get((index + 1) % modes.size());
+        Map<String, String> sortPlaceholders = new HashMap<>(placeholders);
+        sortPlaceholders.put("sort_name", list.getSortModes().get(current));
+        sortPlaceholders.put("sort_mode", current);
+        sortPlaceholders.put("sort_index", String.valueOf(index + 1));
+        sortPlaceholders.put("sort_count", String.valueOf(modes.size()));
+        sortPlaceholders.put("sort_next", list.getSortModes().get(next));
+        ItemStack stack = MenuItems.build(item, new ItemStack(Material.HOPPER), sortPlaceholders);
+        return new ActionButton(stack, (viewer, click) -> cycleSort(viewer, list));
+    }
+
+    private void cycleSort(Player player, MenuListDefinition list) {
+        if (list == null || list.getSortModes().isEmpty()) return;
+        List<String> modes = new ArrayList<>(list.getSortModes().keySet());
+        int index = sortMode != null ? modes.indexOf(sortMode) : -1;
+        index = (index + 1) % modes.size();
+        sortMode = modes.get(index);
+        sortInitialized = true;
+        page = 0;
+        SoundCompat.UI_BUTTON_CLICK.play(player);
+        refresh(player);
+    }
+
+    private void placeBackButton(Button[] buttons, int slot, int size, Map<String, String> placeholders) {
         if (slot < 0 || slot >= size) return;
         ArtMap artMap = ArtMap.instance();
         MenuCommon common = artMap != null && artMap.getMenuConfig() != null
                 ? artMap.getMenuConfig().getCommon() : MenuCommon.defaults();
-        MenuItemDefinition item = forward
-                ? (enabled ? common.getNext() : common.getNextDisabled())
-                : (enabled ? common.getPrevious() : common.getPreviousDisabled());
+        MenuItemDefinition item = common != null ? common.getBack() : null;
+        if (item == null) {
+            if (parent.isPresent()) {
+                buttons[slot] = new LinkedButton(parent.get(), Material.MAGENTA_GLAZED_TERRACOTTA,
+                        new String[]{ChatColor.RED.toString() + ChatColor.BOLD + LEFT_ARROW});
+            } else {
+                buttons[slot] = new CloseButton();
+            }
+            return;
+        }
+        ItemStack stack = MenuItems.build(item, new ItemStack(Material.MAGENTA_GLAZED_TERRACOTTA), placeholders);
+        buttons[slot] = new ActionButton(stack, (player, click) -> {
+            SoundCompat.UI_BUTTON_CLICK.play(player);
+            ArtMap.instance().getMenuHandler().closeMenu(player, MenuCloseReason.BACK);
+        });
+    }
+
+    private void placePageButton(Button[] buttons, int slot, int size, boolean enabled,
+                                 boolean forward, int targetPage, int lastPage,
+                                 Map<String, String> placeholders, MenuListDefinition list) {
+        if (slot < 0 || slot >= size) return;
+        ArtMap artMap = ArtMap.instance();
+        MenuCommon common = artMap != null && artMap.getMenuConfig() != null
+                ? artMap.getMenuConfig().getCommon() : MenuCommon.defaults();
+        MenuItemDefinition item = MenuListDefinition.resolvePageItem(list, common, forward, enabled);
         if (item == null) {
             if (enabled) {
                 ItemStack stack = new ItemStack(forward ? Material.MAGENTA_GLAZED_TERRACOTTA : Material.BARRIER);

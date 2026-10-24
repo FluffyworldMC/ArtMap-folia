@@ -90,4 +90,31 @@ public class MenuConfigTest extends MenuTestSupport {
         MenuDefinition artkit = ArtMap.instance().getMenuConfig().get("artkit");
         assertEquals(54, artkit.resolveType(null).getDefaultSize());
     }
+
+    @Test
+    public void bundledArtistAndArtworkMenusExposeBackAndSortOptions() {
+        MenuDefinition artists = ArtMap.instance().getMenuConfig().get("artists");
+        assertNotNull(artists.getItem("back"), "artists menu back button comes from YAML");
+        assertNotNull(artists.getItem("sort"), "artists menu sort switch comes from YAML");
+        MenuListDefinition artistList = artists.getList();
+        assertNotNull(artistList);
+        assertEquals("name", artistList.getDefaultSort());
+        assertTrue(artistList.isPinViewer());
+        assertEquals(6, artistList.getSortModes().size(), artistList.getSortModes().keySet().toString());
+        assertTrue(artistList.getSortModes().containsKey("newest"));
+        assertTrue(artistList.getSortModes().containsKey("oldest"));
+
+        MenuDefinition artworks = ArtMap.instance().getMenuConfig().get("artworks");
+        assertNotNull(artworks.getItem("back"));
+        assertNotNull(artworks.getItem("sort"));
+        MenuListDefinition artworkList = artworks.getList();
+        assertNotNull(artworkList);
+        assertEquals(4, artworkList.getSortModes().size());
+        assertTrue(artworkList.getSortModes().containsKey("title-desc"));
+    }
+
+    @Test
+    public void commonPaginationProvidesADefaultBackButton() {
+        assertNotNull(ArtMap.instance().getMenuConfig().getCommon().getBack());
+    }
 }

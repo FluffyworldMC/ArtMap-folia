@@ -177,6 +177,14 @@ public interface IDatabase {
     
     List<UUID> listArtists() throws SQLException;
 
+    /**
+     * List aggregated artwork counts and newest/oldest artwork dates for every artist.
+     *
+     * @return Artist statistics keyed by artist UUID.
+     * @throws SQLException
+     */
+    java.util.Map<UUID, ArtistStat> listArtistStats() throws SQLException;
+
     List<String> searchArtists(String search);
 
     List<MapArt> searchArtworks(String search, UUID playerId) throws SQLException;

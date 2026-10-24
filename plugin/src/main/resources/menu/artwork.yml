@@ -3,6 +3,15 @@ title: "Artwork {title}"
 rows: 6
 
 items:
+  back:
+    slot: 0
+    material: MAGENTA_GLAZED_TERRACOTTA
+    display_name: "&c&l<"
+    lore:
+      - "&7Back to artworks"
+    item_model: ""
+    custom_model_data: 0
+    action: back
   preview:
     slot: 1
     material: FILLED_MAP

@@ -136,6 +136,26 @@ list:
   page-size: 36
   previous-slot: 45
   next-slot: 53
+  # Page buttons specific to this menu. Remove any section to fall back to common.yml.
+  # Use material: AIR on a -disabled entry to leave that slot empty instead of showing glass.
+  previous:
+    material: MAGENTA_GLAZED_TERRACOTTA
+    display_name: "&c&l<<"
+    lore:
+      - "&7Page {target_page}/{pages}"
+  next:
+    material: MAGENTA_GLAZED_TERRACOTTA
+    display_name: "&a&l>>"
+    lore:
+      - "&7Page {target_page}/{pages}"
+  previous-disabled:
+    material: GRAY_STAINED_GLASS_PANE
+    display_name: " "
+    lore: []
+  next-disabled:
+    material: GRAY_STAINED_GLASS_PANE
+    display_name: " "
+    lore: []
   item:
     material: LEATHER_HORSE_ARMOR
     custom_model_data: 10396
