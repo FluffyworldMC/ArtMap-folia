@@ -16,7 +16,7 @@ import me.Fupery.ArtMap.ArtMap;
 /** Loads and validates plugins/ArtMap/menu/*.yml. */
 public class MenuConfigManager {
     private static final List<String> MENU_IDS = Arrays.asList(
-            "help", "tools", "recipes", "artists", "artworks", "artwork", "delete", "recipe-preview", "artkit", "tool-items");
+            "tools", "recipes", "artists", "artworks", "artwork", "delete", "recipe-preview", "artkit", "tool-items");
     private static final String COMMON_FILE = "common.yml";
 
     private final ArtMap plugin;

@@ -1,16 +1,20 @@
 package me.Fupery.ArtMap.Listeners;
 
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import org.bukkit.Material;
+import org.bukkit.NamespacedKey;
 import org.bukkit.entity.Item;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Zombie;
 import org.bukkit.event.entity.EntityPickupItemEvent;
 import org.bukkit.event.player.PlayerDropItemEvent;
+import org.bukkit.persistence.PersistentDataContainer;
+import org.bukkit.persistence.PersistentDataType;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -142,8 +146,10 @@ public class InventoryInteractListenerTest extends PluginTestSupport {
     private static org.bukkit.inventory.ItemStack tagged(String key) {
         org.bukkit.inventory.ItemStack stack = item(Material.PAPER);
         org.bukkit.inventory.meta.ItemMeta meta = mock(org.bukkit.inventory.meta.ItemMeta.class);
-        when(meta.hasLore()).thenReturn(true);
-        when(meta.getLore()).thenReturn(java.util.Arrays.asList(key));
+        PersistentDataContainer data = mock(PersistentDataContainer.class);
+        when(data.has(any(NamespacedKey.class), any(PersistentDataType.class)))
+                .thenAnswer(invocation -> ((NamespacedKey) invocation.getArgument(0)).getKey().equals(key));
+        when(meta.getPersistentDataContainer()).thenReturn(data);
         when(stack.hasItemMeta()).thenReturn(true);
         when(stack.getItemMeta()).thenReturn(meta);
         return stack;
@@ -192,7 +198,7 @@ public class InventoryInteractListenerTest extends PluginTestSupport {
     public void kitItemsStayOutOfContainers() throws Exception {
         startSession(972);
         when(player.getGameMode()).thenReturn(org.bukkit.GameMode.SURVIVAL);
-        org.bukkit.inventory.ItemStack kitDye = tagged(me.Fupery.ArtMap.Recipe.ArtItem.KIT_KEY);
+        org.bukkit.inventory.ItemStack kitDye = tagged("artkit_item");
 
         org.bukkit.event.inventory.InventoryClickEvent chest = click(player, kitDye,
                 org.bukkit.event.inventory.InventoryType.CHEST, org.bukkit.event.inventory.InventoryType.SlotType.CONTAINER);
@@ -220,7 +226,7 @@ public class InventoryInteractListenerTest extends PluginTestSupport {
     @DisplayName("someone who is not painting can move kit-tagged items freely")
     public void nonPainterMayMoveKitItems() {
         when(player.getGameMode()).thenReturn(org.bukkit.GameMode.SURVIVAL);
-        org.bukkit.event.inventory.InventoryClickEvent chest = click(player, tagged(me.Fupery.ArtMap.Recipe.ArtItem.KIT_KEY),
+        org.bukkit.event.inventory.InventoryClickEvent chest = click(player, tagged("artkit_item"),
                 org.bukkit.event.inventory.InventoryType.CHEST, org.bukkit.event.inventory.InventoryType.SlotType.CONTAINER);
         listener.onInventoryClick(chest);
         verify(chest, never()).setCancelled(true);
@@ -232,13 +238,13 @@ public class InventoryInteractListenerTest extends PluginTestSupport {
         Player painter = kitPainter(973);
         Material button = Material.MAGENTA_GLAZED_TERRACOTTA;
 
-        org.bukkit.event.inventory.InventoryClickEvent next = click(painter, tagged("Artkit:Next"),
+        org.bukkit.event.inventory.InventoryClickEvent next = click(painter, tagged("artkit_next"),
                 org.bukkit.event.inventory.InventoryType.PLAYER, org.bukkit.event.inventory.InventoryType.SlotType.CONTAINER);
         listener.onInventoryClick(next);
         verify(next).setCancelled(true);
         org.junit.jupiter.api.Assertions.assertEquals(button, painter.getInventory().getStorageContents()[27].getType(), "page two has a back button");
 
-        org.bukkit.event.inventory.InventoryClickEvent back = click(painter, tagged("Artkit:Back"),
+        org.bukkit.event.inventory.InventoryClickEvent back = click(painter, tagged("artkit_back"),
                 org.bukkit.event.inventory.InventoryType.PLAYER, org.bukkit.event.inventory.InventoryType.SlotType.CONTAINER);
         listener.onInventoryClick(back);
         verify(back).setCancelled(true);
@@ -282,7 +288,7 @@ public class InventoryInteractListenerTest extends PluginTestSupport {
         verify(anything).setCancelled(true);
 
         startSession(976);
-        PlayerDropItemEvent kitItem = drop(player, tagged("Artkit:Back"));
+        PlayerDropItemEvent kitItem = drop(player, tagged("artkit_back"));
         listener.onPlayerDropItem(kitItem);
         verify(kitItem).setCancelled(true);
 

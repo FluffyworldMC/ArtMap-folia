@@ -116,7 +116,8 @@ public class ArtistArtworksMenu extends ListMenu implements ChildMenu {
             List<Button> buttons = new ArrayList<>();
             for (MapArt art : artworks) {
                 if (art == null) continue;
-                if(art.getArtistName() == null) {
+                String artistName = art.getArtistName();
+                if(artistName == null || artistName.isEmpty() || "null".equalsIgnoreCase(artistName)) {
                    art = art.setAristName(this.artistName);
                 }
                 buttons.add(new PreviewButton(this, art, adminViewing));
@@ -165,10 +166,6 @@ public class ArtistArtworksMenu extends ListMenu implements ChildMenu {
 			MapMeta meta = (MapMeta) artwork.getMapItem().getItemMeta();
 			meta.setMapView(ArtMap.getMap(artwork.getMapId()));
 			meta.setLocationName(artwork.getTitle());
-            List<String> lore = meta.getLore();
-            lore.add(HelpMenu.CLICK);
-            if (adminButton) lore.add(lore.size(), ChatColor.GOLD + Lang.ADMIN_RECIPE.get());
-            meta.setLore(lore);
             setItemMeta(meta);
 
             MenuListDefinition list = definition().getList();
@@ -177,10 +174,20 @@ public class ArtistArtworksMenu extends ListMenu implements ChildMenu {
             placeholders.put("title", artwork.getTitle());
             placeholders.put("artist", artwork.getArtistName() != null ? artwork.getArtistName() : "");
             placeholders.put("date", artwork.getDate());
-            MenuItems.apply(this, item, placeholders);
+            MenuItems.applyInPlace(this, item, placeholders);
+            if (adminButton) addLore(ChatColor.GOLD, Lang.ADMIN_RECIPE.get());
 
             this.artwork = artwork;
             this.artworkMenu = menu;
+        }
+
+        private void addLore(ChatColor colour, String line) {
+            if (line == null) return;
+            org.bukkit.inventory.meta.ItemMeta meta = getItemMeta();
+            List<String> lore = meta.getLore() != null ? new ArrayList<>(meta.getLore()) : new ArrayList<>();
+            lore.add(colour + line);
+            meta.setLore(lore);
+            setItemMeta(meta);
         }
 
         @Override

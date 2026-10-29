@@ -94,6 +94,22 @@ public final class MenuItems {
         return result;
     }
 
+    /**
+     * Applies the configured metadata directly to the given stack. Custom buttons extend
+     * ItemStack, so the copy returned by {@link #apply(ItemStack, MenuItemDefinition, Map)}
+     * would otherwise be discarded and the configured name/lore would never show.
+     */
+    public static void applyInPlace(ItemStack stack, MenuItemDefinition definition,
+                                    Map<String, String> placeholders) {
+        if (stack == null || definition == null) return;
+        ItemStack result = apply(stack, definition, placeholders);
+        if (result == null || result == stack) return;
+        stack.setType(result.getType());
+        stack.setAmount(result.getAmount());
+        stack.setItemMeta(result.getItemMeta());
+        copyDyedColor(result, stack);
+    }
+
     /** Applies only item_model/custom_model_data, leaving the name and lore alone. */
     public static ItemStack applyModelData(ItemStack stack, MenuItemDefinition definition,
                                            Map<String, String> placeholders) {

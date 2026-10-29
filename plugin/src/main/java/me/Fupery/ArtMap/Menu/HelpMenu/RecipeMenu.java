@@ -75,7 +75,7 @@ public class RecipeMenu extends BasicMenu implements ChildMenu {
 
     @Override
     public CacheableMenu getParent(Player viewer) {
-        return ArtMap.instance().getMenuHandler().MENU.HELP.get(viewer);
+        return null;
     }
 
     private class RecipeButton extends Button {
@@ -89,7 +89,7 @@ public class RecipeMenu extends BasicMenu implements ChildMenu {
             List<String> lore = meta.getLore() != null ? new ArrayList<>(meta.getLore()) : new ArrayList<>();
             meta.setLore(lore);
             setItemMeta(meta);
-            MenuItems.apply(this, item, null);
+            MenuItems.applyInPlace(this, item, null);
         }
 
         @Override

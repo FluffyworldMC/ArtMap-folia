@@ -28,6 +28,7 @@ import me.Fupery.ArtMap.Menu.Config.MenuDefinition;
 import me.Fupery.ArtMap.Menu.Config.MenuItemDefinition;
 import me.Fupery.ArtMap.Menu.Config.MenuItems;
 import me.Fupery.ArtMap.Menu.Config.MenuButtons;
+import me.Fupery.ArtMap.Menu.Config.MenuText;
 import me.Fupery.ArtMap.Menu.Event.MenuCloseReason;
 import me.Fupery.ArtMap.Menu.Handler.CacheableMenu;
 import me.Fupery.ArtMap.Preview.ArtPreview;
@@ -124,18 +125,24 @@ public class ArtPieceMenu extends ListMenu implements ChildMenu {
 			super(Material.FILLED_MAP);
 			MapMeta meta = (MapMeta) artwork.getMapItem().getItemMeta();
 			meta.setMapView(ArtMap.getMap(artwork.getMapId()));
-			List<String> lore = meta.getLore();
-			lore.add(HelpMenu.CLICK);
-			if (player.hasPermission("artmap.admin")) {
-				lore.add(lore.size(), ChatColor.GOLD + Lang.ADMIN_RECIPE.get());
-			} else if (artwork.getArtistPlayer().equals(player)) {
-				lore.add(ChatColor.GOLD + Lang.RECIPE_PLAYER_MAP_COPY.get());
-			}
-			meta.setLore(lore);
 			setItemMeta(meta);
-			MenuItems.apply(this, definition().getItem("preview"), placeholders);
+			MenuItems.applyInPlace(this, definition().getItem("preview"), placeholders);
+			if (player.hasPermission("artmap.admin")) {
+				addLore(ChatColor.GOLD, Lang.ADMIN_RECIPE.get());
+			} else if (artwork.getArtistPlayer().equals(player)) {
+				addLore(ChatColor.GOLD, Lang.RECIPE_PLAYER_MAP_COPY.get());
+			}
 			this.artwork = artwork;
 			this.artworkMenu = menu;
+		}
+
+		private void addLore(ChatColor colour, String line) {
+			if (line == null) return;
+			ItemMeta meta = getItemMeta();
+			List<String> lore = meta.getLore() != null ? new ArrayList<>(meta.getLore()) : new ArrayList<>();
+			lore.add(colour + line);
+			meta.setLore(lore);
+			setItemMeta(meta);
 		}
 
 		@Override
@@ -179,12 +186,12 @@ public class ArtPieceMenu extends ListMenu implements ChildMenu {
 		private DeleteButton(ArtistArtworksMenu parent, MapArt artwork, MenuItemDefinition item) {
 			super(Material.REDSTONE);
 			ItemMeta meta = new ItemStack(Material.REDSTONE).getItemMeta();
-			meta.setDisplayName(HelpMenu.DELETE_NAME);
+			meta.setDisplayName(MenuText.DELETE_NAME);
 			List<String> lore = new ArrayList<>();
-			lore.add(HelpMenu.DELETE_TEXT);
+			lore.add(MenuText.DELETE_TEXT);
 			meta.setLore(lore);
 			setItemMeta(meta);
-			MenuItems.apply(this, item, null);
+			MenuItems.applyInPlace(this, item, null);
 			this.artwork = artwork;
 			this.parent = parent;
 		}
@@ -210,13 +217,13 @@ public class ArtPieceMenu extends ListMenu implements ChildMenu {
 
 		private RenameButton(ArtistArtworksMenu menu, MapArt artwork, MenuItemDefinition item) {
 			super(Material.WRITABLE_BOOK);
-			ItemMeta meta = new ItemStack(Material.REDSTONE).getItemMeta();
-			meta.setDisplayName(HelpMenu.RENAME_NAME);
+			ItemMeta meta = new ItemStack(Material.WRITABLE_BOOK).getItemMeta();
+			meta.setDisplayName(MenuText.RENAME_NAME);
 			List<String> lore = new ArrayList<>();
-			lore.add(HelpMenu.RENAME_TEXT);
+			lore.add(MenuText.RENAME_TEXT);
 			meta.setLore(lore);
 			setItemMeta(meta);
-			MenuItems.apply(this, item, null);
+			MenuItems.applyInPlace(this, item, null);
 			this.artwork = artwork;
 			this.artworkMenu = menu;
 		}

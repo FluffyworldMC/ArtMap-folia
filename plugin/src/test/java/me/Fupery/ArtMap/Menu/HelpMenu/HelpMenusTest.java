@@ -138,7 +138,7 @@ public class HelpMenusTest extends MenuTestSupport {
         Button[] disabled = buttons(new RecipeMenu(false));
         assertEquals(5, buttonCount(disabled));
         assertNotNull(disabled[0], "the back arrow is still there");
-        assertNotNull(new RecipeMenu(false).getParent(player(false)));
+        assertNull(new RecipeMenu(false).getParent(player(false)), "the old help parent is gone");
     }
 
     @Test
@@ -183,10 +183,10 @@ public class HelpMenusTest extends MenuTestSupport {
         UUID zed = UUID.randomUUID(), amy = UUID.randomUUID();
         when(database.listArtists(viewer.getUniqueId())).thenReturn(List.of(viewer.getUniqueId(), zed, amy));
         when(database.listArtistStats()).thenReturn(Collections.emptyMap());
-        when(ArtMap.instance().getHeadsCache().getHead(viewer.getUniqueId())).thenReturn(head("Viewer"));
-        when(ArtMap.instance().getHeadsCache().getHead(zed)).thenReturn(head("zed"));
-        when(ArtMap.instance().getHeadsCache().getHead(amy)).thenReturn(head("Amy"));
-        when(ArtMap.instance().getHeadsCache().getCacheSize()).thenReturn(3);
+        when(ArtMap.instance().getHeadsCache().getCachedHead(viewer.getUniqueId())).thenReturn(head("Viewer"));
+        when(ArtMap.instance().getHeadsCache().getCachedHead(zed)).thenReturn(head("zed"));
+        when(ArtMap.instance().getHeadsCache().getCachedHead(amy)).thenReturn(head("Amy"));
+        when(ArtMap.instance().getHeadsCache().isHeadCached(any(UUID.class))).thenReturn(true);
 
         Button[] list = buttons(new ArtistMenu(viewer));
         assertEquals("Viewer", list[1].getItemMeta().getDisplayName());
@@ -199,13 +199,46 @@ public class HelpMenusTest extends MenuTestSupport {
     }
 
     @Test
+    public void artistRowsAreLoadedOnceAndWithoutFetchingHeads() throws Exception {
+        Player viewer = player(false);
+        UUID artist = UUID.randomUUID();
+        when(database.listArtists(viewer.getUniqueId())).thenReturn(List.of(artist));
+        when(ArtMap.instance().getHeadsCache().getCachedHead(artist)).thenReturn(head("Artist"));
+        when(ArtMap.instance().getHeadsCache().isHeadCached(any(UUID.class))).thenReturn(true);
+
+        ArtistMenu menu = new ArtistMenu(viewer);
+        buttons(menu);
+        clearInvocations(database);
+        buttons(menu);
+
+        verify(database, never()).listArtists(any());
+        verify(ArtMap.instance().getHeadsCache(), never()).getHead(any(UUID.class));
+    }
+
+    @Test
+    public void artistRowsNeverShowTheLiteralNullName() throws Exception {
+        Player viewer = player(false);
+        UUID artist = UUID.randomUUID();
+        when(database.listArtists(viewer.getUniqueId())).thenReturn(List.of(artist));
+        when(database.listArtistStats()).thenReturn(Collections.emptyMap());
+        when(ArtMap.instance().getHeadsCache().getCachedHead(artist)).thenReturn(head("null"));
+        when(ArtMap.instance().getHeadsCache().getPlayerName(artist)).thenReturn(null);
+        when(ArtMap.instance().getHeadsCache().isHeadCached(any(UUID.class))).thenReturn(true);
+
+        Button[] list = buttons(new ArtistMenu(viewer));
+
+        assertEquals(artist.toString(), list[2].getItemMeta().getDisplayName(),
+                "a missing or literal-null head name falls back to the artist UUID");
+    }
+
+    @Test
     public void artistsWhoseHeadCannotBeFetchedAreListedByTheirId() throws Exception {
         resetWarning();
         Player viewer = player(false);
         UUID artist = UUID.randomUUID(), other = UUID.randomUUID();
         when(database.listArtists(viewer.getUniqueId())).thenReturn(List.of(artist, other));
-        when(ArtMap.instance().getHeadsCache().getHead(any(UUID.class))).thenThrow(new HeadFetchException("offline"));
-        when(ArtMap.instance().getHeadsCache().getCacheSize()).thenReturn(0);
+        when(ArtMap.instance().getHeadsCache().getCachedHead(any(UUID.class))).thenThrow(new HeadFetchException("offline"));
+        when(ArtMap.instance().getHeadsCache().isHeadCached(any(UUID.class))).thenReturn(false);
 
         ArtistMenu menu = new ArtistMenu(viewer);
         Button[] list = buttons(menu);
@@ -348,6 +381,10 @@ public class HelpMenusTest extends MenuTestSupport {
         Button[] own = buttons(page(artist, art("Mine", artist.getUniqueId(), "Me")));
         assertEquals(Material.REDSTONE, own[2].getType());
         assertEquals(Material.WRITABLE_BOOK, own[3].getType());
+        assertEquals("§cDelete", own[2].getItemMeta().getDisplayName(),
+                "the name comes from artwork.yml instead of a missing lang key");
+        assertEquals("§aRename", own[3].getItemMeta().getDisplayName(),
+                "the name comes from artwork.yml instead of a missing lang key");
     }
 
     @Test
@@ -455,6 +492,8 @@ public class HelpMenusTest extends MenuTestSupport {
         Player artist = player(false);
         MapArt own = art("Mine", artist.getUniqueId(), "Me");
         Button accept = accept(artist, own);
+        assertEquals("§aAccept", accept.getItemMeta().getDisplayName(),
+                "the confirmation uses delete.yml instead of a missing lang key");
         accept.onClick(artist, ClickType.RIGHT);
         verify(database, never()).deleteArtwork(any());
         accept.onClick(artist, ClickType.LEFT);

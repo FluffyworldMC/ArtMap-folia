@@ -16,8 +16,9 @@ commands:
         <command> clear : Reset the artwork on an easel 
         <command> delete <title> : Remove your artwork
         <command> preview <title> : Preview an artwork
-        <command> help : Display help
-        <command> reload : Reloads the config
+        <command> : Open the artists menu
+        <command> artists : Open the artists menu
+        <command> help : Show the command list in chat
         <command> reload : Reloads config.yml, lang.yml and menu/*.yml
         <command> give <player> <easel|canvas|artwork:<title>> <amount> : Give a player ArtMap item(s)
 

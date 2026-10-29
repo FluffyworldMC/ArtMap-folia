@@ -1,7 +1,6 @@
 # Recipe overview menu.
 title: "Choose a Recipe"
 size: 9
-parent: help
 items:
   back:
     slot: 0

@@ -106,11 +106,15 @@ final class ArtTable extends SQLiteTable {
         int id = set.getInt("id");
         UUID artist = UUID.fromString(set.getString("artist"));
         String date = set.getString("date");
-        String name = "Unknown";
+        String name = null;
         if(ArtMap.instance().getHeadsCache().isHeadCached(artist)) {
             name = ArtMap.instance().getHeadsCache().getPlayerName(artist);
-        } else {
+        }
+        if (name == null || name.isEmpty() || "null".equalsIgnoreCase(name)) {
             name = Bukkit.getOfflinePlayer(artist).getName();
+        }
+        if (name == null || name.isEmpty() || "null".equalsIgnoreCase(name)) {
+            name = "Unknown";
         }
         return new MapArt(id, title, artist,name,date);
     }

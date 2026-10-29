@@ -5,7 +5,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.Recipe;
 
 import me.Fupery.ArtMap.ArtMap;
-import me.Fupery.ArtMap.api.Config.Lang;
+import me.Fupery.ArtMap.Utils.ItemUtils;
 
 public enum ArtMaterial {
 
@@ -28,8 +28,8 @@ public enum ArtMaterial {
     }
 
     private static void setupConfigured(ArtMaterial material, Material fallback, String recipe) {
-        ItemStack stack = ToolItems.build(material, fallback);
-        ArtItem.ConfiguredItem item = new ArtItem.ConfiguredItem(stack, ArtItem.KIT_KEY);
+        ItemStack stack = ItemUtils.markArtkit(ToolItems.build(material, fallback));
+        ArtItem.ConfiguredItem item = new ArtItem.ConfiguredItem(stack, material.name());
         if (recipe != null) {
             try {
                 item.recipe(ArtMap.instance().getRecipeLoader().getRecipe(recipe));

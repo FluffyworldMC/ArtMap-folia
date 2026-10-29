@@ -5,14 +5,14 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.ClickType;
 
 import me.Fupery.ArtMap.ArtMap;
-import me.Fupery.ArtMap.api.Config.Lang;
 import me.Fupery.ArtMap.Menu.API.SoundCompat;
+import me.Fupery.ArtMap.Menu.Config.MenuText;
 import me.Fupery.ArtMap.Menu.Event.MenuCloseReason;
 
 public class CloseButton extends Button {
 
     public CloseButton() {
-        super(Material.BARRIER, Lang.Array.HELP_CLOSE.get());
+        super(Material.BARRIER, MenuText.CLOSE_NAME);
     }
 
     @Override

@@ -179,23 +179,26 @@ public class CommandHandler implements CommandExecutor, TabCompleter {
 		});
 
         //convenience commands
-		commands.put("help", new AsyncCommand("artmap.menu", "/art [help]", true) {
+		commands.put("artists", new AsyncCommand("artmap.menu", "/art", true) {
             @Override
             public void runCommand(CommandSender sender, String[] args, ReturnMessage msg) {
-                if (sender instanceof Player) {
-                    ArtMap.instance().getScheduler().SYNC.run((Player) sender, () -> {
-                        if (args.length > 0) {
-							Lang.Array.CONSOLE_HELP.send(sender);
-							return;
-                        }
-                        PlayerOpenMenuEvent event = new PlayerOpenMenuEvent((Player) sender);
-                        Bukkit.getServer().getPluginManager().callEvent(event);
-                        MenuHandler menuHandler = ArtMap.instance().getMenuHandler();
-                        menuHandler.openMenu(((Player) sender), menuHandler.MENU.HELP.get(((Player) sender)));
-                    });
-                } else {
+                if (!(sender instanceof Player)) {
                     Lang.Array.CONSOLE_HELP.send(sender);
+                    return;
                 }
+                ArtMap.instance().getScheduler().SYNC.run((Player) sender, () -> {
+                    PlayerOpenMenuEvent event = new PlayerOpenMenuEvent((Player) sender);
+                    Bukkit.getServer().getPluginManager().callEvent(event);
+                    MenuHandler menuHandler = ArtMap.instance().getMenuHandler();
+                    menuHandler.openMenu(((Player) sender), menuHandler.MENU.ARTIST.get(((Player) sender)));
+                });
+            }
+        });
+
+		commands.put("help", new AsyncCommand("artmap.menu", "/art help", true) {
+            @Override
+            public void runCommand(CommandSender sender, String[] args, ReturnMessage msg) {
+                Lang.Array.CONSOLE_HELP.send(sender);
             }
         });
     }
@@ -299,7 +302,7 @@ public class CommandHandler implements CommandExecutor, TabCompleter {
             }
 
         } else {
-			commands.get("help").runPlayerCommand(sender, fixedArgs);
+			commands.get("artists").runPlayerCommand(sender, fixedArgs);
         }
         return true;
     }

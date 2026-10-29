@@ -15,27 +15,28 @@ import org.junit.jupiter.api.Test;
 
 import me.Fupery.ArtMap.ArtMap;
 import me.Fupery.ArtMap.Menu.MenuTestSupport;
-import me.Fupery.ArtMap.api.Config.Lang;
 
 /** The menu/*.yml defaults and the item metadata they can add. */
 public class MenuConfigTest extends MenuTestSupport {
 
     @Test
     public void bundledMenusLoad() {
-        MenuDefinition help = ArtMap.instance().getMenuConfig().get("help");
-        assertEquals("help", help.getId());
-        assertNotNull(help.getItem("recipes"));
-        assertEquals(MenuAction.OPEN, help.getItem("recipes").getAction());
-        assertEquals("recipes", help.getItem("recipes").getTargetMenu());
-        assertNotNull(help.getItem("getting-started"));
+        MenuDefinition recipes = ArtMap.instance().getMenuConfig().get("recipes");
+        assertEquals("recipes", recipes.getId());
+        assertNotNull(recipes.getItem("easel"));
+        assertEquals(MenuAction.RECIPE, recipes.getItem("easel").getAction());
+        assertEquals("EASEL", recipes.getItem("easel").getRecipe());
+        assertNotNull(recipes.getItem("back"));
     }
 
     @Test
     public void configuredTileAndLoreOverrideLangDefaults() {
-        MenuDefinition help = ArtMap.instance().getMenuConfig().get("help");
-        ItemStack item = MenuItems.build(help.getItem("recipes"), new ItemStack(Material.STONE),
-                new HashMap<>());
-        assertEquals(Arrays.asList(Lang.Array.HELP_RECIPES.get()).get(0), item.getItemMeta().getDisplayName());
+        MenuDefinition artists = ArtMap.instance().getMenuConfig().get("artists");
+        Map<String, String> placeholders = new HashMap<>();
+        placeholders.put("artist", "Bob");
+        ItemStack item = MenuItems.build(artists.getList().getItem(), new ItemStack(Material.PLAYER_HEAD),
+                placeholders);
+        assertEquals("Bob", item.getItemMeta().getDisplayName());
     }
 
     @Test
@@ -58,12 +59,10 @@ public class MenuConfigTest extends MenuTestSupport {
     }
 
     @Test
-    public void titleIsPrefixedWithTheConfiguredHeaderOnce() {
-        MenuDefinition help = ArtMap.instance().getMenuConfig().get("help");
-        String title = help.getTitle("fallback", new HashMap<>(), ArtMap.instance().getMenuConfig().getHeader());
-        String header = MenuItems.translate(ArtMap.instance().getMenuConfig().getHeader());
-        assertTrue(title.startsWith(header), title);
-        assertTrue(!title.startsWith(header + header), title);
+    public void configuredTitleIsUsedInsteadOfTheFallback() {
+        MenuDefinition recipes = ArtMap.instance().getMenuConfig().get("recipes");
+        String title = recipes.getTitle("fallback", new HashMap<>(), ArtMap.instance().getMenuConfig().getHeader());
+        assertEquals("Choose a Recipe", title);
     }
 
     @Test
@@ -85,8 +84,8 @@ public class MenuConfigTest extends MenuTestSupport {
 
     @Test
     public void menusAreChestSized() {
-        MenuDefinition help = ArtMap.instance().getMenuConfig().get("help");
-        assertEquals(9, help.resolveType(null).getDefaultSize(), "rows: 1 becomes a one-row chest");
+        MenuDefinition recipes = ArtMap.instance().getMenuConfig().get("recipes");
+        assertEquals(9, recipes.resolveType(null).getDefaultSize(), "size: 9 becomes a one-row chest");
         MenuDefinition artkit = ArtMap.instance().getMenuConfig().get("artkit");
         assertEquals(54, artkit.resolveType(null).getDefaultSize());
     }

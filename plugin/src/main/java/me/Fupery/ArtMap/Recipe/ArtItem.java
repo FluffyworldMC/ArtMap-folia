@@ -5,8 +5,6 @@ import static org.bukkit.ChatColor.GOLD;
 import static org.bukkit.ChatColor.ITALIC;
 import static org.bukkit.ChatColor.YELLOW;
 
-import java.util.logging.Level;
-
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
@@ -14,6 +12,7 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.MapMeta;
 
 import me.Fupery.ArtMap.ArtMap;
+import me.Fupery.ArtMap.Utils.ItemUtils;
 import me.Fupery.ArtMap.api.Config.Lang;
 
 public class ArtItem {
@@ -21,14 +20,15 @@ public class ArtItem {
     private static final String ARTWORK_TAG = ChatColor.AQUA.toString() + ChatColor.ITALIC + "Player Artwork";
     private static final String UNFINISHED_TAG = ChatColor.AQUA.toString() + ChatColor.ITALIC + "Unfinished Artwork";
     private static final String COPY_TAG = ChatColor.AQUA.toString() + ChatColor.ITALIC + "Artwork Copy";
-    public static final String CANVAS_KEY = ChatColor.AQUA.toString() + ChatColor.ITALIC + "ArtMap Canvas";
-    public static final String EASEL_KEY = ChatColor.AQUA.toString() + ChatColor.ITALIC + "ArtMap Easel";
-    public static final String KIT_KEY = ChatColor.DARK_GRAY + "[ArtKit]";
     public static final String PREVIEW_KEY = ChatColor.AQUA.toString() + ChatColor.ITALIC + "Preview Artwork";
-    public static final String PAINT_BRUSH = ChatColor.AQUA.toString() + ChatColor.ITALIC + "Paint Brush";
     
     private ArtItem() {
         //hide consstructor
+    }
+
+    /** Keeps old/corrupt rows from printing "by null" on artwork items. */
+    private static String safeArtistName(String name) {
+        return name == null || name.isEmpty() || "null".equalsIgnoreCase(name) ? "Unknown" : name;
     }
 
     /**
@@ -103,18 +103,6 @@ public class ArtItem {
 
 	//private static final char BULLET_POINT = '\u2022';
 
-    static class CraftableItem extends CustomItem {
-
-        public CraftableItem(String itemName, Material material, String uniqueKey) {
-            super(material, KIT_KEY, uniqueKey);
-            try {
-                recipe(ArtMap.instance().getRecipeLoader().getRecipe(itemName.toUpperCase()));
-            } catch (RecipeLoader.InvalidRecipeException e) {
-                ArtMap.instance().getLogger().log(Level.SEVERE, "Failure!", e);
-            }
-        }
-    }
-
     public static class ArtworkItem extends CustomItem {
         /**
          * Creates an original Artwork item.
@@ -129,7 +117,7 @@ public class ArtItem {
 			meta.setMapView(ArtMap.getMap(id));
 			this.stack.get().setItemMeta(meta);
             name(title);
-            String artist = GOLD + String.format(Lang.RECIPE_ARTWORK_ARTIST.get(), (YELLOW + artistName));
+            String artist = GOLD + String.format(Lang.RECIPE_ARTWORK_ARTIST.get(), (YELLOW + safeArtistName(artistName)));
             tooltip(artist, String.valueOf(DARK_GREEN) + ITALIC + date);
         }
     }
@@ -145,7 +133,7 @@ public class ArtItem {
 			meta.setMapView(ArtMap.getMap(id));
 			this.stack.get().setItemMeta(meta);
             name("Unfinished");
-            String artist = GOLD + String.format(Lang.RECIPE_ARTWORK_ARTIST.get(), (YELLOW + artistName));
+            String artist = GOLD + String.format(Lang.RECIPE_ARTWORK_ARTIST.get(), (YELLOW + safeArtistName(artistName)));
             tooltip(artist);
         }
     }
@@ -161,14 +149,8 @@ public class ArtItem {
 			meta.setMapView(ArtMap.getMap(id));
 			this.stack.get().setItemMeta(meta);
             name(title);
-            String artist = GOLD + String.format(Lang.RECIPE_ARTWORK_ARTIST.get(), (YELLOW + artistName));
+            String artist = GOLD + String.format(Lang.RECIPE_ARTWORK_ARTIST.get(), (YELLOW + safeArtistName(artistName)));
             tooltip(artist, String.valueOf(DARK_GREEN) + ITALIC + date);
-        }
-    }
-
-    public static class KitItem extends CustomItem {
-        KitItem(Material material, String name) {
-            super(material, KIT_KEY, name);
         }
     }
 
@@ -178,6 +160,12 @@ public class ArtItem {
         public ConfiguredItem(ItemStack display, String key) {
             super(display, key);
             this.display = display;
+        }
+
+        @Override
+        public boolean checkItem(ItemStack itemStack) {
+            return itemStack != null && itemStack.getType() == getMaterial()
+                    && ItemUtils.isArtkitItem(itemStack);
         }
 
         @Override

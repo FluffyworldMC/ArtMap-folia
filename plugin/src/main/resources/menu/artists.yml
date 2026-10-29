@@ -1,7 +1,6 @@
 # Artist list menu.
 title: "Click an Artist"
 rows: 6
-parent: help
 
 items:
   back:
@@ -9,10 +8,10 @@ items:
     material: MAGENTA_GLAZED_TERRACOTTA
     display_name: "&c&l<"
     lore:
-      - "&7Back to help"
+      - "&7Close"
     item_model: ""
     custom_model_data: 0
-    action: back
+    action: close
   sort:
     slot: 49
     material: HOPPER

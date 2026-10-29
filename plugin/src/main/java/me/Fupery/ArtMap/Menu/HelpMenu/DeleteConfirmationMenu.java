@@ -26,6 +26,7 @@ import me.Fupery.ArtMap.Menu.Config.MenuDefinition;
 import me.Fupery.ArtMap.Menu.Config.MenuItemDefinition;
 import me.Fupery.ArtMap.Menu.Config.MenuItems;
 import me.Fupery.ArtMap.Menu.Config.MenuButtons;
+import me.Fupery.ArtMap.Menu.Config.MenuText;
 import me.Fupery.ArtMap.Menu.Event.MenuCloseReason;
 import me.Fupery.ArtMap.Menu.Handler.CacheableMenu;
 import me.Fupery.ArtMap.Recipe.ArtItem;
@@ -90,12 +91,12 @@ public class DeleteConfirmationMenu extends ListMenu implements ChildMenu {
 		private AcceptButton(ArtistArtworksMenu menu, MapArt artwork, boolean adminButton, MenuItemDefinition item) {
 			super(Material.REDSTONE);
 			ItemMeta meta = new ItemStack(Material.REDSTONE).getItemMeta();
-			meta.setDisplayName(HelpMenu.ACCEPT_NAME);
+			meta.setDisplayName(MenuText.ACCEPT_NAME);
 			List<String> lore = new ArrayList<>();
-			lore.add(HelpMenu.ACCEPT_TEXT);
+			lore.add(MenuText.ACCEPT_TEXT);
 			meta.setLore(lore);
 			setItemMeta(meta);
-			MenuItems.apply(this, item, null);
+			MenuItems.applyInPlace(this, item, null);
 			this.artwork = artwork;
 			this.artworkMenu = menu;
 		}

@@ -1,7 +1,6 @@
 # Tools help menu.
 title: "Hover for usage"
 size: 9
-parent: help
 items:
   back:
     slot: 0

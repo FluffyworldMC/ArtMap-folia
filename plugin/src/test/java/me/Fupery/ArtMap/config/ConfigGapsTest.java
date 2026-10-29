@@ -64,9 +64,9 @@ public class ConfigGapsTest extends PluginTestSupport {
     @DisplayName("menu titles and the filter set can be read and sent")
     public void menuTitlesAndFilter() {
         Player player = preparePlayer(mocks.getRandomMockPlayers(1)[0]);
-        assertNotNull(Lang.MenuTitle.MENU_HELP.get());
-        Lang.MenuTitle.MENU_HELP.send(player);
-        verify(player).sendMessage(Lang.MenuTitle.MENU_HELP.get());
+        assertNotNull(Lang.MenuTitle.MENU_ARTIST.get());
+        Lang.MenuTitle.MENU_ARTIST.send(player);
+        verify(player).sendMessage(Lang.MenuTitle.MENU_ARTIST.get());
         Lang.Filter.ILLEGAL_EXPRESSIONS.send(player);
         assertTrue(Lang.Filter.ILLEGAL_EXPRESSIONS.get().length > 0);
     }

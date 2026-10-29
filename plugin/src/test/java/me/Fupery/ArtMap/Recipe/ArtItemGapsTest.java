@@ -65,20 +65,6 @@ public class ArtItemGapsTest extends PluginTestSupport {
     }
 
     @Test
-    @DisplayName("a craftable item whose recipe fails to load is logged and left without one")
-    public void craftableWithBadRecipe() throws Exception {
-        RecipeLoader loader = ArtMap.instance().getRecipeLoader();
-        java.lang.reflect.Constructor<RecipeLoader.InvalidRecipeException> ctor =
-                RecipeLoader.InvalidRecipeException.class.getDeclaredConstructor(String.class, String.class);
-        ctor.setAccessible(true);
-        when(loader.getRecipe("BROKEN")).thenThrow(ctor.newInstance("BROKEN", "bad"));
-        ArtItem.CraftableItem item = new ArtItem.CraftableItem("broken", Material.STICK, "key");
-        assertNull(item.getRecipe());
-        assertNull(item.getBukkitRecipe(), "no recipe, no Bukkit recipe, no NPE");
-        assertTrue(logged.stream().anyMatch(r -> r.getThrown() instanceof RecipeLoader.InvalidRecipeException));
-    }
-
-    @Test
     @DisplayName("art materials expose their type and build artwork items")
     public void artMaterialAccessors() {
         assertEquals(Material.OAK_FENCE, ArtMaterial.EASEL.getType());

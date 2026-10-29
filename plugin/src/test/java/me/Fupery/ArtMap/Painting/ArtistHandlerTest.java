@@ -13,13 +13,15 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.lang.reflect.Field;
-import java.util.Arrays;
 import java.util.UUID;
 
 import org.bukkit.Material;
+import org.bukkit.NamespacedKey;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.persistence.PersistentDataContainer;
+import org.bukkit.persistence.PersistentDataType;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -31,7 +33,6 @@ import me.Fupery.ArtMap.Easel.Easel;
 import me.Fupery.ArtMap.IO.Database.Map;
 import me.Fupery.ArtMap.IO.Protocol.In.Packet.ArtistPacket;
 import me.Fupery.ArtMap.IO.Protocol.In.Packet.ArtistPacket.PacketInteract.InteractType;
-import me.Fupery.ArtMap.Recipe.ArtItem;
 import me.Fupery.ArtMap.api.Config.Configuration;
 import me.Fupery.ArtMap.mocks.PluginTestSupport;
 
@@ -72,11 +73,11 @@ public class ArtistHandlerTest extends PluginTestSupport {
     }
 
     private static ItemStack paintBrush() {
-        ItemStack brush = item(Material.REDSTONE_TORCH);
+        ItemStack brush = item(Material.LEATHER_HORSE_ARMOR);
         ItemMeta meta = mock(ItemMeta.class);
-        when(meta.hasLore()).thenReturn(true);
-        // Craftable kit items are identified by the kit key on the first lore line, not their name.
-        when(meta.getLore()).thenReturn(Arrays.asList(ArtItem.KIT_KEY, ArtItem.PAINT_BRUSH));
+        PersistentDataContainer data = mock(PersistentDataContainer.class);
+        when(data.has(any(NamespacedKey.class), any(PersistentDataType.class))).thenReturn(true);
+        when(meta.getPersistentDataContainer()).thenReturn(data);
         when(brush.hasItemMeta()).thenReturn(true);
         when(brush.getItemMeta()).thenReturn(meta);
         return brush;

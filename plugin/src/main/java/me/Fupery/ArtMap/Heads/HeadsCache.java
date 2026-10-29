@@ -46,6 +46,8 @@ public class HeadsCache {
 	private static String					API_PROFILE_LINK	= "https://sessionserver.mojang.com/session/minecraft/profile/";
 
 	private static final Map<UUID, TextureData>	textureCache	= Collections.synchronizedMap( new HashMap<>());
+	/** Built skull items, so menus can show many cached heads without re-parsing textures. */
+	private static final Map<UUID, ItemStack>	headCache	= Collections.synchronizedMap( new HashMap<>());
 	/** Name -> UUID for players never seen on this server; temporary until the DB schema stores names. */
 	private static final Map<String, UUID> nameToUUID = new HashMap<>();
 	private File						   cacheFile;
@@ -120,6 +122,15 @@ public class HeadsCache {
 
 					}
 				}
+				// Pre-build the skull item as well, so the first artist menu does not have to
+				// parse every cached texture before it can open.
+				try {
+					if (this.isHeadCached(artist)) {
+						this.buildHead(artist, textureCache.get(artist));
+					}
+				} catch (HeadFetchException | RuntimeException e) {
+					plugin.getLogger().log(Level.FINE, "Could not pre-build head for " + artist, e);
+				}
 			}
 		} catch (Exception e) {
 			plugin.getLogger().log(Level.SEVERE, "Exception during prefetch!",e);
@@ -178,17 +189,32 @@ public class HeadsCache {
 	 * @throws HeadFetchException 
 	 */
 	public ItemStack getHead(UUID playerId) throws HeadFetchException {
-		ItemStack head = new ItemStack(Material.PLAYER_HEAD, 1);
-		IHeadsRetriever headsRetriever = ArtMap.instance().getCompatManager().getHeadsRetriever();
 		if(!this.isHeadCached(playerId)) {
 			this.updateTexture(playerId);
 		}
-		TextureData textureData = textureCache.get(playerId);
-		Optional<SkullMeta> meta = headsRetriever.getHeadMeta(playerId,textureData);
+		return buildHead(playerId, textureCache.get(playerId));
+	}
+
+	/**
+	 * Builds a head from the cache without contacting Mojang. Menus use this so opening a
+	 * large artist list never blocks while missing textures are fetched.
+	 */
+	public ItemStack getCachedHead(UUID playerId) throws HeadFetchException {
+		return buildHead(playerId, textureCache.get(playerId));
+	}
+
+	private ItemStack buildHead(UUID playerId, TextureData textureData) throws HeadFetchException {
+		if (textureData != null) {
+			ItemStack cached = headCache.get(playerId);
+			if (cached != null) return cached.clone();
+		}
+		ItemStack head = new ItemStack(Material.PLAYER_HEAD, 1);
+		IHeadsRetriever headsRetriever = ArtMap.instance().getCompatManager().getHeadsRetriever();
+		Optional<SkullMeta> meta = headsRetriever.getHeadMeta(playerId, textureData);
 		if (!meta.isPresent()) { //try loading it the normal way
 			SkullMeta headmeta = (SkullMeta) head.getItemMeta();
 			OfflinePlayer player = ArtMap.instance().getServer().getOfflinePlayer(playerId);
-			if(player.hasPlayedBefore()) {
+			if(player != null && player.hasPlayedBefore() && player.getName() != null) {
 				headmeta.setOwningPlayer(player);
 				headmeta.setDisplayName(player.getName());
 				head.setItemMeta(headmeta);
@@ -196,6 +222,7 @@ public class HeadsCache {
 			return head; 
 		}
 		head.setItemMeta(meta.get());
+		headCache.put(playerId, head.clone());
 		return head;
 	}
 
@@ -248,8 +275,9 @@ public class HeadsCache {
 				Optional<TextureData> textData = headsRetriever.getTextureData(player);
 				if(textData.isPresent()) {
 					textureCache.put(playerId, textData.get());
+					headCache.remove(playerId);
 					this.saveCacheFile(cacheFile);
-					nameToUUID.put(player.getName(), player.getUniqueId());
+					if (player.getName() != null) nameToUUID.put(player.getName(), player.getUniqueId());
 					return HeadCacheResponeType.SERVER;
 				}
 			}
@@ -258,8 +286,9 @@ public class HeadsCache {
 				Optional<TextureData> data = getSkinUrl(playerId);
 				if(data.isPresent()) {
 					textureCache.put(playerId, data.get());
+					headCache.remove(playerId);
 					this.saveCacheFile(cacheFile);
-					nameToUUID.put(data.get().name, playerId);
+					if (data.get().name != null) nameToUUID.put(data.get().name, playerId);
 					return HeadCacheResponeType.MOJANG_API;
 				}
 			}

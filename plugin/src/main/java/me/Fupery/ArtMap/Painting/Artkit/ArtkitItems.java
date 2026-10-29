@@ -1,8 +1,6 @@
 package me.Fupery.ArtMap.Painting.Artkit;
 
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 import org.bukkit.NamespacedKey;
@@ -16,12 +14,10 @@ import me.Fupery.ArtMap.ArtMap;
 import me.Fupery.ArtMap.Menu.Config.MenuDefinition;
 import me.Fupery.ArtMap.Menu.Config.MenuItemDefinition;
 import me.Fupery.ArtMap.Menu.Config.MenuItems;
-import me.Fupery.ArtMap.Recipe.ArtItem;
 import me.Fupery.ArtMap.Recipe.ArtMaterial;
+import me.Fupery.ArtMap.Utils.ItemUtils;
 
 public final class ArtkitItems {
-    public static final String COLOR_KEY = "Artkit:Color:";
-    public static final String TOOL_KEY = "Artkit:Tool:";
 
     private ArtkitItems() {
     }
@@ -43,23 +39,6 @@ public final class ArtkitItems {
         String tool = data.get(toolKey(), PersistentDataType.STRING);
         if (tool != null) {
             state.setTool(ArtkitTool.parse(tool, state.getTool()));
-        }
-        if (!meta.hasLore()) return state;
-        for (String line : meta.getLore()) {
-            if (line.startsWith(COLOR_KEY) || line.contains("§r" + COLOR_KEY)) {
-                int marker = line.indexOf(COLOR_KEY);
-                if (marker >= 0) {
-                    try {
-                        state.setColor(ArtkitPalette.get(Integer.parseInt(line.substring(marker + COLOR_KEY.length()).trim())));
-                    } catch (NumberFormatException ignored) {
-                    }
-                }
-            } else if (line.startsWith(TOOL_KEY) || line.contains("§r" + TOOL_KEY)) {
-                int marker = line.indexOf(TOOL_KEY);
-                if (marker >= 0) {
-                    state.setTool(ArtkitTool.parse(line.substring(marker + TOOL_KEY.length()), state.getTool()));
-                }
-            }
         }
         return state;
     }
@@ -83,16 +62,11 @@ public final class ArtkitItems {
         ItemMeta meta = brush.getItemMeta();
         if (meta == null) return;
 
-        List<String> lore = meta.hasLore() ? new ArrayList<>(meta.getLore()) : new ArrayList<>();
-        lore.removeIf(line -> line.contains(COLOR_KEY) || line.contains(TOOL_KEY));
-        if (lore.isEmpty() || !lore.get(0).contains(ArtItem.KIT_KEY)) {
-            lore.add(0, ArtItem.KIT_KEY);
-        }
-        meta.setLore(lore);
         PersistentDataContainer data = meta.getPersistentDataContainer();
         data.set(colorKey(), PersistentDataType.INTEGER, state.getColor().getIndex());
         data.set(toolKey(), PersistentDataType.STRING, state.getTool().name());
         brush.setItemMeta(meta);
+        ItemUtils.markArtkit(brush);
         MenuItems.applyDyedColor(brush, placeholders);
         player.getInventory().setItemInMainHand(brush);
     }

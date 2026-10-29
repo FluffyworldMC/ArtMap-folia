@@ -5,11 +5,14 @@ import java.util.List;
 import java.util.Optional;
 
 import org.bukkit.Material;
+import org.bukkit.NamespacedKey;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.MapMeta;
+import org.bukkit.persistence.PersistentDataType;
 
+import me.Fupery.ArtMap.ArtMap;
 import me.Fupery.ArtMap.api.Exception.ArtMapException;
 
 public class ItemUtils {
@@ -22,6 +25,60 @@ public class ItemUtils {
         ItemStack leftOver = player.getInventory().addItem(item).get(0);
         if (leftOver != null && leftOver.getAmount() > 0)
             player.getWorld().dropItemNaturally(player.getLocation(), leftOver);
+    }
+
+    /** Hidden marker for every item that belongs to the painting kit. */
+    public static ItemStack markArtkit(ItemStack item) {
+        return mark(item, "artkit_item");
+    }
+
+    /** Hidden marker for the kit's next-page button. */
+    public static ItemStack markArtkitNext(ItemStack item) {
+        return mark(item, "artkit_next");
+    }
+
+    /** Hidden marker for the kit's back-page button. */
+    public static ItemStack markArtkitBack(ItemStack item) {
+        return mark(item, "artkit_back");
+    }
+
+    public static boolean isArtkitItem(ItemStack item) {
+        return hasMarker(item, "artkit_item") || isArtkitPage(item);
+    }
+
+    public static boolean isArtkitNext(ItemStack item) {
+        return hasMarker(item, "artkit_next");
+    }
+
+    public static boolean isArtkitBack(ItemStack item) {
+        return hasMarker(item, "artkit_back");
+    }
+
+    private static boolean isArtkitPage(ItemStack item) {
+        return isArtkitNext(item) || isArtkitBack(item);
+    }
+
+    private static ItemStack mark(ItemStack item, String key) {
+        if (item == null || !item.hasItemMeta()) return item;
+        ItemMeta meta = item.getItemMeta();
+        if (meta == null) return item;
+        org.bukkit.persistence.PersistentDataContainer data = meta.getPersistentDataContainer();
+        if (data == null) return item;
+        data.set(namespaced(key), PersistentDataType.BYTE, (byte) 1);
+        item.setItemMeta(meta);
+        return item;
+    }
+
+    private static boolean hasMarker(ItemStack item, String key) {
+        if (item == null || !item.hasItemMeta()) return false;
+        ItemMeta meta = item.getItemMeta();
+        if (meta == null) return false;
+        org.bukkit.persistence.PersistentDataContainer data = meta.getPersistentDataContainer();
+        return data != null && data.has(namespaced(key), PersistentDataType.BYTE);
+    }
+
+    private static NamespacedKey namespaced(String key) {
+        return new NamespacedKey(ArtMap.instance(), key);
     }
 
     public static boolean hasKey(ItemStack itemStack, String key) {

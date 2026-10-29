@@ -37,7 +37,6 @@ import me.Fupery.ArtMap.Painting.Artkit.ArtkitShapeBrush;
 import me.Fupery.ArtMap.Painting.Artkit.ArtkitState;
 import me.Fupery.ArtMap.Painting.Artkit.ArtkitTool;
 import me.Fupery.ArtMap.Painting.Artkit.SelectedDye;
-import me.Fupery.ArtMap.Recipe.ArtItem;
 import me.Fupery.ArtMap.Recipe.ArtMaterial;
 import me.Fupery.ArtMap.Utils.ItemUtils;
 import me.Fupery.ArtMap.api.Painting.IArtSession;
@@ -491,7 +490,7 @@ public class ArtSession implements IArtSession {
 						break;
 					}
 					ArtDye dye = palette.getDyes(DyeType.DYE)[(pg * 18) + j];
-					itemStack[j + 9] = ItemUtils.addKey(dye.toItem(), ArtItem.KIT_KEY);
+					itemStack[j + 9] = ItemUtils.markArtkit(dye.toItem());
 				}
 
 				// if not first page add back button
@@ -499,18 +498,16 @@ public class ArtSession implements IArtSession {
 					ItemStack back = new ItemStack(Material.MAGENTA_GLAZED_TERRACOTTA);
 					ItemMeta meta = back.getItemMeta();
 					meta.setDisplayName(Lang.ARTKIT_PREV.get());
-					meta.setLore(Arrays.asList("Artkit:Back"));
 					back.setItemMeta(meta);
-					itemStack[27] = back;
+					itemStack[27] = ItemUtils.markArtkitBack(back);
 				}
 				// if not last page add next button
 				if (pg < pages - 1) {
 					ItemStack next = new ItemStack(Material.MAGENTA_GLAZED_TERRACOTTA);
 					ItemMeta meta = next.getItemMeta();
 					meta.setDisplayName(Lang.ARTKIT_NEXT.get());
-					meta.setLore(Arrays.asList("Artkit:Next"));
 					next.setItemMeta(meta);
-					itemStack[35] = next;
+					itemStack[35] = ItemUtils.markArtkitNext(next);
 				}
 
 				itemStack[29] = ArtMaterial.FEATHER.getItem();

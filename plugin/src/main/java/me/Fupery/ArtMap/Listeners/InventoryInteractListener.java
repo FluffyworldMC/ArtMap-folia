@@ -12,7 +12,6 @@ import org.bukkit.event.player.PlayerItemHeldEvent;
 import org.bukkit.inventory.ItemStack;
 
 import me.Fupery.ArtMap.ArtMap;
-import me.Fupery.ArtMap.Recipe.ArtItem;
 import me.Fupery.ArtMap.Utils.ItemUtils;
 
 class InventoryInteractListener implements RegisteredListener {
@@ -88,11 +87,11 @@ class InventoryInteractListener implements RegisteredListener {
 
 	private void checkArtKitPagination(Player player, ItemStack itemStack, Cancellable event) {
 		if (ArtMap.instance().getArtistHandler().containsPlayer(player)) {
-			if (ItemUtils.hasKey(itemStack, "Artkit:Next")) {
+			if (ItemUtils.isArtkitNext(itemStack)) {
 				event.setCancelled(true);
 				ArtMap.instance().getArtistHandler().getCurrentSession(player).nextKitPage(player);
 			}
-			if (ItemUtils.hasKey(itemStack, "Artkit:Back")) {
+			if (ItemUtils.isArtkitBack(itemStack)) {
 				event.setCancelled(true);
 				ArtMap.instance().getArtistHandler().getCurrentSession(player).prevKitPage(player);
 			}
@@ -101,10 +100,7 @@ class InventoryInteractListener implements RegisteredListener {
 
     private boolean isKitDrop(Player player, ItemStack itemStack) {
         if (ArtMap.instance().getArtistHandler().containsPlayer(player)) {
-			if (ItemUtils.hasKey(itemStack, ArtItem.KIT_KEY) || ItemUtils.hasKey(itemStack, "Artkit:Next")
-					|| ItemUtils.hasKey(itemStack, "Artkit:Back")) {
-				return true;
-			}
+			return ItemUtils.isArtkitItem(itemStack);
         }
         return false;
     }

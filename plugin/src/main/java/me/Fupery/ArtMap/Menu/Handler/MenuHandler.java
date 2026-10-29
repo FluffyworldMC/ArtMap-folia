@@ -39,7 +39,6 @@ public final class MenuHandler {
     public CacheableMenu createMenu(String id, Player viewer) {
         if (id == null) return null;
         switch (id.toLowerCase()) {
-            case "help":
             case "tools":
                 return new ConfiguredMenu(id.toLowerCase());
             case "recipes":
@@ -100,7 +99,6 @@ public final class MenuHandler {
     }
 
     public static class MenuList {
-        public MenuFactory HELP = viewer -> new ConfiguredMenu("help");
         public MenuFactory TOOLS = viewer -> new ConfiguredMenu("tools");
         public MenuFactory ARTIST = new DynamicMenuFactory(ArtistMenu::new);
         public MenuFactory RECIPE = new ConditionalMenuFactory(new ConditionalMenuFactory.ConditionalGenerator() {
@@ -122,7 +120,6 @@ public final class MenuHandler {
 
         /** Re-creates the factory fields after a configuration reload. */
         public void reset() {
-            HELP = viewer -> new ConfiguredMenu("help");
             TOOLS = viewer -> new ConfiguredMenu("tools");
             ARTIST = new DynamicMenuFactory(ArtistMenu::new);
             RECIPE = new ConditionalMenuFactory(new ConditionalMenuFactory.ConditionalGenerator() {

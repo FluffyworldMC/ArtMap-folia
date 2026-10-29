@@ -133,12 +133,10 @@ public class RecipeBuildersTest extends PluginTestSupport {
     public void customItemFromLang() {
         CustomItem item = new CustomItem(Material.COAL, "KEY", "tip")
                 .name(Lang.RECIPE_EASEL_NAME)
-                .tooltip(Lang.Array.TOOL_COAL);
+                .tooltip("Tip one", "Tip two");
         ItemMeta meta = metaOf(item.toItemStack());
         assertEquals(Lang.RECIPE_EASEL_NAME.get(), meta.getDisplayName());
-        List<String> lore = new java.util.ArrayList<>(List.of("KEY"));
-        lore.addAll(Arrays.asList(Lang.Array.TOOL_COAL.get()));
-        assertEquals(lore, meta.getLore());
+        assertEquals(List.of("KEY", "Tip one", "Tip two"), meta.getLore());
 
         CustomItem renamed = new CustomItem(Material.COAL, "KEY").name("Plain").tooltip("a", "b");
         assertEquals(List.of("KEY", "a", "b"), metaOf(renamed.toItemStack()).getLore());

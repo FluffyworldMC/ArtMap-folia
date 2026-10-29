@@ -59,7 +59,7 @@ public class RecipePreview extends BasicMenu {
             for (int i = 0; i < preview.length; i++) {
                 if (preview[i] != null) {
                     StaticButton button = new StaticButton(preview[i]);
-                    MenuItems.apply(button, template, placeholders);
+                    MenuItems.applyInPlace(button, template, placeholders);
                     buttons[i] = button;
                 }
             }

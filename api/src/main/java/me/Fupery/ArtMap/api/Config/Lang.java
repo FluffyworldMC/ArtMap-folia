@@ -20,12 +20,11 @@ public enum Lang implements LangSet<String> {
     ADMIN_RECIPE, RECIPE_HELP, RECIPE_EASEL_NAME, RECIPE_CANVAS_NAME, RECIPE_PAINT_BRUSH_NAME, RECIPE_ARTWORK_ARTIST, BUTTON_RENAME_NAME, BUTTON_DELETE_NAME, 
     BUTTON_ACCEPT_NAME, BUTTON_RENAME_TEXT, BUTTON_DELETE_TEXT, BUTTON_ACCEPT_TEXT, RENAMED, TITLE_QUESTION, PAINTBRUSH_GROUND, PAINTBRUSH_FORCED, PAINTBRUSH_DISABLED,
     SAVE_DIALOG_TITLE, SAVE_DIALOG_LABEL, SAVE_DIALOG_BODY, SAVE_DIALOG_SAVE, SAVE_DIALOG_SAVE_HOVER, SAVE_DIALOG_CANCEL, SAVE_DIALOG_CANCEL_HOVER,
-    ITEM_NAME_PAINTBUCKET, ITEM_NAME_COMPASS, ITEM_NAME_FEATHER, ITEM_NAME_COAL, ITEM_NAKE_FEATHER, ITEM_NAME_SPONGE,
     DYE_BLACK, DYE_RED, DYE_GREEN, DYE_BROWN, DYE_BLUE, DYE_PURPLE, DYE_CYAN, DYE_SILVER, DYE_GRAY, DYE_PINK, DYE_LIME,
     DYE_YELLOW, DYE_LIGHT_BLUE, DYE_MAGENTA, DYE_ORANGE, DYE_WHITE, DYE_CREAM, DYE_COFFEE, DYE_GRAPHITE, DYE_GUNPOWDER,
-    DYE_MAROON, DYE_AQUA, DYE_GRASS, DYE_GOLD, DYE_VOID, DYE_COAL, DYE_FEATHER, DYE_ICE, DYE_LEAVES, DYE_SNOW, DYE_BLACK_TERRACOTTA, DYE_RED_TERRACOTTA, 
-    DYE_GREEN_TERRACOTTA, DYE_BROWN_TERRACOTTA, DYE_BLUE_TERRACOTTA, DYE_PURPLE_TERRACOTTA, DYE_CYAN_TERRACOTTA, DYE_LIGHT_GRAY_TERRACOTTA, 
-    DYE_GRAY_TERRACOTTA, DYE_PINK_TERRACOTTA, DYE_LIME_TERRACOTTA, DYE_YELLOW_TERRACOTTA, DYE_LIGHT_BLUE_TERRACOTTA, DYE_MAGENTA_TERRACOTTA, 
+    DYE_MAROON, DYE_AQUA, DYE_GRASS, DYE_GOLD, DYE_VOID, DYE_COAL, DYE_FEATHER, DYE_ICE, DYE_LEAVES, DYE_SNOW, DYE_BLACK_TERRACOTTA, DYE_RED_TERRACOTTA,
+    DYE_GREEN_TERRACOTTA, DYE_BROWN_TERRACOTTA, DYE_BLUE_TERRACOTTA, DYE_PURPLE_TERRACOTTA, DYE_CYAN_TERRACOTTA, DYE_LIGHT_GRAY_TERRACOTTA,
+    DYE_GRAY_TERRACOTTA, DYE_PINK_TERRACOTTA, DYE_LIME_TERRACOTTA, DYE_YELLOW_TERRACOTTA, DYE_LIGHT_BLUE_TERRACOTTA, DYE_MAGENTA_TERRACOTTA,
     DYE_ORANGE_TERRACOTTA, DYE_WHITE_TERRACOTTA, DYE_STONE, DYE_LIGHT_GRAY, DYE_BRICK, DYE_LAPIS, DYE_EMERALD, DYE_LIGHT_WOOD, DYE_WATER, DYE_DARK_WOOD,
     DYE_CRIMSON_NYLIUM, DYE_CRIMSON_STEM, DYE_CRIMSON_HYPHAE, DYE_WARPNED_NYLIUM, DYE_WARPED_STEM, DYE_WARPED_HYPHAE, DYE_WARPED_WART_BLOCK,
     DYE_DEEPSLATE, DYE_RAW_IRON, DYE_GLOW_LICHEN,
@@ -41,7 +40,13 @@ public enum Lang implements LangSet<String> {
         LangLoader loader = new LangLoader(plugin);
         //Load basic messages
         for (Lang key : Lang.values()) {
-            key.message = loader.loadString(key.name());
+            String loaded = loader.loadString(key.name());
+            if (loaded != null) {
+                key.message = loaded;
+            } else if (key.name().startsWith("DYE_")) {
+                // Legacy palettes still use Dye keys; lang.yml no longer needs to list them.
+                key.message = prettyName(key.name().substring(4));
+            }
         }
 
         //Load Menus
@@ -75,6 +80,17 @@ public enum Lang implements LangSet<String> {
         load(plugin);
     }
 
+    private static String prettyName(String name) {
+        StringBuilder result = new StringBuilder();
+        for (String part : name.split("_")) {
+            if (part.isEmpty()) continue;
+            if (result.length() > 0) result.append(' ');
+            result.append(Character.toUpperCase(part.charAt(0)))
+                    .append(part.substring(1).toLowerCase());
+        }
+        return result.toString();
+    }
+
     @Override
     public void send(CommandSender sender) {
         if (message != null) sender.sendMessage(message);
@@ -86,7 +102,7 @@ public enum Lang implements LangSet<String> {
     }
 
     public enum MenuTitle implements LangSet<String> {
-        MENU_RECIPE, MENU_ARTIST, MENU_ARTWORKS, MENU_DYES, MENU_HELP, MENU_TOOLS, RECIPE_HEADER, MENU_DELETE, MENU_ARTWORK, MENU_HEADER;
+        MENU_RECIPE, MENU_ARTIST, MENU_ARTWORKS, MENU_TOOLS, RECIPE_HEADER, MENU_DELETE, MENU_ARTWORK, MENU_HEADER;
 
         private String message = String.format("'%s' NOT FOUND", name());
 
@@ -102,9 +118,7 @@ public enum Lang implements LangSet<String> {
     }
 
     public enum Array implements LangSet<String[]> {
-        HELP_GETTING_STARTED, HELP_RECIPES, HELP_TOOLS, HELP_DYES, HELP_LIST, HELP_CLOSE, INFO_DYES, INFO_RECIPES,
-        INFO_TOOLS, TOOL_DYE, TOOL_PAINTBUCKET, TOOL_COAL, TOOL_FEATHER, TOOL_COMPASS, RECIPE_EASEL, RECIPE_CANVAS,
-		TOOL_BUCKET, TOOL_SPONGE, RECIPE_PAINT_BRUSH, CONSOLE_HELP;
+        CONSOLE_HELP;
 
         private String[] messages = null;
 

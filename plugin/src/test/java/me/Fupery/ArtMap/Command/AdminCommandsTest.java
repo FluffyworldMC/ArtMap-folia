@@ -103,7 +103,7 @@ public class AdminCommandsTest extends PluginTestSupport {
     }
 
     @Test
-    @DisplayName("an unknown sub command answers with help, and no arguments opens the help menu")
+    @DisplayName("an unknown sub command answers with help, and no arguments opens the artists menu")
     public void dispatchUnknownAndEmpty() throws Exception {
         dispatch(admin, "frobnicate");
         verify(admin).sendMessage(Lang.HELP.get());
@@ -113,15 +113,15 @@ public class AdminCommandsTest extends PluginTestSupport {
         java.lang.reflect.Field menuField = MenuHandler.class.getDeclaredField("MENU");
         menuField.setAccessible(true);
         menuField.set(menus, list);
-        CacheableMenu help = mock(CacheableMenu.class);
-        MenuFactory helpFactory = mock(MenuFactory.class);
-        when(helpFactory.get(admin)).thenReturn(help);
-        list.HELP = helpFactory;
+        CacheableMenu artists = mock(CacheableMenu.class);
+        MenuFactory artistFactory = mock(MenuFactory.class);
+        when(artistFactory.get(admin)).thenReturn(artists);
+        list.ARTIST = artistFactory;
         when(ArtMap.instance().getMenuHandler()).thenReturn(menus);
         when(admin.hasPermission("artmap.menu")).thenReturn(true);
 
         dispatch(admin);
-        verify(menus).openMenu(admin, help);
+        verify(menus).openMenu(admin, artists);
     }
 
     @Test
