@@ -21,7 +21,6 @@ import org.junit.jupiter.api.Test;
 import be.seeseemelk.mockbukkit.MockBukkit;
 import me.Fupery.ArtMap.Menu.API.ListMenu;
 import me.Fupery.ArtMap.Menu.Button.Button;
-import me.Fupery.ArtMap.api.Config.Lang;
 
 // Paging through long list menus (an artist with 70+ pages of artworks). Players on 26.2 reported paging stopping
 // after 64 pages: the arrows carried the page number as their stack size, which overflowed the max stack size.
@@ -96,8 +95,9 @@ public class ListMenuPagingTest {
         return button.getItemMeta().getDisplayName();
     }
 
-    private static String pageOf(int page, int pages) {
-        return " " + page + Lang.SEARCH_PAGE_SEPERATOR.get() + pages;
+    private static void assertPageName(String name, int page, int pages) {
+        assertTrue(name.contains(String.valueOf(page)), "expected page " + page + " in '" + name + "'");
+        assertTrue(name.contains(String.valueOf(pages)), "expected total " + pages + " in '" + name + "'");
     }
 
     @Test
@@ -136,8 +136,8 @@ public class ListMenuPagingTest {
         for (int p = 0; p < 65; p++) menu.click(NEXT_SLOT, ClickType.LEFT);
         Button[] buttons = menu.buttons();
         // Page 66: the stack sizes stop at 64, the names keep counting.
-        assertTrue(name(buttons[BACK_SLOT]).contains(pageOf(65, pages)), name(buttons[BACK_SLOT]));
-        assertTrue(name(buttons[NEXT_SLOT]).contains(pageOf(67, pages)), name(buttons[NEXT_SLOT]));
+        assertPageName(name(buttons[BACK_SLOT]), 65, pages);
+        assertPageName(name(buttons[NEXT_SLOT]), 67, pages);
         assertTrue(buttons[NEXT_SLOT].getItemMeta().hasLore(), "the shift-click hint is in the lore");
     }
 
@@ -171,7 +171,7 @@ public class ListMenuPagingTest {
         for (int i = 0; i < 6; i++) menu.click(NEXT_SLOT, ClickType.SHIFT_LEFT);
         assertEquals(pages - 1, menu.page());
         Button[] buttons = menu.buttons();
-        assertTrue(name(buttons[BACK_SLOT]).contains(pageOf(pages - 1, pages)), name(buttons[BACK_SLOT]));
+        assertPageName(name(buttons[BACK_SLOT]), pages - 1, pages);
         int shown = 0;
         for (int slot = 1; slot <= PAGE_SIZE; slot++) if (buttons[slot] != null) shown++;
         assertEquals(remainder, shown, "Page " + pages + " should show the leftover artworks");

@@ -10,7 +10,6 @@ import java.util.Set;
 import java.util.logging.Level;
 
 import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -69,9 +68,9 @@ public class CommandHandler implements CommandExecutor, TabCompleter {
 					ArtMap.instance().reloadRuntimeConfig();
 					if (sender instanceof Player) {
 						ArtMap.instance().getScheduler().SYNC.run((Player) sender,
-								() -> sender.sendMessage("ArtMap reloaded config.yml, lang.yml and menu/*.yml."));
+								() -> sender.sendMessage(Lang.CONFIG_RELOADED.get()));
 					} else {
-						sender.sendMessage("ArtMap reloaded config.yml, lang.yml and menu/*.yml.");
+						sender.sendMessage(Lang.CONFIG_RELOADED.get());
 					}
 				});
 			}
@@ -135,12 +134,12 @@ public class CommandHandler implements CommandExecutor, TabCompleter {
 							int id = Integer.parseInt(strings[1]);
 							try {
 								if(!ArtMap.instance().getArtDatabase().containsUnsavedArtwork(id)) {
-									sender.sendMessage(Lang.PREFIX + ChatColor.RED + "No unsaved artwork with that ID.");
+									sender.sendMessage(Lang.PREFIX + Lang.UNSAVED_ARTWORK_NOT_FOUND.get());
 									return;
 								}
 								item = new ArtItem.InProgressArtworkItem(id, player.getName()).toItemStack();
 							} catch( Exception e) {
-								sender.sendMessage(Lang.PREFIX + ChatColor.RED + "Error retrieving art! Check logs for details.");
+								sender.sendMessage(Lang.PREFIX + Lang.ARTWORK_RETRIEVE_ERROR.get());
 								ArtMap.instance().getLogger().log(Level.SEVERE, "Error retrieving art!", e);
 							}
 						}
@@ -151,18 +150,18 @@ public class CommandHandler implements CommandExecutor, TabCompleter {
 							try {
 								Optional<MapArt> art = ArtMap.instance().getArtDatabase().getArtwork(title);
 								if (!art.isPresent()) {
-									sender.sendMessage(Lang.PREFIX + ChatColor.RED + String.format(Lang.MAP_NOT_FOUND.get(), title));
+									sender.sendMessage(Lang.PREFIX + String.format(Lang.MAP_NOT_FOUND.get(), title));
 									return;
 								}
 								item = art.get().getMapItem();
 							} catch( Exception e) {
-								sender.sendMessage(Lang.PREFIX + ChatColor.RED + "Error retrieving art! Check logs for details.");
+								sender.sendMessage(Lang.PREFIX + Lang.ARTWORK_RETRIEVE_ERROR.get());
 								ArtMap.instance().getLogger().log(Level.SEVERE, "Error retrieving art!", e);
 							}
 						}
 					}
 					if (item == null) {
-						sender.sendMessage(Lang.PREFIX + ChatColor.RED + this.usage);
+						sender.sendMessage(Lang.PREFIX + String.format(Lang.COMMAND_USAGE_ERROR.get(), this.usage));
 						return;
 					}
 					if (args.length > 3) {
@@ -174,7 +173,7 @@ public class CommandHandler implements CommandExecutor, TabCompleter {
 					ArtMap.instance().getScheduler().SYNC.run(player, () -> ItemUtils.giveItem(player, finalItem));
 					return;
 				}
-				sender.sendMessage(Lang.PREFIX + ChatColor.RED + String.format(Lang.PLAYER_NOT_FOUND.get(), args[1]));
+				sender.sendMessage(Lang.PREFIX + String.format(Lang.PLAYER_NOT_FOUND.get(), args[1]));
 			}
 		});
 

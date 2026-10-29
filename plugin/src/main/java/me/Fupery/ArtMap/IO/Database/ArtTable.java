@@ -16,6 +16,7 @@ import org.bukkit.Bukkit;
 
 import me.Fupery.ArtMap.ArtMap;
 import me.Fupery.ArtMap.IO.MapArt;
+import me.Fupery.ArtMap.api.Config.Lang;
 
 final class ArtTable extends SQLiteTable {
 
@@ -114,7 +115,7 @@ final class ArtTable extends SQLiteTable {
             name = Bukkit.getOfflinePlayer(artist).getName();
         }
         if (name == null || name.isEmpty() || "null".equalsIgnoreCase(name)) {
-            name = "Unknown";
+            name = Lang.ARTWORK_UNKNOWN_ARTIST.get();
         }
         return new MapArt(id, title, artist,name,date);
     }

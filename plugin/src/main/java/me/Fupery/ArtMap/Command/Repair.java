@@ -37,7 +37,7 @@ public class Repair extends AsyncCommand {
         switch (args[1]) {
             case "-scan":
                 if(all) {
-                    msg.message = "Scan will be run asynchronously check the logs for progress.";
+                    msg.message = Lang.REPAIR_ASYNC.get();
                     repairAll(false);
                     return;
                 }
@@ -45,7 +45,7 @@ public class Repair extends AsyncCommand {
                 break;
             case "-repair":
                 if(all) {
-                    msg.message = "Scan will be run asynchronously check the logs for progress.";
+                    msg.message = Lang.REPAIR_ASYNC.get();
                     repairAll(true);
                     return;  
                 }

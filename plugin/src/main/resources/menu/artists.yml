@@ -25,7 +25,9 @@ items:
     action: sort
 
 list:
+  # Inclusive range of slots the page entries may use. Omit end-slot to use the rest of the inventory.
   start-slot: 1
+  end-slot: 44
   page-size: 25
   previous-slot: 0
   next-slot: 26

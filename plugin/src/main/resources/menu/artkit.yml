@@ -132,7 +132,9 @@ items:
     tool: CIRCLE_FILLED
 
 list:
+  # Inclusive range of slots the page entries may use. Omit end-slot to use the rest of the inventory.
   start-slot: 9
+  end-slot: 44
   page-size: 36
   previous-slot: 45
   next-slot: 53

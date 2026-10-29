@@ -1,7 +1,7 @@
 package me.Fupery.ArtMap.Listeners;
 
 import me.Fupery.ArtMap.ArtMap;
-import net.md_5.bungee.api.ChatColor;
+import me.Fupery.ArtMap.api.Config.Lang;
 
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.player.PlayerJoinEvent;
@@ -14,7 +14,7 @@ class PlayerJoinEventListener implements RegisteredListener {
             ArtMap.instance().getHeadsCache().updateCache(event.getPlayer().getUniqueId())
         );
         if(ArtMap.instance().isDBUpgradeNeeded() && event.getPlayer().hasPermission("artmap.admin")) {
-            event.getPlayer().sendMessage(ChatColor.LIGHT_PURPLE + "Artmap: Old Artmap database needs coverted.  Please use /artmap covert");
+            event.getPlayer().sendMessage(Lang.DATABASE_CONVERSION_NOTICE.get());
         }   
     }
 

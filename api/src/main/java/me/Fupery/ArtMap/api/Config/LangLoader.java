@@ -70,9 +70,9 @@ class LangLoader {
             Object value = defaults.get(key);
             missingStrings.put(key, value);
             logLangError(String.format("Missing key in lang.yml: '%s'", key));
-            return defaults.getString(key);
+            return LangColors.translate(defaults.getString(key));
         }
-        return lang.getString(key);
+        return LangColors.translate(lang.getString(key));
     }
 
     @Nonnull
@@ -80,11 +80,11 @@ class LangLoader {
         if (lang.contains(key)) {
             List<String> messages = lang.getStringList(key);
             if (!messages.isEmpty()) {
-                return messages.toArray(new String[0]);
+                return translated(messages);
             }
             String single = lang.getString(key);
             if (single != null) {
-                return new String[]{single};
+                return new String[]{LangColors.translate(single)};
             }
         }
         if (defaults == null || !defaults.contains(key)) {
@@ -94,10 +94,18 @@ class LangLoader {
         missingStrings.put(key, value);
         List<String> messages = defaults.getStringList(key);
         if (!messages.isEmpty()) {
-            return messages.toArray(new String[0]);
+            return translated(messages);
         }
         String single = defaults.getString(key);
-        return single != null ? new String[]{single} : new String[0];
+        return single != null ? new String[]{LangColors.translate(single)} : new String[0];
+    }
+
+    private static String[] translated(List<String> messages) {
+        String[] result = new String[messages.size()];
+        for (int i = 0; i < messages.size(); i++) {
+            result[i] = LangColors.translate(messages.get(i));
+        }
+        return result;
     }
 
     String[] loadRegex(String key) {

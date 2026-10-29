@@ -5,28 +5,24 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
-import org.bukkit.ChatColor;
 import org.bukkit.Color;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.inventory.meta.MapMeta;
 
 import io.papermc.paper.datacomponent.DataComponentTypes;
 import io.papermc.paper.datacomponent.item.DyedItemColor;
 import net.md_5.bungee.api.chat.BaseComponent;
 
 import me.Fupery.ArtMap.Recipe.ArtMaterial;
+import me.Fupery.ArtMap.api.Config.LangColors;
 
 /** Builds menu items and applies the optional 1.14/1.21 item metadata through reflection. */
 public final class MenuItems {
-
-    private static final Pattern HEX_COLOR = Pattern.compile("&#([0-9A-Fa-f]{6})");
-    private static final Pattern HEX_SEQUENCE = Pattern.compile("&x((?:&[0-9A-Fa-f]){6})");
 
     private MenuItems() {
     }
@@ -49,14 +45,33 @@ public final class MenuItems {
             Material material = definition.getMaterial(stack != null ? stack.getType() : Material.STONE);
             if (stack == null) {
                 stack = new ItemStack(material);
-            } else if (material != stack.getType()) {
-                ItemStack replacement = new ItemStack(material);
-                if (stack.hasItemMeta()) replacement.setItemMeta(stack.getItemMeta());
-                stack = replacement;
+            } else {
+                stack = changeMaterial(stack, material);
             }
         }
         if (stack == null) stack = new ItemStack(Material.STONE);
         return apply(stack, definition, placeholders);
+    }
+
+    /**
+     * Swaps the item's material while keeping as much of the existing meta as the new
+     * material accepts. Material specific meta (for example a map view on a non-map item)
+     * is dropped instead of failing the whole menu build.
+     */
+    private static ItemStack changeMaterial(ItemStack stack, Material material) {
+        if (stack == null || material == null || material == stack.getType()) return stack;
+        ItemStack replacement = new ItemStack(material, Math.max(1, Math.min(64, stack.getAmount())));
+        if (stack.hasItemMeta()) {
+            try {
+                // setItemMeta returns false (rather than throwing) when the meta type does
+                // not fit the new material, for example a MapMeta on a PAPER item.
+                replacement.setItemMeta(stack.getItemMeta());
+            } catch (IllegalArgumentException ignored) {
+                // The caller re-applies the configured name/lore where needed.
+            }
+        }
+        copyDyedColor(stack, replacement);
+        return replacement;
     }
 
     public static ItemStack apply(ItemStack stack, MenuItemDefinition definition, Map<String, String> placeholders) {
@@ -102,12 +117,36 @@ public final class MenuItems {
     public static void applyInPlace(ItemStack stack, MenuItemDefinition definition,
                                     Map<String, String> placeholders) {
         if (stack == null || definition == null) return;
+        Material material = definition.getMaterial(stack.getType());
+        if (material != stack.getType()) {
+            // Build the replacement from scratch so the configured name/lore/item_model are
+            // applied to the new material instead of trying to transplant material specific
+            // meta (such as a map view) onto an item that cannot hold it.
+            ItemStack result = apply(new ItemStack(material), definition, placeholders);
+            copyMapView(stack, result);
+            copyDyedColor(stack, result);
+            stack.setType(result.getType());
+            stack.setAmount(result.getAmount());
+            stack.setItemMeta(result.getItemMeta());
+            copyDyedColor(result, stack);
+            return;
+        }
         ItemStack result = apply(stack, definition, placeholders);
         if (result == null || result == stack) return;
         stack.setType(result.getType());
         stack.setAmount(result.getAmount());
         stack.setItemMeta(result.getItemMeta());
         copyDyedColor(result, stack);
+    }
+
+    /** Keeps the artwork thumbnail when the configured material is another map item. */
+    private static void copyMapView(ItemStack from, ItemStack to) {
+        if (from == null || to == null) return;
+        if (!(from.getItemMeta() instanceof MapMeta source)) return;
+        if (!(to.getItemMeta() instanceof MapMeta target)) return;
+        if (source.hasMapView()) target.setMapView(source.getMapView());
+        if (source.hasLocationName()) target.setLocationName(source.getLocationName());
+        to.setItemMeta(target);
     }
 
     /** Applies only item_model/custom_model_data, leaving the name and lore alone. */
@@ -181,38 +220,7 @@ public final class MenuItems {
     }
 
     public static String translate(String text) {
-        if (text == null) return null;
-        String result = replaceHex(text);
-        result = replaceHexSequence(result);
-        return ChatColor.translateAlternateColorCodes('&', result);
-    }
-
-    /** Turns &#rrggbb into the §x§r§r§g§g§b§b sequence used by Minecraft 1.16+. */
-    private static String replaceHex(String text) {
-        Matcher matcher = HEX_COLOR.matcher(text);
-        StringBuffer buffer = new StringBuffer();
-        while (matcher.find()) {
-            String hex = matcher.group(1).toLowerCase();
-            StringBuilder replacement = new StringBuilder("§x");
-            for (int i = 0; i < hex.length(); i++) {
-                replacement.append('§').append(hex.charAt(i));
-            }
-            matcher.appendReplacement(buffer, Matcher.quoteReplacement(replacement.toString()));
-        }
-        matcher.appendTail(buffer);
-        return buffer.toString();
-    }
-
-    /** Also accepts the &x&r&r&g&g&b&b form. */
-    private static String replaceHexSequence(String text) {
-        Matcher matcher = HEX_SEQUENCE.matcher(text);
-        StringBuffer buffer = new StringBuffer();
-        while (matcher.find()) {
-            String sequence = matcher.group(1).replace('&', '§');
-            matcher.appendReplacement(buffer, Matcher.quoteReplacement("§x" + sequence));
-        }
-        matcher.appendTail(buffer);
-        return buffer.toString();
+        return LangColors.translate(text);
     }
 
     public static String replace(String text, Map<String, String> placeholders) {
@@ -255,7 +263,7 @@ public final class MenuItems {
     }
 
     private static NamespacedKey parseKey(String value) {
-        String input = value.trim();
+        String input = value.trim().toLowerCase(java.util.Locale.ROOT);
         int colon = input.indexOf(':');
         String namespace = colon >= 0 ? input.substring(0, colon) : "minecraft";
         String key = colon >= 0 ? input.substring(colon + 1) : input;

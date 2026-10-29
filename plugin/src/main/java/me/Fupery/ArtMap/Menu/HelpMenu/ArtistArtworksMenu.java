@@ -82,8 +82,7 @@ public class ArtistArtworksMenu extends ListMenu implements ChildMenu {
     }
 
     public static boolean isPreviewItem(ItemStack item) {
-        return item != null && item.getType() == Material.FILLED_MAP && item.hasItemMeta()
-                && item.getItemMeta().hasLore() && item.getItemMeta().getLore().get(0).equals(ArtItem.PREVIEW_KEY);
+        return ArtItem.isPreviewItem(item);
     }
 
     @Override
@@ -175,17 +174,17 @@ public class ArtistArtworksMenu extends ListMenu implements ChildMenu {
             placeholders.put("artist", artwork.getArtistName() != null ? artwork.getArtistName() : "");
             placeholders.put("date", artwork.getDate());
             MenuItems.applyInPlace(this, item, placeholders);
-            if (adminButton) addLore(ChatColor.GOLD, Lang.ADMIN_RECIPE.get());
+            if (adminButton) addLore(Lang.ADMIN_RECIPE.get());
 
             this.artwork = artwork;
             this.artworkMenu = menu;
         }
 
-        private void addLore(ChatColor colour, String line) {
+        private void addLore(String line) {
             if (line == null) return;
             org.bukkit.inventory.meta.ItemMeta meta = getItemMeta();
             List<String> lore = meta.getLore() != null ? new ArrayList<>(meta.getLore()) : new ArrayList<>();
-            lore.add(colour + line);
+            lore.add(line);
             meta.setLore(lore);
             setItemMeta(meta);
         }

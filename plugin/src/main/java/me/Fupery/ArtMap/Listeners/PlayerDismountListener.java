@@ -2,6 +2,7 @@ package me.Fupery.ArtMap.Listeners;
 
 import me.Fupery.ArtMap.ArtMap;
 import me.Fupery.ArtMap.Painting.ArtSession;
+import me.Fupery.ArtMap.api.Config.Lang;
 
 import java.io.IOException;
 import java.sql.SQLException;
@@ -35,7 +36,7 @@ public class PlayerDismountListener implements RegisteredListener {
                 ArtMap.instance().getArtistHandler().removePlayer(player);
             } catch (SQLException | IOException e) {
                 ArtMap.instance().getLogger().log(Level.SEVERE, "Database error!", e);
-                player.sendMessage("Error Saving Artwork check logs.");
+                player.sendMessage(Lang.ARTWORK_SAVE_ERROR.get());
             }
         }
     }

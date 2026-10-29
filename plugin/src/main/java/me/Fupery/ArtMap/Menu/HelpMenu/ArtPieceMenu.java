@@ -7,7 +7,6 @@ import java.util.concurrent.Future;
 import java.util.concurrent.FutureTask;
 import java.util.logging.Level;
 
-import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.ClickType;
@@ -16,9 +15,21 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.MapMeta;
 
+import io.papermc.paper.dialog.Dialog;
+import io.papermc.paper.registry.data.dialog.ActionButton;
+import io.papermc.paper.registry.data.dialog.DialogBase;
+import io.papermc.paper.registry.data.dialog.action.DialogAction;
+import io.papermc.paper.registry.data.dialog.body.DialogBody;
+import io.papermc.paper.registry.data.dialog.input.DialogInput;
+import io.papermc.paper.registry.data.dialog.type.DialogType;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.event.ClickCallback;
+import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
+
 import me.Fupery.ArtMap.ArtMap;
 import me.Fupery.ArtMap.api.Config.Lang;
 import me.Fupery.ArtMap.IO.MapArt;
+import me.Fupery.ArtMap.IO.TitleFilter;
 import me.Fupery.ArtMap.Menu.API.ChildMenu;
 import me.Fupery.ArtMap.Menu.API.ListMenu;
 import me.Fupery.ArtMap.Menu.API.MenuType;
@@ -34,7 +45,6 @@ import me.Fupery.ArtMap.Menu.Handler.CacheableMenu;
 import me.Fupery.ArtMap.Preview.ArtPreview;
 import me.Fupery.ArtMap.Recipe.ArtItem;
 import me.Fupery.ArtMap.Utils.ItemUtils;
-import net.wesjd.anvilgui.AnvilGUI;
 
 public class ArtPieceMenu extends ListMenu implements ChildMenu {
 	private static final String MENU_ID = "artwork";
@@ -66,8 +76,7 @@ public class ArtPieceMenu extends ListMenu implements ChildMenu {
 	}
 
 	public static boolean isPreviewItem(ItemStack item) {
-		return item != null && item.getType() == Material.FILLED_MAP && item.hasItemMeta()
-				&& item.getItemMeta().hasLore() && item.getItemMeta().getLore().get(0).equals(ArtItem.PREVIEW_KEY);
+		return ArtItem.isPreviewItem(item);
 	}
 
 	@Override
@@ -128,19 +137,19 @@ public class ArtPieceMenu extends ListMenu implements ChildMenu {
 			setItemMeta(meta);
 			MenuItems.applyInPlace(this, definition().getItem("preview"), placeholders);
 			if (player.hasPermission("artmap.admin")) {
-				addLore(ChatColor.GOLD, Lang.ADMIN_RECIPE.get());
+				addLore(Lang.ADMIN_RECIPE.get());
 			} else if (artwork.getArtistPlayer().equals(player)) {
-				addLore(ChatColor.GOLD, Lang.RECIPE_PLAYER_MAP_COPY.get());
+				addLore(Lang.RECIPE_PLAYER_MAP_COPY.get());
 			}
 			this.artwork = artwork;
 			this.artworkMenu = menu;
 		}
 
-		private void addLore(ChatColor colour, String line) {
+		private void addLore(String line) {
 			if (line == null) return;
 			ItemMeta meta = getItemMeta();
 			List<String> lore = meta.getLore() != null ? new ArrayList<>(meta.getLore()) : new ArrayList<>();
-			lore.add(colour + line);
+			lore.add(line);
 			meta.setLore(lore);
 			setItemMeta(meta);
 		}
@@ -230,36 +239,79 @@ public class ArtPieceMenu extends ListMenu implements ChildMenu {
 
 		@Override
 		public void onClick(Player player, ClickType clickType) {
-
-			if (clickType == ClickType.LEFT) {
-				ArtMap.instance().getMenuHandler().closeMenu(player, MenuCloseReason.DONE);
-
-				if (this.artwork.getArtist().equals(player.getUniqueId()) || player.hasPermission("artmap.admin")) {
-					AnvilGUI.Builder gui = new AnvilGUI.Builder();
-					gui.plugin(ArtMap.instance()).text(Lang.TITLE_QUESTION.get()).onClick((slot, snapshot) -> {
-						//ignore anything that isnt the output slot
-						if(slot != AnvilGUI.Slot.OUTPUT) {
-							return Collections.emptyList();
-						}
-						ArtMap.instance().getScheduler().SYNC.run(player, () -> {
-							try {
-								ArtMap.instance().getArtDatabase().renameArtwork(this.artwork, snapshot.getText());
-								player.sendMessage(String.format(Lang.RENAMED.get(), this.artwork.getTitle()));
-								ArtMap.instance().getMenuHandler().openMenu(player, this.artworkMenu.getParent(player));
-							} catch (SQLException | NoSuchFieldException | IllegalAccessException e) {
-								ArtMap.instance().getLogger().log(Level.SEVERE, "Rename Artwork Failure!", e);
-								player.sendMessage("Error Renaming Artwork check logs.");
-            					return; 
-							}
-						});
-						return Collections.singletonList(AnvilGUI.ResponseAction.close());
-					});
-					gui.open(player);
-				} else {
-					player.sendMessage(Lang.NO_PERM.get() + " " + this.artwork.getArtist().equals(player.getUniqueId())
-							+ " " + player.hasPermission("artmap.admin"));
-				}
+			if (clickType != ClickType.LEFT) {
+				return;
 			}
+			ArtMap.instance().getMenuHandler().closeMenu(player, MenuCloseReason.DONE);
+
+			if (!this.artwork.getArtist().equals(player.getUniqueId()) && !player.hasPermission("artmap.admin")) {
+				Lang.NO_PERM.send(player);
+				return;
+			}
+			ArtMap.instance().getScheduler().SYNC.run(player, () -> showDialog(player));
+		}
+
+		private void showDialog(Player player) {
+			if (!player.isOnline()) {
+				return;
+			}
+			Component title = text(Lang.RENAME_DIALOG_TITLE.get(), "Rename Artwork");
+			Component body = text(Lang.RENAME_DIALOG_BODY.get(),
+					"Enter a new title between 3 and 16 characters.");
+			Component label = text(Lang.RENAME_DIALOG_LABEL.get(), "Artwork title");
+			Dialog dialog = Dialog.create(builder -> builder.empty()
+					.base(DialogBase.builder(title)
+							.body(List.of(DialogBody.plainMessage(body)))
+							.inputs(List.of(DialogInput.text("title", label)
+									.initial(this.artwork.getTitle())
+									.maxLength(16)
+									.width(300)
+									.build()))
+							.build())
+					.type(DialogType.confirmation(
+							ActionButton.create(
+									text(Lang.RENAME_DIALOG_SAVE.get(), "Rename"),
+									text(Lang.RENAME_DIALOG_SAVE_HOVER.get(), "Rename this artwork"),
+									150,
+									DialogAction.customClick((view, audience) -> {
+										if (!(audience instanceof Player clicker)) {
+											return;
+										}
+										String entered = view.getText("title");
+										clicker.closeDialog();
+										ArtMap.instance().getScheduler().SYNC.run(clicker,
+												() -> rename(clicker, entered));
+									}, ClickCallback.Options.builder().uses(1).build())),
+							ActionButton.create(
+									text(Lang.RENAME_DIALOG_CANCEL.get(), "Cancel"),
+									text(Lang.RENAME_DIALOG_CANCEL_HOVER.get(), "Cancel renaming"),
+									150,
+									null))));
+			player.showDialog(dialog);
+		}
+
+		private void rename(Player player, String enteredTitle) {
+			if (!player.isOnline()) {
+				return;
+			}
+			String title = enteredTitle == null ? null : enteredTitle.trim();
+			TitleFilter filter = new TitleFilter(Lang.Filter.ILLEGAL_EXPRESSIONS.get());
+			if (title == null || !filter.check(title)) {
+				player.sendMessage(Lang.BAD_TITLE.get());
+				return;
+			}
+			try {
+				ArtMap.instance().getArtDatabase().renameArtwork(this.artwork, title);
+				player.sendMessage(String.format(Lang.RENAMED.get(), title));
+				ArtMap.instance().getMenuHandler().openMenu(player, this.artworkMenu.getParent(player));
+			} catch (SQLException | NoSuchFieldException | IllegalAccessException e) {
+				ArtMap.instance().getLogger().log(Level.SEVERE, "Rename Artwork Failure!", e);
+				player.sendMessage(Lang.ARTWORK_RENAME_ERROR.get());
+			}
+		}
+
+		private static Component text(String value, String fallback) {
+			return LegacyComponentSerializer.legacySection().deserialize(value != null ? value : fallback);
 		}
 	}
 }

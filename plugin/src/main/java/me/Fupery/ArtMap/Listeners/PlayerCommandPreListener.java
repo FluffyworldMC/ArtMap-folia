@@ -9,7 +9,6 @@ import org.bukkit.event.player.PlayerCommandPreprocessEvent;
 
 import me.Fupery.ArtMap.ArtMap;
 import me.Fupery.ArtMap.api.Config.Lang;
-import net.md_5.bungee.api.ChatColor;
 	
 class PlayerCommandPreListener implements RegisteredListener {
 	
@@ -34,7 +33,7 @@ class PlayerCommandPreListener implements RegisteredListener {
 				for(String disallowed : this.blacklist) {
 					if(message.startsWith(disallowed, 1)) {
 						event.setCancelled(true);
-						event.getPlayer().sendMessage(Lang.PREFIX + ChatColor.RED + "This command can't be used at an easel.");
+						event.getPlayer().sendMessage(Lang.PREFIX + Lang.EASEL_COMMAND_BLOCKED.get());
 					}
 				}
 			}

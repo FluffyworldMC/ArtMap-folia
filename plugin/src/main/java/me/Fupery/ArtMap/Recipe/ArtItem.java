@@ -1,9 +1,9 @@
 package me.Fupery.ArtMap.Recipe;
 
-import static org.bukkit.ChatColor.DARK_GREEN;
-import static org.bukkit.ChatColor.GOLD;
-import static org.bukkit.ChatColor.ITALIC;
-import static org.bukkit.ChatColor.YELLOW;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -14,94 +14,112 @@ import org.bukkit.inventory.meta.MapMeta;
 import me.Fupery.ArtMap.ArtMap;
 import me.Fupery.ArtMap.Utils.ItemUtils;
 import me.Fupery.ArtMap.api.Config.Lang;
+import me.Fupery.ArtMap.api.Config.LangColors;
 
 public class ArtItem {
 
-    private static final String ARTWORK_TAG = ChatColor.AQUA.toString() + ChatColor.ITALIC + "Player Artwork";
-    private static final String UNFINISHED_TAG = ChatColor.AQUA.toString() + ChatColor.ITALIC + "Unfinished Artwork";
-    private static final String COPY_TAG = ChatColor.AQUA.toString() + ChatColor.ITALIC + "Artwork Copy";
+    /**
+     * Default preview lore used before lang.yml is loaded. Prefer {@link #previewKey()} so a
+     * server owner's PREVIEW_TAG is honoured.
+     */
     public static final String PREVIEW_KEY = ChatColor.AQUA.toString() + ChatColor.ITALIC + "Preview Artwork";
-    
+
     private ArtItem() {
-        //hide consstructor
+        //hide constructor
     }
 
-    /** Keeps old/corrupt rows from printing "by null" on artwork items. */
+    /** The configured tag for an artwork item type, translated to section signs. */
+    public static String tag(Lang key) {
+        return translate(key != null ? key.get() : null);
+    }
+
+    public static String previewKey() {
+        return tag(Lang.PREVIEW_TAG);
+    }
+
+    /** Keeps old/corrupt rows from printing the raw artist placeholder on artwork items. */
     private static String safeArtistName(String name) {
-        return name == null || name.isEmpty() || "null".equalsIgnoreCase(name) ? "Unknown" : name;
+        return name == null || name.isEmpty() || "null".equalsIgnoreCase(name)
+                ? translate(Lang.ARTWORK_UNKNOWN_ARTIST.get()) : name;
     }
 
-    /**
-     * Determine wether the provided ItemStack is an Artwork
-     * @param itemStack The ItemStack to check.
-     * @return  True if the ItemStack is an original Artwork false otherwise.
-     */
     public static boolean isArtwork(ItemStack itemStack) {
-        if (itemStack != null
-                && itemStack.getType() == Material.FILLED_MAP
-		        && itemStack.hasItemMeta()) {
-            ItemMeta itemMeta = itemStack.getItemMeta();
-            if (itemMeta.hasLore() && (itemMeta.getLore().get(0).contains(ARTWORK_TAG) || 
-                itemMeta.getLore().get(0).contains(UNFINISHED_TAG) ||
-                itemMeta.getLore().get(0).contains(COPY_TAG) )) {
-                return true;
-            }
-        }
-        return false;
+        return isTagged(itemStack, tag(Lang.ARTWORK_TAG))
+                || isTagged(itemStack, tag(Lang.UNFINISHED_TAG))
+                || isTagged(itemStack, tag(Lang.COPY_TAG));
     }
 
-    /**
-     * Determine wether the provided ItemStack is an Original Artwork.
-     * @param itemStack The ItemStack to check.
-     * @return  True if the ItemStack is an original Artwork false otherwise.
-     */
     public static boolean isOriginalArtwork(ItemStack itemStack) {
-        if (itemStack != null
-                && itemStack.getType() == Material.FILLED_MAP
-		        && itemStack.hasItemMeta()) {
-            ItemMeta itemMeta = itemStack.getItemMeta();
-            if (itemMeta.hasLore() && itemMeta.getLore().get(0).contains(ARTWORK_TAG)) {
-                return true;
-            }
-        }
-        return false;
+        return isTagged(itemStack, tag(Lang.ARTWORK_TAG));
     }
 
-    /**
-     * Determine whether the provided ItemStack is an Unfinished Artwork.
-     * @param itemStack The ItemStack to check.
-     * @return  True if the ItemStack is an Unfinished Artwork false otherwise.
-     */
     public static boolean isUnfinishedArtwork(ItemStack itemStack) {
-        if (itemStack != null
-                && itemStack.getType() == Material.FILLED_MAP
-		        && itemStack.hasItemMeta()) {
-            ItemMeta itemMeta = itemStack.getItemMeta();
-            if (itemMeta.hasLore() && itemMeta.getLore().get(0).contains(UNFINISHED_TAG)) {
-                return true;
-            }
-        }
-        return false;
+        return isTagged(itemStack, tag(Lang.UNFINISHED_TAG));
+    }
+
+    public static boolean isCopyArtwork(ItemStack itemStack) {
+        return isTagged(itemStack, tag(Lang.COPY_TAG));
+    }
+
+    public static boolean isPreviewItem(ItemStack itemStack) {
+        return isTagged(itemStack, previewKey());
     }
 
     /**
-     * Determine whether the provided ItemStack is an Copy Artwork.
-     * @param itemStack The ItemStack to check.
-     * @return  True if the ItemStack is an Copy Artwork false otherwise.
+     * Checks every lore line rather than only the first one, so server owners can put extra
+     * information (scaling, levels, ...) above the artwork tag in their lore templates.
      */
-    public static boolean isCopyArtwork(ItemStack itemStack) {
-        if (itemStack != null
-                && itemStack.getType() == Material.FILLED_MAP
-		        && itemStack.hasItemMeta()) {
-            ItemMeta itemMeta = itemStack.getItemMeta();
-            if (itemMeta.hasLore() && itemMeta.getLore().get(0).contains(COPY_TAG)) {
-                return true;
-            }
+    private static boolean isTagged(ItemStack itemStack, String tag) {
+        if (tag == null || tag.isEmpty()) return false;
+        if (itemStack == null || itemStack.getType() != Material.FILLED_MAP || !itemStack.hasItemMeta()) {
+            return false;
+        }
+        ItemMeta itemMeta = itemStack.getItemMeta();
+        List<String> lore = itemMeta.getLore();
+        if (lore == null) return false;
+        for (String line : lore) {
+            if (line != null && line.contains(tag)) return true;
         }
         return false;
     }
 
-	//private static final char BULLET_POINT = '\u2022';
+    public static String translate(String text) {
+        return LangColors.translate(text);
+    }
+
+    private static Map<String, String> placeholders(int id, String title, String artistName, String date) {
+        Map<String, String> placeholders = new HashMap<>();
+        placeholders.put("title", title != null ? title : "");
+        placeholders.put("artist", safeArtistName(artistName));
+        placeholders.put("date", date != null ? date : "");
+        placeholders.put("id", String.valueOf(id));
+        return placeholders;
+    }
+
+    private static String apply(String template, Map<String, String> placeholders) {
+        String result = template != null ? template : "";
+        for (Map.Entry<String, String> entry : placeholders.entrySet()) {
+            result = result.replace("{" + entry.getKey() + "}", entry.getValue());
+        }
+        return translate(result);
+    }
+
+    private static List<String> applyLore(Lang.Array template, Map<String, String> placeholders) {
+        List<String> lines = new ArrayList<>();
+        for (String line : template.get()) {
+            if (line == null) continue;
+            lines.add(apply(line, placeholders));
+        }
+        return lines;
+    }
+
+    private static ItemStack filledMap(int id) {
+        ItemStack stack = new ItemStack(Material.FILLED_MAP);
+        MapMeta meta = (MapMeta) stack.getItemMeta();
+        meta.setMapView(ArtMap.getMap(id));
+        stack.setItemMeta(meta);
+        return stack;
+    }
 
     public static class ArtworkItem extends CustomItem {
         /**
@@ -112,13 +130,11 @@ public class ArtItem {
          * @param date - The date the item was created.
          */
         public ArtworkItem(int id, String title, String artistName, String date) {
-			super(new ItemStack(Material.FILLED_MAP), ARTWORK_TAG);
-			MapMeta meta = (MapMeta) this.stack.get().getItemMeta();
-			meta.setMapView(ArtMap.getMap(id));
-			this.stack.get().setItemMeta(meta);
-            name(title);
-            String artist = GOLD + String.format(Lang.RECIPE_ARTWORK_ARTIST.get(), (YELLOW + safeArtistName(artistName)));
-            tooltip(artist, String.valueOf(DARK_GREEN) + ITALIC + date);
+            super(filledMap(id), tag(Lang.ARTWORK_TAG));
+            Map<String, String> placeholders = placeholders(id, title, artistName, date);
+            placeholders.put("tag", tag(Lang.ARTWORK_TAG));
+            name(apply(Lang.ARTWORK_NAME.get(), placeholders));
+            lore(applyLore(Lang.Array.ARTWORK_LORE, placeholders));
         }
     }
 
@@ -128,29 +144,25 @@ public class ArtItem {
          * @param id - The map id of the inprogress artwork.
          */
         public InProgressArtworkItem(int id, String artistName) {
-			super(new ItemStack(Material.FILLED_MAP), UNFINISHED_TAG);
-			MapMeta meta = (MapMeta) this.stack.get().getItemMeta();
-			meta.setMapView(ArtMap.getMap(id));
-			this.stack.get().setItemMeta(meta);
-            name("Unfinished");
-            String artist = GOLD + String.format(Lang.RECIPE_ARTWORK_ARTIST.get(), (YELLOW + safeArtistName(artistName)));
-            tooltip(artist);
+            super(filledMap(id), tag(Lang.UNFINISHED_TAG));
+            Map<String, String> placeholders = placeholders(id, null, artistName, null);
+            placeholders.put("tag", tag(Lang.UNFINISHED_TAG));
+            name(apply(Lang.UNFINISHED_NAME.get(), placeholders));
+            lore(applyLore(Lang.Array.UNFINISHED_LORE, placeholders));
         }
     }
 
     public static class CopyArtworkItem extends CustomItem {
         /**
-         * Creates a copy artowrk item.
-         * @param id
+         * Creates a copy artwork item.
+         * @param id - The map id of the copy.
          */
         public CopyArtworkItem(int id, String title, String artistName, String date) {
-			super(new ItemStack(Material.FILLED_MAP), COPY_TAG);
-			MapMeta meta = (MapMeta) this.stack.get().getItemMeta();
-			meta.setMapView(ArtMap.getMap(id));
-			this.stack.get().setItemMeta(meta);
-            name(title);
-            String artist = GOLD + String.format(Lang.RECIPE_ARTWORK_ARTIST.get(), (YELLOW + safeArtistName(artistName)));
-            tooltip(artist, String.valueOf(DARK_GREEN) + ITALIC + date);
+            super(filledMap(id), tag(Lang.COPY_TAG));
+            Map<String, String> placeholders = placeholders(id, title, artistName, date);
+            placeholders.put("tag", tag(Lang.COPY_TAG));
+            name(apply(Lang.COPY_NAME.get(), placeholders));
+            lore(applyLore(Lang.Array.COPY_LORE, placeholders));
         }
     }
 

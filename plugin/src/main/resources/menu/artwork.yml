@@ -28,6 +28,7 @@ items:
       - "§cClicking this will delete every copy of the artwork in the world!"
     condition: owner-or-admin
   rename:
+    # Opens the rename dialog; its texts come from the RENAME_DIALOG_* keys in lang.yml.
     slot: 3
     material: WRITABLE_BOOK
     display_name: "§aRename"

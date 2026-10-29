@@ -40,7 +40,7 @@ class CommandClear extends AsyncCommand {
                 session.clearMap();
                 session.persistMap(true);
             } catch (NoSuchFieldException | IllegalAccessException | SQLException | IOException e) {
-                sender.sendMessage("Failure breaking the easel! Check the server logs.");
+                sender.sendMessage(Lang.COMMAND_CLEAR_ERROR.get());
                 ArtMap.instance().getLogger().log(Level.SEVERE, "Failure breaking easel!", e);
             }
         });

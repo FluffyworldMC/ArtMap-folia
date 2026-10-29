@@ -108,7 +108,7 @@ class PlayerCraftListener implements RegisteredListener {
             return Optional.empty();
         } catch (SQLException e) {
             ArtMap.instance().getLogger().log(Level.SEVERE, "Database error!", e);
-            who.sendMessage("Error Retrieving Artwork check logs.");
+            who.sendMessage(Lang.ARTWORK_RETRIEVE_ERROR.get());
             return Optional.empty();
         }
     }

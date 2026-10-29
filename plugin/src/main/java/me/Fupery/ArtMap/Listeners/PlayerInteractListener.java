@@ -160,7 +160,7 @@ class PlayerInteractListener implements RegisteredListener {
                         .orElseThrow(()-> new ArtMapException("Art not found!"));
                 } catch (SQLException e) {
                     ArtMap.instance().getLogger().log(Level.SEVERE, "Database error!", e);
-					ArtMap.instance().getScheduler().SYNC.run(player, () -> player.sendMessage("Error Retrieving Artwork check logs."));
+					ArtMap.instance().getScheduler().SYNC.run(player, () -> player.sendMessage(Lang.ARTWORK_RETRIEVE_ERROR.get()));
             		return; 
                 } catch (ArtMapException e) {
                     return; //some maps do not have mapviews and we don't want to spam about it here.

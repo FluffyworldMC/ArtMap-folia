@@ -19,7 +19,7 @@ class CommandDelete extends AsyncCommand {
     @Override
     public void runCommand(CommandSender sender, String[] args, ReturnMessage msg) {
 		if (ArtMap.instance().getConfiguration().FORCE_GUI) {
-			sender.sendMessage("Please use the Paint Brush to access the artwork for delete.");
+			sender.sendMessage(Lang.COMMAND_DELETE_USAGE.get());
 			return;
 		}
         if (args.length < 2) {
@@ -42,7 +42,7 @@ class CommandDelete extends AsyncCommand {
             ArtMap.instance().getArtDatabase().deleteArtwork(art.get());
             msg.message = String.format(Lang.DELETED.get(), args[1]);
         } catch(Exception e) {
-            sender.sendMessage("Failure deleting art! Check logs for details.");
+            sender.sendMessage(Lang.COMMAND_DELETE_ERROR.get());
             ArtMap.instance().getLogger().log(Level.SEVERE, "Failure deleting art!", e);
         } 
     }

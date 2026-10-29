@@ -1,5 +1,7 @@
 package me.Fupery.ArtMap.Menu.API;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.UUID;
 
 import org.bukkit.entity.Player;
@@ -74,8 +76,14 @@ public class TextPagination {
             header.addExtra(ChatColor.GRAY + name(common.getPreviousDisabled(), " **"));
         }
         // current page text
-        String middle = ChatColor.GOLD + headerText + " :: " + ChatColor.YELLOW + Lang.SEARCH_PAGE.get() + " " 
-            + ChatColor.RED +  currentPage + MenuItems.translate(common.getSeparator()) + lastpage;
+        Map<String, String> placeholders = new HashMap<>();
+        placeholders.put("header", headerText);
+        placeholders.put("page", Lang.SEARCH_PAGE.get());
+        placeholders.put("current", String.valueOf(currentPage));
+        placeholders.put("total", String.valueOf(lastpage));
+        placeholders.put("separator", MenuItems.translate(common.getSeparator()));
+        String middle = MenuItems.translate(
+                MenuItems.replace(Lang.SEARCH_PAGE_FORMAT.get(), placeholders));
              
         int edgeSize = ((MAX_COLUMNS - middle.length())/2)-4;
         StringBuilder sb = new StringBuilder(edgeSize);

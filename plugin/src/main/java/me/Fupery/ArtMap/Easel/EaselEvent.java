@@ -17,7 +17,6 @@ import me.Fupery.ArtMap.Recipe.ArtMaterial;
 import me.Fupery.ArtMap.Utils.ItemUtils;
 import me.Fupery.ArtMap.api.Easel.ClickType;
 import me.Fupery.ArtMap.api.Exception.ArtMapException;
-import net.md_5.bungee.api.ChatColor;
 
 public final class EaselEvent {
 	private final Easel easel;
@@ -82,13 +81,11 @@ public final class EaselEvent {
 					try {
 						map = ArtMap.instance().getArtDatabase().createMap();
 					} catch (NoSuchFieldException | IllegalAccessException e) {
-						player.sendMessage(
-							ChatColor.RED + " Severe Error.  Pleae contact a server Admin! " + ChatColor.RESET);
+						player.sendMessage(Lang.GENERIC_ERROR.get());
 						ArtMap.instance().getLogger().log(Level.SEVERE, "Error creating map!", e);
 					}
 				if (map == null) {
-					player.sendMessage(
-							ChatColor.RED + " Severe Error.  Pleae contact a server Admin! " + ChatColor.RESET);
+					player.sendMessage(Lang.GENERIC_ERROR.get());
 					return;
 				}
 				map.update(player);
@@ -104,7 +101,7 @@ public final class EaselEvent {
 						art = ArtMap.instance().getArtDatabase().getArtwork(id);
 						unsaved = ArtMap.instance().getArtDatabase().containsUnsavedArtwork(id);
 					} catch(Exception e) {
-						ArtMap.instance().getScheduler().SYNC.run(player, () -> player.sendMessage("Error placing art on the Easel!"));
+						ArtMap.instance().getScheduler().SYNC.run(player, () -> player.sendMessage(Lang.EASEL_PLACE_ERROR.get()));
 						ArtMap.instance().getLogger().log(Level.SEVERE, "Error placing art on easel for edit!",e );
 						return;
 					}
@@ -119,7 +116,7 @@ public final class EaselEvent {
 								Canvas canvas = new Canvas.CanvasCopy(art.get().getMap().cloneMap(), art.get());
 								mountCanvas(itemInHand, canvas);
 							} catch (Exception e) {
-								player.sendMessage("Error placing art on the Easel!");
+								player.sendMessage(Lang.EASEL_PLACE_ERROR.get());
 								ArtMap.instance().getLogger().log(Level.SEVERE, "Error placing art on easel for edit!",e );
 							}
 						} else if ( unsaved ) {

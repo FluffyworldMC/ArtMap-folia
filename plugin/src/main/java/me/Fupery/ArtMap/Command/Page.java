@@ -9,6 +9,7 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
 import me.Fupery.ArtMap.Menu.API.TextPagination;
+import me.Fupery.ArtMap.api.Config.Lang;
 
 /** Page command handles pagination requests from other commands. */
 public class Page extends AsyncCommand {
@@ -29,7 +30,7 @@ public class Page extends AsyncCommand {
     public void runCommand(CommandSender sender, String[] args, ReturnMessage msg) {
         // args[0] is export
         if (args.length < 2) {
-            msg.message = "page syntax incorrect!";
+            msg.message = Lang.PAGE_SYNTAX_ERROR.get();
             return;
         }
 
@@ -39,18 +40,18 @@ public class Page extends AsyncCommand {
             playerId = UUID.fromString(args[1]);
             pageNum = Integer.parseInt(args[2]);
         } catch(Exception e) {
-            msg.message = "Command format incorrect.";
+            msg.message = Lang.PAGE_FORMAT_ERROR.get();
         }
 
         Player player = Bukkit.getPlayer(playerId);
         if(player == null) {
-            msg.message = "Player not found.";
+            msg.message = Lang.PAGE_PLAYER_NOT_FOUND.get();
             return;
         }
 
         TextPagination pages = pageMap.get(playerId);
         if(pages == null) {
-            msg.message = "Pagination for this player has expired.";
+            msg.message = Lang.PAGE_EXPIRED.get();
             return;
         }
         pages.sendPlayerPage(player, pageNum);

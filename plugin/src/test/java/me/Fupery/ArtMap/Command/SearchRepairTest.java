@@ -167,7 +167,7 @@ public class SearchRepairTest extends PluginTestSupport {
         verify(database).searchArtworks("her", alice);
 
         when(ArtMap.instance().getHeadsCache().getPlayerUUID("Nobody")).thenReturn(Optional.empty());
-        assertEquals("Player does not exist. :: Nobody", run(new Search(), "search", "--player", "Nobody").message);
+        assertEquals(String.format(Lang.SEARCH_PLAYER_NOT_FOUND.get(), "Nobody"), run(new Search(), "search", "--player", "Nobody").message);
     }
 
     @Test

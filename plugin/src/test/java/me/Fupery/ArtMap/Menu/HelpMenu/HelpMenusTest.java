@@ -145,7 +145,7 @@ public class HelpMenusTest extends MenuTestSupport {
     public void recipeButtonsPreviewForEveryoneAndHandItemsToAdmins() throws Exception {
         Player admin = player(true);
         Button easel = buttons(new RecipeMenu(true))[3];
-        assertTrue(lore(easel).contains(org.bukkit.ChatColor.GOLD + Lang.ADMIN_RECIPE.get()));
+        assertTrue(lore(easel).contains(Lang.ADMIN_RECIPE.get()));
         easel.onClick(admin, ClickType.RIGHT);
         verify(admin.getInventory()).addItem(any(ItemStack.class));
         easel.onClick(admin, ClickType.LEFT);
@@ -338,7 +338,7 @@ public class HelpMenusTest extends MenuTestSupport {
         UUID artist = UUID.randomUUID();
         Player admin = player(true);
         Button piece = buttons(artworks(admin, artist, "Bob", true, listed("Sunset", artist, "Bob")))[1];
-        assertTrue(lore(piece).contains(org.bukkit.ChatColor.GOLD + Lang.ADMIN_RECIPE.get()));
+        assertTrue(lore(piece).contains(Lang.ADMIN_RECIPE.get()));
         piece.onClick(admin, ClickType.LEFT);
         verify(menus).closeMenu(admin, MenuCloseReason.SWITCH);
         verify(menus).openMenu(eq(admin), isA(ArtPieceMenu.class));
@@ -423,7 +423,7 @@ public class HelpMenusTest extends MenuTestSupport {
         MapArt own = art("Mine", artist.getUniqueId(), "Me");
         try (MockedStatic<Bukkit> bukkit = asArtist(artist)) {
             Button preview = buttons(page(artist, own))[1];
-            assertTrue(lore(preview).contains(org.bukkit.ChatColor.GOLD + Lang.RECIPE_PLAYER_MAP_COPY.get()));
+            assertTrue(lore(preview).contains(Lang.RECIPE_PLAYER_MAP_COPY.get()));
 
             preview.onClick(artist, ClickType.RIGHT);
             verify(artist).sendMessage(Lang.RECIPE_PLAYER_MAP_COPY_MISSING.get());
@@ -523,7 +523,7 @@ public class HelpMenusTest extends MenuTestSupport {
         MapArt own = art("Mine", artist.getUniqueId(), "Me");
         doThrow(new SQLException("down")).when(database).deleteArtwork(own);
         accept(artist, own).onClick(artist, ClickType.LEFT);
-        verify(artist).sendMessage("Error deleting Artwork check logs.");
+        verify(artist).sendMessage(Lang.ARTWORK_DELETE_ERROR.get());
         verify(menus, never()).openMenu(eq(artist), any());
     }
 }

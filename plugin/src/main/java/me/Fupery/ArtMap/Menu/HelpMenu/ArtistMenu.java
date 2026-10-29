@@ -221,7 +221,7 @@ public class ArtistMenu extends ListMenu implements ChildMenu {
 	}
 
 	private static String resolveName(UUID artist) {
-		if (artist == null) return "Unknown";
+		if (artist == null) return Lang.ARTWORK_UNKNOWN_ARTIST.get();
 		HeadsCache heads = ArtMap.instance().getHeadsCache();
 		String name = heads != null ? heads.getPlayerName(artist) : null;
 		return hasName(name) ? name : artist.toString();

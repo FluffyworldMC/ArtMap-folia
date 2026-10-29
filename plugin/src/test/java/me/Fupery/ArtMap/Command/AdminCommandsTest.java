@@ -302,12 +302,12 @@ public class AdminCommandsTest extends PluginTestSupport {
         assertNull(run(new Page(), "page", admin.getUniqueId().toString(), "2").message);
         verify(spigot, times(7)).sendMessage(any(BaseComponent.class));
 
-        assertEquals("page syntax incorrect!", run(new Page(), "page").message);
-        assertEquals("Player not found.", run(new Page(), "page", "not-a-uuid", "1").message);
-        assertEquals("Player not found.", run(new Page(), "page", UUID.randomUUID().toString(), "1").message);
+        assertEquals(Lang.PAGE_SYNTAX_ERROR.get(), run(new Page(), "page").message);
+        assertEquals(Lang.PAGE_PLAYER_NOT_FOUND.get(), run(new Page(), "page", "not-a-uuid", "1").message);
+        assertEquals(Lang.PAGE_PLAYER_NOT_FOUND.get(), run(new Page(), "page", UUID.randomUUID().toString(), "1").message);
         Player[] candidates = mocks.getRandomMockPlayers(2);
         Player other = candidates[0] == admin ? candidates[1] : candidates[0];
-        assertEquals("Pagination for this player has expired.", run(new Page(), "page", other.getUniqueId().toString(), "1").message);
+        assertEquals(Lang.PAGE_EXPIRED.get(), run(new Page(), "page", other.getUniqueId().toString(), "1").message);
     }
 
     @Test

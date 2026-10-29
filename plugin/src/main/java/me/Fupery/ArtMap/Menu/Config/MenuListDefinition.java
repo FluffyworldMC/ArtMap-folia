@@ -10,6 +10,7 @@ import org.bukkit.configuration.ConfigurationSection;
 
 public class MenuListDefinition {
     private final int startSlot;
+    private final int endSlot;
     private final int pageSize;
     private final int previousSlot;
     private final int nextSlot;
@@ -25,6 +26,7 @@ public class MenuListDefinition {
 
     MenuListDefinition(ConfigurationSection section) {
         this.startSlot = section != null ? section.getInt("start-slot", 1) : 1;
+        this.endSlot = section != null ? section.getInt("end-slot", -1) : -1;
         this.pageSize = section != null ? section.getInt("page-size", 25) : 25;
         this.previousSlot = section != null ? section.getInt("previous-slot", 0) : 0;
         this.nextSlot = section != null ? section.getInt("next-slot", 26) : 26;
@@ -65,6 +67,11 @@ public class MenuListDefinition {
 
     public int getStartSlot() {
         return startSlot;
+    }
+
+    /** Last slot the list may use, or -1 when the list may run to the end of the inventory. */
+    public int getEndSlot() {
+        return endSlot;
     }
 
     public int getPageSize() {

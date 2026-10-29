@@ -2,7 +2,6 @@ package me.Fupery.ArtMap.Command;
 
 import java.sql.SQLException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -15,7 +14,6 @@ import me.Fupery.ArtMap.ArtMap;
 import me.Fupery.ArtMap.api.Config.Lang;
 import me.Fupery.ArtMap.IO.MapArt;
 import me.Fupery.ArtMap.Menu.API.TextPagination;
-import net.md_5.bungee.api.ChatColor;
 import net.md_5.bungee.api.chat.BaseComponent;
 import net.md_5.bungee.api.chat.ClickEvent;
 import net.md_5.bungee.api.chat.HoverEvent;
@@ -57,7 +55,7 @@ public class Search extends AsyncCommand {
             playerName = args[2].trim();
             Optional<UUID> optPlayerId = ArtMap.instance().getHeadsCache().getPlayerUUID(playerName);
             if(!optPlayerId.isPresent()) {
-                msg.message = "Player does not exist. :: " + playerName;
+                msg.message = String.format(Lang.SEARCH_PLAYER_NOT_FOUND.get(), playerName);
                 return;
             } else {
                 playerId = optPlayerId.get();
@@ -82,13 +80,13 @@ public class Search extends AsyncCommand {
 
         if(!mine && playerName == null) {
             List<String> artists = ArtMap.instance().getArtDatabase().searchArtists(searchTerm);
-            text.add(new TextComponent("------------- " + Lang.SEARCH_ARTISTS.get() + ": " + artists.size() + " ---------------"));
+            text.add(component(String.format(Lang.SEARCH_ARTISTS_HEADER.get(), artists.size())));
             //clickable links for each artist
             for(String artist : artists) {
                 text.add(this.clickableArtist(artist));
             }
         }
-        text.add(new TextComponent("------------- " + Lang.SEARCH_ARTWORKS.get() +": " + art.size() + " ---------------"));
+        text.add(component(String.format(Lang.SEARCH_ARTWORKS_HEADER.get(), art.size())));
         //clickable links for each artwork
         for(MapArt artwork : art) {
             text.add(this.clickableArtwork(pSender,artwork));
@@ -99,42 +97,59 @@ public class Search extends AsyncCommand {
     }
 
     private TextComponent clickableArtist(String artist) {
-        TextComponent text = new TextComponent("[ "+ artist + " ]");
-        text.setBold(true);
-        text.setColor(ChatColor.GRAY);
-        text.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/artmap search --player " + artist));
-        text.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new BaseComponent[]{ new TextComponent(Lang.SEARCH_ARTIST_HOVER.get()) }));
+        TextComponent text = component(Lang.SEARCH_ARTIST_BUTTON.get().replace("{artist}", artist));
+        ClickEvent click = new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/artmap search --player " + artist);
+        HoverEvent hover = new HoverEvent(HoverEvent.Action.SHOW_TEXT,
+                new BaseComponent[]{ new TextComponent(Lang.SEARCH_ARTIST_HOVER.get()) });
+        applyEvents(text, click, hover);
         return text;
     }
 
     private TextComponent clickableArtwork(Player user, MapArt art) {
-        TextComponent text = new TextComponent(art.getTitle());
-        text.setColor(ChatColor.AQUA);
+        TextComponent text = component(Lang.SEARCH_ARTWORK_TITLE.get().replace("{title}", art.getTitle()));
         // The name comes from the heads cache and is null for an artist it never cached.
         String artistName = art.getArtistName() != null ? art.getArtistName() : "?";
-        text.addExtra(ChatColor.WHITE + Lang.SEARCH_BY.get() + ChatColor.GRAY + artistName);
+        text.addExtra(component(Lang.SEARCH_BY.get() + artistName));
         int textLen = art.getTitle().length() + artistName.length();
         StringBuilder sb = new StringBuilder();
         for(int i=textLen; i<(50-textLen); i++) {
-            sb.append(".");
+            sb.append(Lang.SEARCH_FILLER.get());
         }
-        text.addExtra(ChatColor.DARK_GRAY+sb.toString());
-        TextComponent previewButton = new TextComponent(" [" + Lang.SEARCH_PREVIEW_BUTTON.get() + "] ");
-        previewButton.setColor(ChatColor.YELLOW);
-        previewButton.setBold(true);
-        previewButton.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, Arrays.asList(new TextComponent(Lang.SEARCH_PREVIEW_HOVER.get())).toArray(new BaseComponent[0])));
-        previewButton.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/art preview \"" + art.getTitle() + "\""));
+        text.addExtra(component(sb.toString()));
+        TextComponent previewButton = component(" [" + Lang.SEARCH_PREVIEW_BUTTON.get() + "] ");
+        applyEvents(previewButton,
+                new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/art preview \"" + art.getTitle() + "\""),
+                new HoverEvent(HoverEvent.Action.SHOW_TEXT, new BaseComponent[]{
+                        new TextComponent(Lang.SEARCH_PREVIEW_HOVER.get()) }));
         text.addExtra(previewButton);
         if(user.hasPermission("artmap.admin")) {
             //"/art give <player> <easel|canvas|paintbrush|artwork:<title>> [amount]"
-            TextComponent giveButton = new TextComponent(" [" + Lang.SEARCH_GIVE_BUTTON.get() + "] ");
-            giveButton.setColor(ChatColor.DARK_GREEN);
-            giveButton.setBold(true);
-            giveButton.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, Arrays.asList(new TextComponent(Lang.SEARCH_GIVE_HOVER.get())).toArray(new BaseComponent[0])));
-            giveButton.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/art give " + user.getName() + " \"artwork:" + art.getTitle() +"\""));
+            TextComponent giveButton = component(" [" + Lang.SEARCH_GIVE_BUTTON.get() + "] ");
+            applyEvents(giveButton,
+                    new ClickEvent(ClickEvent.Action.RUN_COMMAND,
+                            "/art give " + user.getName() + " \"artwork:" + art.getTitle() + "\""),
+                    new HoverEvent(HoverEvent.Action.SHOW_TEXT, new BaseComponent[]{
+                            new TextComponent(Lang.SEARCH_GIVE_HOVER.get()) }));
             text.addExtra(giveButton);
         }
         return text;
+    }
+
+    /** Builds a component from a lang value, so the colour codes live in lang.yml. */
+    private static TextComponent component(String legacy) {
+        return new TextComponent(TextComponent.fromLegacyText(legacy));
+    }
+
+    /** TextComponent.fromLegacyText returns several parts; click/hover have to be set on each. */
+    private static void applyEvents(TextComponent component, ClickEvent click, HoverEvent hover) {
+        component.setClickEvent(click);
+        component.setHoverEvent(hover);
+        if (component.getExtra() != null) {
+            for (BaseComponent extra : component.getExtra()) {
+                extra.setClickEvent(click);
+                extra.setHoverEvent(hover);
+            }
+        }
     }
 
 }

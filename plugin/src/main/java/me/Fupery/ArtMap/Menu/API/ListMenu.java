@@ -107,12 +107,14 @@ public abstract class ListMenu extends CacheableMenu {
                 ? manager.get(getMenuId()) : MenuDefinition.empty(getMenuId());
         MenuListDefinition list = definition.getList();
         ensureSortState(list);
-        int start = list != null ? list.getStartSlot() : 1;
-        int pageSize = list != null && list.getPageSize() > 0 ? list.getPageSize() : DEFAULT_PAGE_SIZE;
-        int previousSlot = list != null ? list.getPreviousSlot() : 0;
-        int nextSlot = list != null ? list.getNextSlot() : 26;
         int size = definition.resolveType(new MenuType(InventoryType.CHEST)).getDefaultSize();
         if (size <= 0) size = 27;
+        int start = list != null ? Math.max(0, list.getStartSlot()) : 1;
+        int end = list != null && list.getEndSlot() >= 0
+                ? Math.min(list.getEndSlot(), size - 1) : size - 1;
+        int pageSize = pageCapacity(definition, list, size);
+        int previousSlot = list != null ? list.getPreviousSlot() : 0;
+        int nextSlot = list != null ? list.getNextSlot() : 26;
 
         Button[] buttons = new Button[size];
         Map<String, String> placeholders = basePlaceholders();
@@ -140,17 +142,18 @@ public abstract class ListMenu extends CacheableMenu {
         page = Math.max(0, Math.min(page, lastPage));
         int startIndex = page * pageSize;
         int placed = 0;
+        int slot = start;
         for (int i = startIndex; i < listItems.size() && placed < pageSize; i++) {
-            int slot = start + placed;
-            while (slot < size && buttons[slot] != null && slot != previousSlot && slot != nextSlot) {
+            while (slot <= end && buttons[slot] != null && slot != previousSlot && slot != nextSlot) {
                 slot++;
             }
-            if (slot >= size) break;
+            if (slot > end) break;
             Button item = listItems.get(i);
             if (item != null) {
                 buttons[slot] = decorateListItem(item, i, placeholders);
             }
             placed++;
+            slot++;
         }
 
         boolean hasConfiguredBack = definition.hasAction(MenuAction.BACK)
@@ -262,8 +265,17 @@ public abstract class ListMenu extends CacheableMenu {
                 org.bukkit.inventory.meta.ItemMeta meta = stack.getItemMeta();
                 if (meta != null) {
                     String arrow = forward ? "\u27A1" : "\u2B05";
-                    meta.setDisplayName(ChatColor.GREEN + arrow + " " + Lang.SEARCH_PAGE.get() + " "
-                            + (targetPage + 1) + Lang.SEARCH_PAGE_SEPERATOR.get() + (lastPage + 1));
+                    Map<String, String> fallbackPlaceholders = new HashMap<>();
+                    fallbackPlaceholders.put("arrow", arrow);
+                    fallbackPlaceholders.put("target", String.valueOf(targetPage + 1));
+                    fallbackPlaceholders.put("pages", String.valueOf(lastPage + 1));
+                    fallbackPlaceholders.put("separator", Lang.SEARCH_PAGE_SEPERATOR.get());
+                    String format = Lang.PAGE_BUTTON_FORMAT.get();
+                    if (format == null || !format.contains("{target}")) {
+                        format = "{arrow} Page {target}{separator}{pages}";
+                    }
+                    meta.setDisplayName(MenuItems.translate(
+                            MenuItems.replace(format, fallbackPlaceholders)));
                     meta.setLore(Collections.singletonList(String.format(
                             Lang.MENU_PAGE_JUMP.get() != null ? Lang.MENU_PAGE_JUMP.get() : "Shift-click to jump %s pages", 10)));
                     stack.setItemMeta(meta);
@@ -286,8 +298,27 @@ public abstract class ListMenu extends CacheableMenu {
     }
 
     private int lastPage(int itemCount, int pageSize) {
-        if (itemCount <= 0) return 0;
-        return (itemCount - 1) / Math.max(1, pageSize);
+        if (itemCount <= 0 || pageSize <= 0) return 0;
+        return (itemCount - 1) / pageSize;
+    }
+
+    /**
+     * Number of entries one page can hold: the configured page-size, capped by the free
+     * slots between start-slot and end-slot when an end-slot is configured.
+     */
+    private int pageCapacity(MenuDefinition definition, MenuListDefinition list, int size) {
+        int configured = list != null && list.getPageSize() > 0 ? list.getPageSize() : DEFAULT_PAGE_SIZE;
+        if (list == null || list.getEndSlot() < 0) return configured;
+        int start = Math.max(0, list.getStartSlot());
+        int end = Math.min(list.getEndSlot(), size - 1);
+        if (end < start) return 0;
+        int free = 0;
+        for (int slot = start; slot <= end; slot++) {
+            if (slot == list.getPreviousSlot() || slot == list.getNextSlot()) continue;
+            if (definition.getItem(slot) != null) continue;
+            free++;
+        }
+        return Math.min(configured, free);
     }
 
     protected void changePage(Player player, boolean forward) {
@@ -296,13 +327,14 @@ public abstract class ListMenu extends CacheableMenu {
 
     protected void changePage(Player player, boolean forward, int pages) {
         int total = cachedButtons != null ? cachedButtons.size() : 0;
-        int pageSize = DEFAULT_PAGE_SIZE;
         ArtMap artMap = ArtMap.instance();
         MenuConfigManager manager = artMap != null ? artMap.getMenuConfig() : null;
         MenuDefinition definition = manager != null && getMenuId() != null
                 ? manager.get(getMenuId()) : MenuDefinition.empty(getMenuId());
         MenuListDefinition list = definition.getList();
-        if (list != null && list.getPageSize() > 0) pageSize = list.getPageSize();
+        int size = definition.resolveType(new MenuType(InventoryType.CHEST)).getDefaultSize();
+        if (size <= 0) size = 27;
+        int pageSize = pageCapacity(definition, list, size);
         int last = lastPage(total, pageSize);
         int target = forward ? page + pages : page - pages;
         page = Math.max(0, Math.min(target, last));

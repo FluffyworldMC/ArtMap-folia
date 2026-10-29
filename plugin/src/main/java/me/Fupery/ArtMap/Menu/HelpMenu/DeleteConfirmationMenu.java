@@ -55,8 +55,7 @@ public class DeleteConfirmationMenu extends ListMenu implements ChildMenu {
 	}
 
 	public static boolean isPreviewItem(ItemStack item) {
-		return item != null && item.getType() == Material.FILLED_MAP && item.hasItemMeta()
-				&& item.getItemMeta().hasLore() && item.getItemMeta().getLore().get(0).equals(ArtItem.PREVIEW_KEY);
+		return ArtItem.isPreviewItem(item);
 	}
 
 	@Override
@@ -114,7 +113,7 @@ public class DeleteConfirmationMenu extends ListMenu implements ChildMenu {
 							player.sendMessage(String.format(Lang.DELETED.get(), this.artwork.getTitle()));
 						} catch (SQLException | NoSuchFieldException | IllegalAccessException e) {
 							ArtMap.instance().getLogger().log(Level.SEVERE, "Error deleting artwork!!", e);
-							player.sendMessage("Error deleting Artwork check logs.");
+							player.sendMessage(Lang.ARTWORK_DELETE_ERROR.get());
 							return; 
 						}
 					} else {

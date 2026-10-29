@@ -21,7 +21,7 @@ class CommandPreview extends AsyncCommand {
 
     private static boolean previewArtwork(final Player player, final MapArt art) {
         if (ArtMap.instance().getConfiguration().FORCE_GUI) {
-            player.sendMessage("Please use the Paint Brush to access previews.");
+            player.sendMessage(Lang.COMMAND_PREVIEW_USAGE.get());
             return false;
         }
 
@@ -52,7 +52,7 @@ class CommandPreview extends AsyncCommand {
         try {
             art = ArtMap.instance().getArtDatabase().getArtwork(args[1]);
         } catch (SQLException e) {
-            sender.sendMessage("Error loading preview!");
+            sender.sendMessage(Lang.COMMAND_PREVIEW_ERROR.get());
             ArtMap.instance().getLogger().log(Level.SEVERE,"Error loading preview!",e);
             return;
         }

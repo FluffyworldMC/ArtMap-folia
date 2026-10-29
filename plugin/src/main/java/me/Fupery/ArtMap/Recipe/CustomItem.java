@@ -22,6 +22,7 @@ public class CustomItem {
     private final Material material;
     private String name = null;
     private String[] tooltip = new String[0];
+    private List<String> lore = null;
     private ItemFlag[] itemFlags = new ItemFlag[0];
     private HashMap<Enchantment, Integer> enchants = new HashMap<>();
     private int amount = 1;
@@ -75,6 +76,12 @@ public class CustomItem {
 
     public CustomItem tooltip(Lang.Array tooltip) {
         this.tooltip = tooltip.get();
+        return this;
+    }
+
+    /** Replaces the generated lore (key + tooltip) with an explicit list of lines. */
+    public CustomItem lore(List<String> lore) {
+        this.lore = lore != null ? new ArrayList<>(lore) : null;
         return this;
     }
 
@@ -142,10 +149,14 @@ public class CustomItem {
             return null;
         }
         if (name != null) meta.setDisplayName(name);
-        List<String> lore = new ArrayList<>();
-        lore.add(key);
-        if (tooltip.length > 0) Collections.addAll(lore, tooltip);
-        meta.setLore(lore);
+        List<String> lines = new ArrayList<>();
+        if (lore != null) {
+            lines.addAll(lore);
+        } else {
+            lines.add(key);
+            if (tooltip.length > 0) Collections.addAll(lines, tooltip);
+        }
+        meta.setLore(lines);
         if (itemFlags.length > 0) meta.addItemFlags(itemFlags);
         if (enchants.size() > 0) {
             for (Entry<Enchantment,Integer> e : enchants.entrySet()) {

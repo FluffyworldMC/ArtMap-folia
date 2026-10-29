@@ -38,7 +38,11 @@ public class MenuItemDefinition {
         this.name = configuredName;
         this.lore = section != null ? new ArrayList<>(section.getStringList("lore")) : Collections.emptyList();
         this.artItem = section != null ? section.getString("art_item") : null;
-        this.itemModel = section != null ? section.getString("item_model") : null;
+        String configuredItemModel = section != null ? section.getString("item_model") : null;
+        if (configuredItemModel == null && section != null) {
+            configuredItemModel = section.getString("item-model");
+        }
+        this.itemModel = configuredItemModel;
         this.customModelDataRaw = section != null ? section.getString("custom_model_data") : null;
         this.customModelData = section != null && section.isInt("custom_model_data")
                 ? section.getInt("custom_model_data") : null;

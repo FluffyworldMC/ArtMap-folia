@@ -107,7 +107,7 @@ public class ArtSession implements IArtSession {
             map.setRenderer(canvas);
             persistMap(false);
         } catch (NoSuchFieldException | IllegalAccessException e) {
-            player.sendMessage("Error restoring painting! Check server logs for more details!");
+            player.sendMessage(Lang.EASEL_RESTORE_ERROR.get());
             ArtMap.instance().getLogger().log(Level.SEVERE, "Error restoring painting on easel.", e);
             event.setCancelled(true);
             return false;
@@ -391,7 +391,7 @@ public class ArtSession implements IArtSession {
             persistMap(true);
             active = false;
         } catch (Exception e) {
-            player.sendMessage("Error saving painting on easel. Check logs for more details.");
+            player.sendMessage(Lang.EASEL_SAVE_ERROR.get());
             ArtMap.instance().getLogger().log(Level.SEVERE, "Error saving painting on easel.", e);
         }
         // todo map renderer getting killed after save
