@@ -85,9 +85,8 @@ public class Easel {
         }
         Easel easel = new Easel(easelLocation, true);
         easel.spawned.set(true);
-        if ((easel.hasBaseBlocks() || easel.hasSign()) && easel.exists()) {
+        if (easel.isPlacedEasel()) {
             ArtMap.instance().getEasels().put(easel.getLocation(), easel);
-            easel.spawned.set(true);
             return easel;
         }
         return null;
@@ -107,7 +106,7 @@ public class Easel {
 
         Easel easel = new Easel(easelLocation, true);
         easel.spawned.set(true);
-        if (easel.hasBaseBlocks()) {
+        if (easel.isPlacedEasel()) {
             ArtMap.instance().getEasels().put(easel.getLocation(), easel);
             return easel;
         }
@@ -121,7 +120,7 @@ public class Easel {
      * @return True if an easel spawned at this location, or false if not.
      */
     public static boolean checkForEasel(Location location) {
-        if (new Easel(location, true).exists()) {
+        if (new Easel(location, true).isPlacedEasel()) {
             return true;
         }
         if (ArtMap.instance().getEasels().containsKey(location)) {
@@ -147,6 +146,31 @@ public class Easel {
         }
         spawned.set(false);
         return false;
+    }
+
+    /**
+     * A complete easel the plugin placed, rather than player-built oak fences that
+     * merely look like one. New easels carry {@link EaselPart#EASEL_ID} on their
+     * item frame; easels placed before frames were tagged are recognised by their
+     * oak-slab seat and tagged on the spot.
+     */
+    private boolean isPlacedEasel() {
+        if (!exists()) return false;
+        if (hasSign()) return true;
+        ItemFrame iFrame = frame.get();
+        if (iFrame == null) return false;
+        if (EaselPart.EASEL_ID.equals(iFrame.getCustomName())) return true;
+        if (!hasSeatSlab()) return false;
+        // Tag on the frame's own region thread; the caller may be handling a
+        // neighbour block on another thread under Folia.
+        ArtMap.instance().getScheduler().SYNC.run(iFrame,
+                () -> iFrame.setCustomName(EaselPart.EASEL_ID));
+        return true;
+    }
+
+    private boolean hasSeatSlab() {
+        Location slab = EaselPart.getSeatSlabLocation(location, getFacing());
+        return slab != null && slab.getBlock().getType() == EaselPart.BASE_MATERIAL;
     }
 
     private boolean hasBaseBlocks() {

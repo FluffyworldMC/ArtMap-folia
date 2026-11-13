@@ -138,7 +138,7 @@ public class EaselTest extends PluginTestSupport {
         ItemFrame f = mock(ItemFrame.class);
         ItemStack air = item(Material.AIR);
         when(air.clone()).thenReturn(air); // removeItem clones the mounted item before inspecting it
-        Object[] state = { true, BlockFace.NORTH, air };
+        Object[] state = { true, BlockFace.NORTH, air, null };
         when(f.getType()).thenReturn(EntityType.ITEM_FRAME);
         when(f.getLocation()).thenReturn(at.clone());
         when(f.isValid()).thenAnswer(i -> state[0]);
@@ -147,6 +147,8 @@ public class EaselTest extends PluginTestSupport {
         when(f.getFacing()).thenAnswer(i -> state[1]);
         when(f.getItem()).thenAnswer(i -> state[2]);
         doAnswer(i -> { state[2] = i.getArgument(0); return null; }).when(f).setItem(any());
+        when(f.getCustomName()).thenAnswer(i -> state[3]);
+        doAnswer(i -> { state[3] = i.getArgument(0); return null; }).when(f).setCustomName(any());
         entities.add(f);
         return f;
     }
@@ -221,6 +223,32 @@ public class EaselTest extends PluginTestSupport {
         ArtMap.instance().getEasels().clear();
         blockType = Material.DIRT;
         assertNull(Easel.getEasel(standLoc, EaselPart.STAND), "no sign, no easel");
+    }
+
+    @Test
+    @DisplayName("player-built oak fences are not mistaken for easels")
+    public void ordinaryOakFencesAreNotEasels() {
+        baseType = Material.OAK_FENCE;
+        blockType = Material.OAK_FENCE;
+
+        assertNull(Easel.getEaselFromBase(new Location(world, 10, 64, 10)), "fence on fence");
+        assertNull(Easel.getEaselFromBase(origin), "fence on fence, clicked higher");
+        assertFalse(Easel.checkForEasel(origin));
+
+        // An ordinary item frame hung on those fences does not make an easel either.
+        frame(new Location(world, 10, 65, 11));
+        assertNull(Easel.getEasel(new Location(world, 10, 65, 11), EaselPart.FRAME));
+        assertTrue(ArtMap.instance().getEasels().isEmpty());
+    }
+
+    @Test
+    @DisplayName("a spawned easel tags its frame so it is recognised after the registry is lost")
+    public void spawnedFrameIsTagged() {
+        Easel.spawnEasel(origin, BlockFace.SOUTH);
+        assertEquals(EaselPart.EASEL_ID, theFrame().getCustomName());
+
+        ArtMap.instance().getEasels().clear();
+        assertNotNull(Easel.getEasel(new Location(world, 10, 65, 11), EaselPart.FRAME));
     }
 
     @Test

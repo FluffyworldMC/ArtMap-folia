@@ -168,6 +168,9 @@ public enum EaselPart {
 					ItemFrame frame = (ItemFrame) entity;
 					frame.setFacingDirection(facing, true);
 					frame.setCustomNameVisible(false);
+					// Marks the frame as ours so ordinary item frames on player-built
+					// oak fences are not mistaken for easels after a restart.
+					frame.setCustomName(EASEL_ID);
 					return frame;
 
 				case SEAT:
