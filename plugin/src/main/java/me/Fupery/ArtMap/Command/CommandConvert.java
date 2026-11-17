@@ -3,6 +3,7 @@ package me.Fupery.ArtMap.Command;
 import org.bukkit.command.CommandSender;
 
 import me.Fupery.ArtMap.ArtMap;
+import me.Fupery.ArtMap.api.Config.Lang;
 import me.Fupery.ArtMap.IO.Legacy.DatabaseConverter;
 import me.Fupery.ArtMap.IO.Legacy.FlatDatabaseConverter;
 import me.Fupery.ArtMap.IO.Legacy.V2DatabaseConverter;
@@ -25,25 +26,25 @@ class CommandConvert extends AsyncCommand {
         DatabaseConverter flat = new FlatDatabaseConverter(ArtMap.instance());
         DatabaseConverter v2 = new V2DatabaseConverter(ArtMap.instance());
         if(flat.isNeeded()) {
-            sender.sendMessage("Artmap: Flat DB conversion needed.");
+            sender.sendMessage(Lang.CONVERT_FLAT_NEEDED.get());
             conversionDone = flat.createExport(sender, false);
         }
         if(v2.isNeeded()) {
-            sender.sendMessage("Artmap: V2 DB conversion needed.");
+            sender.sendMessage(Lang.CONVERT_V2_NEEDED.get());
             conversionDone = v2.createExport(sender, false);
         }
         if(isForced && flat.canBeForced()) {
-            sender.sendMessage("Artmap: Flat DB conversion being forced.");
+            sender.sendMessage(Lang.CONVERT_FLAT_FORCED.get());
             conversionDone = flat.createExport(sender, true);
         }
         if(isForced && v2.canBeForced()) {
-            sender.sendMessage("Artmap: V2 DB conversion being forced.");
+            sender.sendMessage(Lang.CONVERT_V2_FORCED.get());
             conversionDone = v2.createExport(sender, true);
         }
         if(conversionDone) {
-            sender.sendMessage("Artmap: Run '/artmap import -all <filename>' replace <filename> with the filename of the export printed above. ");
+            sender.sendMessage(Lang.CONVERT_IMPORT_HINT.get());
         } else {
-            sender.sendMessage("Artmap: Conversion not needed or failed.");
+            sender.sendMessage(Lang.CONVERT_NOT_NEEDED.get());
         }
     }
 }

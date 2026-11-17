@@ -13,6 +13,7 @@ import com.google.gson.reflect.TypeToken;
 import org.bukkit.command.CommandSender;
 
 import me.Fupery.ArtMap.ArtMap;
+import me.Fupery.ArtMap.api.Config.Lang;
 import me.Fupery.ArtMap.Command.CommandExport.ArtworkExport;
 
 public abstract class DatabaseConverter {
@@ -30,7 +31,7 @@ public abstract class DatabaseConverter {
         try {
             return this.createExport(force);
         } catch (Exception e) {
-            this.sender.sendMessage("Failure creating export check logs for more info.");
+            this.sender.sendMessage(Lang.CONVERT_EXPORT_ERROR.get());
             ArtMap.instance().getLogger().log(Level.SEVERE, "Failure creating export!",e);
             return false;
         }
@@ -38,7 +39,7 @@ public abstract class DatabaseConverter {
 
     protected String export(List<ArtworkExport> export) throws Exception {
         if(export.isEmpty()) {
-            return "No artwork to export.";
+            return Lang.CONVERT_EXPORT_EMPTY.get();
         }
 
         File exportFile = File.createTempFile("conversion_", ".json", ArtMap.instance().getDataFolder());
@@ -49,10 +50,10 @@ public abstract class DatabaseConverter {
             gson.toJson(export, collectionType, writer);
             writer.flush();
             writer.close();
-            return export.size() + " artworks exported to " + exportFile.getName();
+            return String.format(Lang.CONVERT_EXPORT_COMPLETE.get(), export.size(), exportFile.getName());
         } catch (IOException e) {
             ArtMap.instance().getLogger().log(Level.WARNING, "Failure writing art export file.", e);
-            return "Failure writing art export file. Check server logs for more inforation.";
+            return Lang.CONVERT_EXPORT_WRITE_ERROR.get();
         }
 
     }

@@ -52,7 +52,7 @@ public class MenuConfigTest extends MenuTestSupport {
 
         ItemStack stack = MenuItems.build(item, new ItemStack(Material.STONE), new HashMap<>());
         assertEquals(Material.DIAMOND, stack.getType());
-        assertEquals("§aCustom", stack.getItemMeta().getDisplayName());
+        assertEquals("ยงaCustom", stack.getItemMeta().getDisplayName());
         assertEquals(Arrays.asList("one", "two"), stack.getItemMeta().getLore());
         assertTrue(stack.getItemMeta().hasCustomModelData());
         assertEquals(4321, stack.getItemMeta().getCustomModelData());
@@ -73,13 +73,13 @@ public class MenuConfigTest extends MenuTestSupport {
         yaml.set("display_name", "&aShown");
         MenuItemDefinition item = new MenuItemDefinition(yaml);
         ItemStack stack = MenuItems.build(item, new ItemStack(Material.AIR), new HashMap<>());
-        assertEquals("§aShown", stack.getItemMeta().getDisplayName());
+        assertEquals("ยงaShown", stack.getItemMeta().getDisplayName());
     }
 
     @Test
     public void hexColoursAreTranslated() {
-        assertEquals("§x§f§f§0§0§0§0Red", MenuItems.translate("&#ff0000Red"));
-        assertEquals("§x§1§2§3§4§5§6Green", MenuItems.translate("&x&1&2&3&4&5&6Green"));
+        assertEquals("ยงxยงfยงfยง0ยง0ยง0ยง0Red", MenuItems.translate("&#ff0000Red"));
+        assertEquals("ยงxยง1ยง2ยง3ยง4ยง5ยง6Green", MenuItems.translate("&x&1&2&3&4&5&6Green"));
     }
 
     @Test
@@ -116,4 +116,5 @@ public class MenuConfigTest extends MenuTestSupport {
     public void commonPaginationProvidesADefaultBackButton() {
         assertNotNull(ArtMap.instance().getMenuConfig().getCommon().getBack());
     }
+
 }

@@ -1,7 +1,6 @@
 package me.Fupery.ArtMap.Menu.HelpMenu;
 
 import java.sql.SQLException;
-import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -145,8 +144,7 @@ public class ArtistMenu extends ListMenu implements ChildMenu {
 		cachedArtists = buttons;
 
 		if (notCached > 1 && !haveWarnedUser) {
-			this.viewer.sendMessage(MessageFormat.format(
-					"ArtMap: {0} artist(s) currently not cached you might see some incorrect heads until they are all loaded.", notCached));
+			this.viewer.sendMessage(String.format(Lang.ARTIST_HEADS_LOADING.get(), notCached));
 			haveWarnedUser = true;
 		}
 	}

@@ -184,7 +184,7 @@ public class ArtistHandler implements IArtistHandler {
 			player.sendMessage(String.format(Lang.PREFIX + Lang.SAVE_SUCCESS.get(), title));
 			easel.playEffect(EaselEffect.SAVE_ARTWORK);
 		} catch (DuplicateArtworkException | PermissionException e) {
-			player.sendMessage(e.getMessage());
+			player.sendMessage(e instanceof DuplicateArtworkException ? Lang.TITLE_USED.get() : Lang.NO_PERM.get());
 		} catch (SQLException | IOException | NoSuchFieldException | IllegalAccessException | ArtMapException e) {
 			player.sendMessage(String.format(Lang.PREFIX + Lang.SAVE_FAILURE.get(), title));
 			ArtMap.instance().getLogger().log(Level.SEVERE, "Error saving artwork!", e);

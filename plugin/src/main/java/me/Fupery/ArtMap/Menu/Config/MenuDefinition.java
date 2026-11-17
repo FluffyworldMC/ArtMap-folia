@@ -22,6 +22,8 @@ public class MenuDefinition {
     private final MenuListDefinition list;
     private final MenuItemDefinition brush;
     private final Map<String, String> toolNames;
+    private final Map<String, String> colorNames;
+    private final Map<String, String> shadeNames;
 
     MenuDefinition(String id, FileConfiguration config) {
         this.id = id;
@@ -61,6 +63,33 @@ public class MenuDefinition {
             }
         }
         this.toolNames = Collections.unmodifiableMap(names);
+        this.colorNames = readNames(config, "color_names");
+        this.shadeNames = readNames(config, "shade_names");
+    }
+
+    private static Map<String, String> readNames(FileConfiguration config, String path) {
+        Map<String, String> names = new LinkedHashMap<>();
+        if (config.getDefaults() != null) {
+            ConfigurationSection defaults = config.getDefaults().getConfigurationSection(path);
+            if (defaults != null) {
+                for (String key : defaults.getKeys(false)) names.put(key, defaults.getString(key));
+            }
+        }
+        ConfigurationSection section = config.getConfigurationSection(path);
+        if (section != null) {
+            for (String key : section.getKeys(false)) {
+                names.put(key, section.getString(key));
+            }
+        }
+        return Collections.unmodifiableMap(names);
+    }
+
+    public String getColorName(int base) {
+        return MenuItems.translate(colorNames.getOrDefault(String.valueOf(base), String.valueOf(base)));
+    }
+
+    public String getShadeName(int shade) {
+        return MenuItems.translate(shadeNames.getOrDefault(String.valueOf(shade), String.valueOf(shade)));
     }
 
     public static MenuDefinition empty(String id) {

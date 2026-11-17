@@ -57,7 +57,7 @@ public class CommandExport extends AsyncCommand {
                         artToExport.addAll(ArtMap.instance().getArtDatabase().listMapArt(artist));
                     }
                 } catch (SQLException e2) {
-                    msg.message = "Database error! Check logs.";
+                    msg.message = Lang.DATABASE_ERROR.get();
                     ArtMap.instance().getLogger().log(Level.SEVERE, "Database error!", e2);
                     return;
                 }
@@ -80,13 +80,13 @@ public class CommandExport extends AsyncCommand {
                         Player p = Bukkit.getPlayer(args[2]);
                         if(p==null) {
                             if(sender != null) {
-                                sender.sendMessage("Player not found! :: " + args[2]);
+                                sender.sendMessage(String.format(Lang.TRANSFER_PLAYER_NOT_FOUND.get(), args[2]));
                             }
                             return;
                         }
                         arts = ArtMap.instance().getArtDatabase().listMapArt(p.getUniqueId());
                     } catch (SQLException e) {
-                        msg.message = "Database error! Check logs.";
+                        msg.message = Lang.DATABASE_ERROR.get();
                         ArtMap.instance().getLogger().log(Level.SEVERE, "Database error!", e);
                         return;
                     }
@@ -109,7 +109,7 @@ public class CommandExport extends AsyncCommand {
                 try {
                     art = ArtMap.instance().getArtDatabase().getArtwork(args[2]);
                 } catch (SQLException e1) {
-                    msg.message = "Database error! Check logs.";
+                    msg.message = Lang.DATABASE_ERROR.get();
                     ArtMap.instance().getLogger().log(Level.SEVERE, "Database error!", e1);
                     return;
                 }
@@ -128,23 +128,23 @@ public class CommandExport extends AsyncCommand {
         }
 
         if (artToExport.isEmpty()) {
-            sender.sendMessage("No artwork found export!");
+            sender.sendMessage(Lang.EXPORT_EMPTY.get());
             return;
         }
-        sender.sendMessage(MessageFormat.format("Beginning export of {0} artworks.", artToExport.size()));
+        sender.sendMessage(String.format(Lang.EXPORT_BEGIN.get(), artToExport.size()));
         List<ArtworkExport> exports = new LinkedList<>();
         for (MapArt artwork : artToExport) {
             CompressedMap map = null;
             try {
                 map = ArtMap.instance().getArtDatabase().getArtworkCompressedMap(artwork.getMapId()).orElse(null);
             } catch (SQLException e) {
-                msg.message = "Database error! Check logs.";
+                msg.message = Lang.DATABASE_ERROR.get();
                 ArtMap.instance().getLogger().log(Level.SEVERE, "Database error!", e);
             }
             if (map != null) {
                 exports.add(new ArtworkExport(artwork, map));
             } else {
-                sender.sendMessage(artwork + " no matching map in Map table! Error! Skipping...");
+                sender.sendMessage(String.format(Lang.EXPORT_MAP_MISSING.get(), artwork.getMapId(), artwork.getTitle()));
             }
         }
         if(!exportFilename.endsWith(".json")) {
@@ -152,7 +152,7 @@ public class CommandExport extends AsyncCommand {
         }
         File exportFile = new File(ArtMap.instance().getDataFolder(), exportFilename);
         if (exportFile.exists()) {
-            sender.sendMessage("File all ready exists please choose another filename.");
+            sender.sendMessage(Lang.EXPORT_FILE_EXISTS.get());
             return;
         }
         try (FileWriter writer = new FileWriter(exportFile);) {
@@ -161,7 +161,7 @@ public class CommandExport extends AsyncCommand {
             }.getType();
             gson.toJson(exports, collectionType, writer);
             writer.flush();
-            sender.sendMessage(MessageFormat.format("Completed export of {0} artworks.", exports.size()));
+            sender.sendMessage(String.format(Lang.EXPORT_COMPLETE.get(), exports.size()));
         } catch (IOException e) {
             ArtMap.instance().getLogger().log(Level.SEVERE, "Failure writing export!", e);
         }

@@ -69,26 +69,27 @@ public class Repair extends AsyncCommand {
             try {
                 art = ArtMap.instance().getArtDatabase().getArtwork(input);
             } catch (SQLException e) {
-                return e.getMessage();
+                ArtMap.instance().getLogger().log(Level.SEVERE, "Failed to retrieve artwork by name!", e);
+                return Lang.DATABASE_ERROR.get();
             }
             if(!art.isPresent()) {
-                return "No artwork found with this name: " + input;
+                return String.format(Lang.REPAIR_NOT_FOUND.get(), input);
             }
             id = art.get().getMapId();
         }
         try {
             boolean repaired = this.repairArtwork(id, repair);
             if(repair) {
-                return repaired ? "Artwork repaired." : "Artwork repair failed check the logs.";
+                return repaired ? Lang.REPAIR_SUCCESS.get() : Lang.REPAIR_FAILED.get();
             } else {
-                return repaired ? "Artwork is corrupted." : "Artwork is in a good state.";
+                return repaired ? Lang.REPAIR_CORRUPTED.get() : Lang.REPAIR_HEALTHY.get();
             }
             
         } catch (FileNotFoundException e) {
-            return e.getMessage();
+            return String.format(Lang.REPAIR_ID_NOT_FOUND.get(), id);
         } catch (SQLException e) {
             ArtMap.instance().getLogger().log(Level.SEVERE, "Failed to retrieve artwork! :: " + id, e);
-            return "Database error! Check logs.";
+            return Lang.DATABASE_ERROR.get();
         }
         
     }

@@ -244,7 +244,7 @@ public class HelpMenusTest extends MenuTestSupport {
         Button[] list = buttons(menu);
         assertEquals(viewer.getUniqueId().toString(), list[1].getItemMeta().getDisplayName());
         assertTrue(List.of(artist.toString(), other.toString()).contains(list[2].getItemMeta().getDisplayName()));
-        verify(viewer).sendMessage(org.mockito.ArgumentMatchers.contains("2 artist(s) currently not cached"));
+        verify(viewer).sendMessage(String.format(Lang.ARTIST_HEADS_LOADING.get(), 2));
 
         clearInvocations(viewer);
         buttons(new ArtistMenu(viewer));
@@ -252,6 +252,28 @@ public class HelpMenusTest extends MenuTestSupport {
 
         assertNotNull(menu.getParent(viewer));
         assertNull(menu.getViewer(), "the mocked viewer is not online on the MockBukkit server");
+    }
+
+    @Test
+    public void uncachedArtistWarningUsesConfiguredText() throws Exception {
+        java.lang.reflect.Field message = Lang.class.getDeclaredField("message");
+        message.setAccessible(true);
+        String original = Lang.ARTIST_HEADS_LOADING.get();
+        try {
+            message.set(Lang.ARTIST_HEADS_LOADING, "Custom heads: %s");
+            resetWarning();
+            Player viewer = player(false);
+            when(database.listArtists(viewer.getUniqueId())).thenReturn(List.of(UUID.randomUUID(), UUID.randomUUID()));
+            when(ArtMap.instance().getHeadsCache().isHeadCached(any(UUID.class))).thenReturn(false);
+            buttons(new ArtistMenu(viewer));
+            verify(viewer).sendMessage("Custom heads: 2");
+            clearInvocations(viewer);
+            buttons(new ArtistMenu(viewer));
+            verify(viewer, never()).sendMessage(any(String.class));
+        } finally {
+            message.set(Lang.ARTIST_HEADS_LOADING, original);
+            resetWarning();
+        }
     }
 
     @Test

@@ -1,18 +1,18 @@
 package me.Fupery.ArtMap.Painting.Artkit;
 
+import me.Fupery.ArtMap.ArtMap;
+
 public class ArtkitColor {
     private final int index;
     private final int base;
     private final int shade;
     private final String hex;
-    private final String name;
 
-    ArtkitColor(int index, int base, int shade, String hex, String name) {
+    ArtkitColor(int index, int base, int shade, String hex) {
         this.index = index;
         this.base = base;
         this.shade = shade;
         this.hex = hex;
-        this.name = name;
     }
 
     public int getIndex() {
@@ -32,7 +32,7 @@ public class ArtkitColor {
     }
 
     public String getName() {
-        return name;
+        return ArtMap.instance().getMenuConfig().get("artkit").getColorName(base);
     }
 
     public byte getByte() {
@@ -40,15 +40,6 @@ public class ArtkitColor {
     }
 
     public String getShadeName() {
-        switch (shade) {
-            case 0:
-                return "Dark";
-            case 1:
-                return "Dim";
-            case 2:
-                return "Base";
-            default:
-                return "Light";
-        }
+        return ArtMap.instance().getMenuConfig().get("artkit").getShadeName(shade);
     }
 }

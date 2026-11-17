@@ -159,7 +159,7 @@ public class PlayerCommandsTest extends PluginTestSupport {
 
         run(new CommandSave(), player, "save", "Sunset");
 
-        verify(player).sendMessage("taken");
+        verify(player).sendMessage(Lang.TITLE_USED.get());
         assertTrue(handler.containsPlayer(player), "a refused save leaves the painter seated");
     }
 

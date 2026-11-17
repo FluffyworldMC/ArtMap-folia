@@ -7,7 +7,7 @@
 	<parent>
 		<groupId>com.gitlab.blockstack</groupId>
 		<artifactId>ArtMap-parent</artifactId>
-		<version>3.9.28</version>
+		<version>4.0.0</version>
 		<relativePath>..</relativePath>
 	</parent>
 	<build>
@@ -35,6 +35,8 @@
 				<configuration>
 					<!-- Fresh JVM per test class: Bukkit.setServer() is a one-shot singleton,
 					     so MockBukkit-based tests and MockUtil-based tests cannot share a JVM. -->
+					<!-- Start Mockito as an agent: runtime self-attachment can fail on Windows. -->
+					<argLine>@{argLine} "-javaagent:${settings.localRepository}/org/mockito/mockito-core/5.24.0/mockito-core-5.24.0.jar"</argLine>
 					<forkCount>1</forkCount>
 					<reuseForks>false</reuseForks>
 				</configuration>
@@ -216,48 +218,48 @@
 		<dependency>
 			<groupId>com.gitlab.blockstack</groupId>
 			<artifactId>Spigot_1_13</artifactId>
-			<version>3.9.28</version>
+			<version>4.0.0</version>
 		</dependency>
 		<dependency>
 			<groupId>com.gitlab.blockstack</groupId>
 			<artifactId>Spigot_1_14</artifactId>
-			<version>3.9.28</version>
+			<version>4.0.0</version>
 		</dependency>
 		<dependency>
 			<groupId>com.gitlab.blockstack</groupId>
 			<artifactId>Spigot_1_16</artifactId>
-			<version>3.9.28</version>
+			<version>4.0.0</version>
 		</dependency>
 		<dependency>
 			<groupId>com.gitlab.blockstack</groupId>
 			<artifactId>Spigot_1_18</artifactId>
-			<version>3.9.28</version>
+			<version>4.0.0</version>
 		</dependency>
 		<dependency>
 			<groupId>com.gitlab.blockstack</groupId>
 			<artifactId>Spigot_1_20_2</artifactId>
-			<version>3.9.28</version>
+			<version>4.0.0</version>
 		</dependency>
 		<!--Artmap plugin compatibility addons-->
 		<dependency>
 			<groupId>com.gitlab.blockstack</groupId>
 			<artifactId>CMI</artifactId>
-			<version>3.9.28</version>
+			<version>4.0.0</version>
 		</dependency>
 		<dependency>
 			<groupId>com.gitlab.blockstack</groupId>
 			<artifactId>Towny</artifactId>
-			<version>3.9.28</version>
+			<version>4.0.0</version>
 		</dependency>
 		<dependency>
 			<groupId>com.gitlab.blockstack</groupId>
 			<artifactId>USkyBlock</artifactId>
-			<version>3.9.28</version>
+			<version>4.0.0</version>
 		</dependency>
 		<dependency>
 			<groupId>com.gitlab.blockstack</groupId>
 			<artifactId>WorldGuard</artifactId>
-			<version>3.9.28</version>
+			<version>4.0.0</version>
 		</dependency>
 		<!--  Mojang dependency -->
 		<dependency>

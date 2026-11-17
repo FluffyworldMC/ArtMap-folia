@@ -1,4 +1,4 @@
-package me.Fupery.ArtMap.io.Database;
+package me.Fupery.ArtMap.IO.Database;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;

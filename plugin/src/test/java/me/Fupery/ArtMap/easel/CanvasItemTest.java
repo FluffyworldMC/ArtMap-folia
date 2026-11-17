@@ -1,4 +1,4 @@
-package me.Fupery.ArtMap.easel;
+package me.Fupery.ArtMap.Easel;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;

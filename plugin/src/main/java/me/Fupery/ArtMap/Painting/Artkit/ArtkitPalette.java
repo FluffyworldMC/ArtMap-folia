@@ -5,19 +5,6 @@ import java.util.Collections;
 import java.util.List;
 
 public final class ArtkitPalette {
-    private static final String[] NAMES = {
-            "Transparent", "Grass", "Sand", "Wool", "Fire", "Ice", "Metal", "Plant",
-            "Snow", "Clay", "Dirt", "Stone", "Water", "Wood", "Quartz", "Orange",
-            "Magenta", "Light Blue", "Yellow", "Light Green", "Pink", "Gray", "Light Gray", "Cyan",
-            "Purple", "Blue", "Brown", "Green", "Red", "Black", "Gold", "Diamond",
-            "Lapis", "Emerald", "Podzol", "Nether", "Terracotta White", "Terracotta Orange",
-            "Terracotta Magenta", "Terracotta Light Blue", "Terracotta Yellow", "Terracotta Lime",
-            "Terracotta Pink", "Terracotta Gray", "Terracotta Light Gray", "Terracotta Cyan",
-            "Terracotta Purple", "Terracotta Blue", "Terracotta Brown", "Terracotta Green",
-            "Terracotta Red", "Terracotta Black", "Crimson Nylium", "Crimson Stem", "Crimson Hyphae",
-            "Warped Nylium", "Warped Stem", "Warped Hyphae", "Warped Wart", "Deepslate", "Raw Iron",
-            "Glow Lichen", "Color 62", "Color 63"
-    };
     private static final String[] HEX = {
             "000000", "7fb238", "f7e9a3", "c7c7c7", "ff0000", "a0a0ff", "a7a7a7", "007c00",
             "ffffff", "a4a8b8", "976d4d", "707070", "4040ff", "8f7748", "fffcf5", "d87f33",
@@ -37,12 +24,12 @@ public final class ArtkitPalette {
 
     private static List<ArtkitColor> build() {
         List<ArtkitColor> colors = new ArrayList<>();
-        for (int base = 1; base < NAMES.length; base++) {
+        for (int base = 1; base < HEX.length; base++) {
             for (int shade = 0; shade < 4; shade++) {
                 int index = base * 4 + shade;
                 if (index > 255) break;
                 String hex = shade(HEX[base], SHADE_FACTOR[shade]);
-                colors.add(new ArtkitColor(index, base, shade, hex, NAMES[base]));
+                colors.add(new ArtkitColor(index, base, shade, hex));
             }
         }
         return Collections.unmodifiableList(colors);

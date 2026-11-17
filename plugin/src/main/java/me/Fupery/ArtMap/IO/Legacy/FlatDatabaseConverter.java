@@ -1,6 +1,7 @@
 package me.Fupery.ArtMap.IO.Legacy;
 
 import me.Fupery.ArtMap.ArtMap;
+import me.Fupery.ArtMap.api.Config.Lang;
 import me.Fupery.ArtMap.Command.CommandExport.ArtworkExport;
 import me.Fupery.ArtMap.IO.Database.Map;
 import me.Fupery.ArtMap.IO.MapArt;
@@ -52,15 +53,15 @@ public class FlatDatabaseConverter extends DatabaseConverter {
         File databaseFile = new File(plugin.getDataFolder(), dbFileName);
         if (!databaseFile.exists())
             return false;
-        sendMessage("Old 'mapList.yml' database found! Converting to new format ...");
-        sendMessage("(This may take a while, but only needs to run once)");
+        sendMessage(Lang.CONVERT_FLAT_FOUND.get());
+        sendMessage(Lang.CONVERT_WAIT.get());
         List<ArtworkExport> artList = readArtworks(databaseFile);
         String msg = this.export(artList);
         sendMessage(msg);
 
         File disabledDatabaseFile = new File(plugin.getDataFolder(), dbFileName + ".off");
         if (!databaseFile.renameTo(disabledDatabaseFile)) {
-            sendMessage("Error disabling mapList.yml! Delete this file manually.");
+            sendMessage(Lang.CONVERT_FLAT_DISABLE_ERROR.get());
             return false;
         }
         return true;
@@ -82,30 +83,30 @@ public class FlatDatabaseConverter extends DatabaseConverter {
                         ? Bukkit.getOfflinePlayer(UUID.fromString(map.getString("artist")))
                         : null;
                 if (player == null) {
-                    sendMessage(String.format("    Ignoring '%s' (no artist recorded) ...", title));
+                    sendMessage(String.format(Lang.CONVERT_SKIP_NO_ARTIST.get(), title));
                     continue;
                 }
                 String date = map.getString("date");
                 MapView mapView = ArtMap.getMap(mapIDValue);
                 if (mapView == null) {
-                    sendMessage(String.format("    Ignoring '%s' (failed to access map data) ...", title));
+                    sendMessage(String.format(Lang.CONVERT_SKIP_NO_MAP.get(), title));
                     continue;
                 }
                 MapArt artwork = new MapArt(mapIDValue, title, player.getUniqueId(), player.getName(), date);
                 try {
                     if (ArtMap.instance().getArtDatabase().containsArtwork(artwork, true)) {
-                        sendMessage(String.format("    Ignoring '%s' (already exists in database) ...", title));
+                        sendMessage(String.format(Lang.CONVERT_SKIP_DUPLICATE.get(), title));
                     } else {
-                        sendMessage(String.format("    Converting '%s' ...", title));
+                        sendMessage(String.format(Lang.CONVERT_ARTWORK.get(), title));
                         try {
                             artList.add(new ArtworkExport(artwork, new Map(mapView).compress()));
                         } catch (IOException e) {
-                            sendMessage(String.format("    Failure converting '%s'!!!", title));
+                            sendMessage(String.format(Lang.CONVERT_ARTWORK_ERROR.get(), title));
                             ArtMap.instance().getLogger().log(Level.SEVERE, "Failure converting: " + title, e);
                         }
                     }
                 } catch (SQLException e) {
-                    sendMessage("Error accessing DB!");
+                    sendMessage(Lang.CONVERT_DATABASE_ERROR.get());
                     ArtMap.instance().getLogger().log(Level.SEVERE,"Error accessing DB!",e);
                 }
             }

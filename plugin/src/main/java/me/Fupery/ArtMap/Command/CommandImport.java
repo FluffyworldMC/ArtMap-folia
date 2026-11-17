@@ -4,7 +4,6 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.lang.reflect.Type;
-import java.text.MessageFormat;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.UUID;
@@ -72,7 +71,7 @@ class CommandImport extends AsyncCommand {
         //add .json and look again
         importFile = new File(ArtMap.instance().getDataFolder(), importFilename);
         if (!importFile.exists()) {
-            sender.sendMessage("Import file cannot be found!");
+            sender.sendMessage(Lang.IMPORT_FILE_NOT_FOUND.get());
             return;
         }
         try {
@@ -86,7 +85,7 @@ class CommandImport extends AsyncCommand {
             ArtMap.instance().getLogger().log(Level.SEVERE, "Failure reading import!", e);
         }
 
-        sender.sendMessage(MessageFormat.format("{0} artworks available for import.", artToImport.size()));
+        sender.sendMessage(String.format(Lang.IMPORT_AVAILABLE.get(), artToImport.size()));
         switch (args[1]) {
         case "-all":
             this.delayedImport(sender,artToImport);
@@ -108,7 +107,7 @@ class CommandImport extends AsyncCommand {
                 Player p = Bukkit.getPlayer(args[2]);
                 if(p==null) {
                     if(sender != null) {
-                        sender.sendMessage("Player not found! :: " + args[2]);
+                        sender.sendMessage(String.format(Lang.TRANSFER_PLAYER_NOT_FOUND.get(), args[2]));
                         return;
                     }
                 }
@@ -135,7 +134,7 @@ class CommandImport extends AsyncCommand {
             msg.message = Lang.COMMAND_EXPORT.get();
             return;
         }
-        sender.sendMessage("Import complete. Check the console for errors.");
+        sender.sendMessage(Lang.IMPORT_COMPLETE.get());
     }
 
     //Slows the import down a bit to keep from lagging the main thread (10 per second)

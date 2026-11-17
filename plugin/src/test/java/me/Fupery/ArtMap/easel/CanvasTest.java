@@ -1,4 +1,4 @@
-package me.Fupery.ArtMap.easel;
+package me.Fupery.ArtMap.Easel;
 
 import java.io.File;
 import java.util.Arrays;

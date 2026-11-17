@@ -2,6 +2,10 @@ package me.Fupery.ArtMap.Menu.Config;
 
 import java.io.File;
 import java.io.Reader;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.StandardOpenOption;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -60,6 +64,28 @@ public class MenuConfigManager {
             Reader reader = plugin.getTextResourceFile(resourcePath);
             if (reader != null) {
                 config = YamlConfiguration.loadConfiguration(reader);
+            }
+        }
+        if ("menu/artkit.yml".equals(resourcePath)) {
+            try (Reader reader = plugin.getTextResourceFile(resourcePath)) {
+                if (reader != null) {
+                    YamlConfiguration defaults = YamlConfiguration.loadConfiguration(reader);
+                    YamlConfiguration additions = new YamlConfiguration();
+                    for (String key : Arrays.asList("color_names", "shade_names")) {
+                        if (!config.contains(key)) {
+                            Map<String, Object> values = defaults.getConfigurationSection(key).getValues(false);
+                            config.createSection(key, values);
+                            additions.createSection(key, values);
+                        }
+                    }
+                    config.setDefaults(defaults);
+                    if (!additions.getKeys(false).isEmpty()) {
+                        Files.write(file.toPath(), (System.lineSeparator() + additions.saveToString())
+                                .getBytes(StandardCharsets.UTF_8), StandardOpenOption.CREATE, StandardOpenOption.APPEND);
+                    }
+                }
+            } catch (IOException e) {
+                plugin.getLogger().log(Level.WARNING, "Could not save ArtKit color names.", e);
             }
         }
         return config;

@@ -2,6 +2,7 @@ package me.Fupery.ArtMap.IO.Legacy;
 
 import me.Fupery.ArtMap.IO.ColourMap.f32x32;
 import me.Fupery.ArtMap.ArtMap;
+import me.Fupery.ArtMap.api.Config.Lang;
 import me.Fupery.ArtMap.Command.CommandExport.ArtworkExport;
 import me.Fupery.ArtMap.IO.CompressedMap;
 import me.Fupery.ArtMap.IO.Database.SQLiteDatabase;
@@ -54,8 +55,8 @@ public class V2DatabaseConverter extends DatabaseConverter {
         if (!databaseFile.exists())
             return false;
 
-        sendMessage("Old 'ArtMap.db' database found! Converting to new format ...");
-        sendMessage("(This may take a while, but only needs to run once)");
+        sendMessage(Lang.CONVERT_V2_FOUND.get());
+        sendMessage(Lang.CONVERT_WAIT.get());
 
         List<ArtworkExport> artList = readArtworks(dbFileName);
         String message = this.export(artList);
@@ -63,7 +64,7 @@ public class V2DatabaseConverter extends DatabaseConverter {
 
         if (dbFileName.equals("ArtMap.db")) {
             if (!databaseFile.renameTo(new File(plugin.getDataFolder(), dbFileName + ".off"))) {
-                sendMessage("Failed to move old ArtMap.db to ArtMap.db.off pleae do it manually.");
+                sendMessage(Lang.CONVERT_V2_DISABLE_ERROR.get());
                 return true;
             }
         }
@@ -78,7 +79,7 @@ public class V2DatabaseConverter extends DatabaseConverter {
         database.initialize(table);
         for (RichMapArt artwork : table.readArtworks()) {
             String title = artwork.getArt().getTitle();
-            sendMessage(String.format("    Converting '%s' ...", title));
+            sendMessage(String.format(Lang.CONVERT_ARTWORK.get(), title));
             artList.add(new ArtworkExport(artwork.getArt(), artwork.getMap()));
         }
         return artList;
